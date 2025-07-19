@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useDecksStore } from '../store';
-import Flashcard from './Flashcard';
+import Flashcard from './FlashCard';
 
 // Helper function to shuffle an array
 const shuffleArray = (array) => {
