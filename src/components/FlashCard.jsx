@@ -1,7 +1,7 @@
 import React from 'react';
 
 // Component for a single Flashcard
-const Flashcard = ({ cardData, isFlipped, onFlip }) => {
+const FlashCard = ({ cardData, isFlipped, onFlip }) => {
     const containerStyle = { perspective: '1000px' };
     const cardStyle = {
       transformStyle: 'preserve-3d',
@@ -30,4 +30,4 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
     );
 };
 
-export default Flashcard;
+export default FlashCard;
