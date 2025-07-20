@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
-import toast from 'react-hot-toast';
 
 // Helper function to shuffle an array
 const shuffleArray = (array) => {
@@ -111,7 +110,6 @@ const ListeningView = ({ decks }) => {
             // --- NEW: Check for a review round ---
             if (reviewPile.length > 0) {
                 // If there are cards to review, start the review round
-                toast('Let\'s review the ones you missed!');
                 setSessionCards(shuffleArray(reviewPile));
                 setReviewPile([]); // Clear the pile for the next round
                 setIsReviewRound(true);

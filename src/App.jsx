@@ -32,7 +32,7 @@ const AppLayout = () => {
             {!shouldHideHeader && <Header />}
             
             {/* The main content area's styling is also adjusted for a more seamless look */}
-            <main className={`w-full ${!shouldHideHeader ? 'bg-gray-50 p-6 rounded-lg shadow-inner' : ''}`}>
+            <main className={`w-full ${!shouldHideHeader ? 'bg-gray-50 rounded-lg shadow-inner' : ''}`}>
                 <div className="w-full max-w-md mx-auto">
                     <Routes>
                         <Route path="/" element={<DeckSelectionScreen decks={decks} />} />

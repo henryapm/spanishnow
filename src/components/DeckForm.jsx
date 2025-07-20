@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
+import { v4 as uuidv4 } from 'uuid'; // Import the UUID library
 
 const DeckForm = ({ decks }) => {
     const { deckId } = useParams();
@@ -8,23 +9,26 @@ const DeckForm = ({ decks }) => {
     const saveDeck = useDecksStore((state) => state.saveDeck);
 
     const isEditMode = Boolean(deckId);
-    const initialData = isEditMode ? decks[deckId] : { title: '', cards: [{ spanish: '', english: '', vocab: '' }], isFree: true, price: 0 };
-
+    
     // --- Form State ---
     const [title, setTitle] = useState('');
-    const [cards, setCards] = useState([{ spanish: '', english: '', vocab: '' }]);
+    // Add an initial ID to the first card input
+    const [cards, setCards] = useState([{ spanish: '', english: '', vocab: '', id: uuidv4() }]);
     const [isFree, setIsFree] = useState(true);
     const [price, setPrice] = useState(0);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        if (initialData) {
+        if (isEditMode && decks[deckId]) {
+            const initialData = decks[deckId];
             setTitle(initialData.title || '');
-            setCards(initialData.cards || [{ spanish: '', english: '', vocab: '' }]);
+            // Ensure all existing cards from the database have an ID
+            const cardsWithIds = initialData.cards ? initialData.cards.map(card => card.id ? card : { ...card, id: uuidv4() }) : [];
+            setCards(cardsWithIds.length > 0 ? cardsWithIds : [{ spanish: '', english: '', vocab: '', id: uuidv4() }]);
             setIsFree(initialData.isFree !== undefined ? initialData.isFree : true);
             setPrice(initialData.price || 0);
         }
-    }, [deckId, decks, isEditMode, initialData]);
+    }, [deckId, decks, isEditMode]);
 
     const handleCardChange = (index, field, value) => {
         const newCards = [...cards];
@@ -33,7 +37,8 @@ const DeckForm = ({ decks }) => {
     };
 
     const addCardInput = () => {
-        setCards([...cards, { spanish: '', english: '', vocab: '' }]);
+        // Add a unique ID to every new card
+        setCards([...cards, { spanish: '', english: '', vocab: '', id: uuidv4() }]);
     };
 
     const handlePriceChange = (e) => {
@@ -60,7 +65,8 @@ const DeckForm = ({ decks }) => {
         setIsSaving(true);
         const deckData = {
             title,
-            cards: cards.filter(c => c.spanish.trim() && c.english.trim()),
+            // Ensure all cards have an ID before saving
+            cards: cards.filter(c => c.spanish.trim() && c.english.trim()).map(c => c.id ? c : { ...c, id: uuidv4() }),
             isFree,
             price: isFree ? 0 : price,
         };
@@ -68,7 +74,7 @@ const DeckForm = ({ decks }) => {
         navigate('/');
     };
     
-    if (isEditMode && !initialData) {
+    if (isEditMode && !decks[deckId]) {
         return <div>Loading deck data...</div>
     }
 
@@ -115,7 +121,8 @@ const DeckForm = ({ decks }) => {
 
 
                 {cards.map((card, index) => (
-                    <div key={index} className="mb-4 p-4 border rounded-md">
+                    // Use the card's unique ID as the key for better performance
+                    <div key={card.id} className="mb-4 p-4 border rounded-md">
                         <h3 className="font-bold mb-2">Card {index + 1}</h3>
                         <input type="text" value={card.spanish} onChange={(e) => handleCardChange(index, 'spanish', e.target.value)} placeholder="Spanish" className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-2"/>
                         <input type="text" value={card.english} onChange={(e) => handleCardChange(index, 'english', e.target.value)} placeholder="English" className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-2"/>
