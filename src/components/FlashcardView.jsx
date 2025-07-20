@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useDecksStore } from '../store';
-import Flashcard from './Flashcard';
+import FlashCard from './FlashCard';
 
 // Helper function to shuffle an array
 const shuffleArray = (array) => {
@@ -99,7 +99,7 @@ const FlashcardView = ({ decks }) => {
     return (
         <div className="w-full animate-fade-in">
             <h1 className="text-xl font-bold text-teal-800 mb-6 text-center">{deck.title}</h1>
-            <Flashcard cardData={currentCard} isFlipped={isFlipped} onFlip={() => setIsFlipped(!isFlipped)} />
+            <FlashCard cardData={currentCard} isFlipped={isFlipped} onFlip={() => setIsFlipped(!isFlipped)} />
             <div className="mt-8 flex justify-around items-center">
                  <button 
                     onClick={() => handleAnswer(false)} 
