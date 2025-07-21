@@ -65,7 +65,7 @@ const DeckList = ({ decks, mode }) => {
                                 {deck.isFree ? (
                                     <span className="text-xs font-bold bg-green-500 text-white px-2 py-1 rounded-full">FREE</span>
                                 ) : (
-                                    <span className="text-xs font-bold bg-yellow-500 text-gray-800 px-2 py-1 rounded-full">${deck.price?.toFixed(2)}</span>
+                                    <span className="text-xl font-bold px-2 py-1 rounded-full">🔒</span>
                                 )}
                             </div>
                         </button>

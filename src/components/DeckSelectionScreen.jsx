@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import DeckList from './DeckList';
 
-// This is the new component for the review screen content
+// This is the component for the review screen content
 const ReviewView = ({ reviewCards, onStartReview }) => (
     <div className="text-center p-4">
         <div className="mb-8 p-6 bg-white rounded-lg shadow-md">
@@ -30,10 +30,10 @@ const DeckSelectionScreen = ({ decks }) => {
     const navigate = useNavigate();
     const [activeMode, setActiveMode] = useState('study'); // 'study', 'listen', or 'review'
 
-    // Selecting each piece of state individually and correctly
     const isAdmin = useDecksStore((state) => state.isAdmin);
-    const purchasedDeckIds = useDecksStore((state) => state.purchasedDeckIds);
     const progress = useDecksStore((state) => state.progress);
+    // --- NEW: Get subscription status from the store ---
+    const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
 
     const reviewCards = useMemo(() => {
         const cardsToReview = [];
@@ -67,15 +67,15 @@ const DeckSelectionScreen = ({ decks }) => {
     return (
         <div className="flex flex-col h-full">
             {/* --- Main Content Area --- */}
-            <div className="flex-grow overflow-y-auto px-4 pb-28"> {/* Increased padding-bottom */}
+            <div className="flex-grow overflow-y-auto px-4 pb-28">
                 {activeMode === 'review' ? (
                     <ReviewView reviewCards={reviewCards} onStartReview={handleReviewClick} />
                 ) : (
-                    <div className="text-center">
+                    <div className="text-center p-4">
                         <h1 className="text-4xl font-bold text-gray-800 mb-4">Select a Deck</h1>
-                        <DeckList decks={decks} mode={activeMode} />
+                        {/* Pass the subscription status to the DeckList component */}
+                        <DeckList decks={decks} mode={activeMode} hasActiveSubscription={hasActiveSubscription} />
 
-                        {/* --- FIX: Moved Admin button inside the scrollable content area --- */}
                         {isAdmin && (
                             <div className="mt-12">
                                 <button onClick={() => navigate('/create')} className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">

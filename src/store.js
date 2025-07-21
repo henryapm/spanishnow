@@ -14,7 +14,7 @@ export const useDecksStore = create((set, get) => ({
   isLoading: true,
   currentUser: null,
   isAdmin: false,
-  purchasedDeckIds: [],
+  hasActiveSubscription: false, // Replaces purchasedDeckIds
   progress: {},
   listeningPreference: 'es-ES',
   totalXp: 0,
@@ -31,9 +31,12 @@ export const useDecksStore = create((set, get) => ({
         
         let userPreference = 'es-ES';
         let userXp = 0;
+        let subscriptionStatus = false; // Default to no subscription
+
         if (userDocSnap.exists()) {
             userPreference = userDocSnap.data().listeningPreference || 'es-ES';
             userXp = userDocSnap.data().totalXp || 0;
+            subscriptionStatus = userDocSnap.data().hasActiveSubscription === true;
         }
 
         const purchaseSnapshot = await getDocs(collection(db, 'users', user.uid, 'purchasedDecks'));
@@ -45,7 +48,7 @@ export const useDecksStore = create((set, get) => ({
         set({ 
           currentUser: user, 
           isAdmin: tokenResult.claims.admin === true,
-          purchasedDeckIds: purchasedIds,
+          hasActiveSubscription: subscriptionStatus, // Set the user's subscription status
           progress: progressData,
           listeningPreference: userPreference,
           totalXp: userXp,

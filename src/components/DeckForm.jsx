@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
-import { v4 as uuidv4 } from 'uuid'; // Import the UUID library
+import { v4 as uuidv4 } from 'uuid';
 
 const DeckForm = ({ decks }) => {
     const { deckId } = useParams();
@@ -12,21 +12,22 @@ const DeckForm = ({ decks }) => {
     
     // --- Form State ---
     const [title, setTitle] = useState('');
-    // Add an initial ID to the first card input
     const [cards, setCards] = useState([{ spanish: '', english: '', vocab: '', id: uuidv4() }]);
-    const [isFree, setIsFree] = useState(true);
-    const [price, setPrice] = useState(0);
+    const [isFree, setIsFree] = useState(true); // A deck is free by default
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (isEditMode && decks[deckId]) {
             const initialData = decks[deckId];
             setTitle(initialData.title || '');
-            // Ensure all existing cards from the database have an ID
+            // Ensure all existing cards have an ID, add one if missing
             const cardsWithIds = initialData.cards ? initialData.cards.map(card => card.id ? card : { ...card, id: uuidv4() }) : [];
             setCards(cardsWithIds.length > 0 ? cardsWithIds : [{ spanish: '', english: '', vocab: '', id: uuidv4() }]);
-            setIsFree(initialData.isFree !== undefined ? initialData.isFree : true);
-            setPrice(initialData.price || 0);
+            // A deck is free if isFree is explicitly true. Otherwise, it's premium.
+            setIsFree(initialData.isFree === true);
+        } else {
+            // Default for new decks is free
+            setIsFree(true);
         }
     }, [deckId, decks, isEditMode]);
 
@@ -41,22 +42,6 @@ const DeckForm = ({ decks }) => {
         setCards([...cards, { spanish: '', english: '', vocab: '', id: uuidv4() }]);
     };
 
-    const handlePriceChange = (e) => {
-        const newPrice = parseFloat(e.target.value) || 0;
-        setPrice(newPrice);
-        if (newPrice > 0) {
-            setIsFree(false);
-        }
-    };
-
-    const handleFreeToggle = (e) => {
-        const newIsFree = e.target.checked;
-        setIsFree(newIsFree);
-        if (newIsFree) {
-            setPrice(0);
-        }
-    };
-
     const handleSave = async () => {
         if (!title.trim() || cards.some(c => !c.spanish.trim() || !c.english.trim())) {
             alert('Please fill out the deck title and at least one full card.');
@@ -67,8 +52,7 @@ const DeckForm = ({ decks }) => {
             title,
             // Ensure all cards have an ID before saving
             cards: cards.filter(c => c.spanish.trim() && c.english.trim()).map(c => c.id ? c : { ...c, id: uuidv4() }),
-            isFree,
-            price: isFree ? 0 : price,
+            isFree, // Save the isFree status. If false, it's part of the premium subscription.
         };
         await saveDeck(deckData, deckId);
         navigate('/');
@@ -91,32 +75,21 @@ const DeckForm = ({ decks }) => {
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mb-6"
                 />
 
-                {/* --- Pricing and Free Toggle --- */}
-                <div className="flex justify-between items-center bg-gray-100 p-4 rounded-lg mb-6">
+                {/* --- Simplified Free vs. Premium Toggle --- */}
+                <div className="bg-gray-100 p-4 rounded-lg mb-6">
                     <div className="flex items-center">
                         <input
                             type="checkbox"
                             id="isFree"
                             checked={isFree}
-                            onChange={handleFreeToggle}
+                            onChange={(e) => setIsFree(e.target.checked)}
                             className="h-5 w-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                         />
-                        <label htmlFor="isFree" className="ml-2 text-gray-700 font-bold">
-                            Free Deck
+                        <label htmlFor="isFree" className="ml-3 text-gray-700 font-bold">
+                            This is a Free Deck
                         </label>
                     </div>
-                    <div className="flex items-center">
-                        <span className="text-gray-700 font-bold mr-2">$</span>
-                        <input
-                            type="number"
-                            value={price}
-                            onChange={handlePriceChange}
-                            disabled={isFree}
-                            min="0"
-                            step="0.01"
-                            className="shadow-inner appearance-none border rounded w-24 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-                    </div>
+                    <p className="text-sm text-gray-500 mt-2 ml-8">If unchecked, this deck will require a premium subscription to access.</p>
                 </div>
 
 
