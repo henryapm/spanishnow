@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
 // Import the store and our components
 import { useDecksStore } from './store'; 
@@ -10,17 +10,11 @@ import Header from './components/Header';
 import LandingPage from './components/LandingPage';
 import AccountPage from './components/AccountPage';
 import ListeningView from './components/ListeningView';
+import SessionManager from './components/SessionManager';
 
 // This component is the main layout for authenticated (logged-in) users.
 const AppLayout = () => {
     const { decks, isLoading } = useDecksStore();
-    const location = useLocation(); // Hook to get the current URL path
-
-    // --- NEW LOGIC ---
-    // Define the paths where the header should be hidden.
-    // We use startsWith to catch dynamic paths like /decks/someId and /listen/someId.
-    const hideHeaderOnPaths = ['/decks/', '/listen/', '/review'];
-    const shouldHideHeader = hideHeaderOnPaths.some(path => location.pathname.startsWith(path));
 
     if (isLoading && Object.keys(decks).length === 0) {
         return <h1 className="text-4xl font-bold text-teal-800 mb-8 text-center">Loading...</h1>;
@@ -28,11 +22,8 @@ const AppLayout = () => {
 
     return (
         <div className="w-full max-w-2xl">
-            {/* The Header is now rendered conditionally based on the current path */}
-            {!shouldHideHeader && <Header />}
-            
-            {/* The main content area's styling is also adjusted for a more seamless look */}
-            <main className={`w-full ${!shouldHideHeader ? 'bg-gray-50 rounded-lg shadow-inner' : ''}`}>
+            <Header />
+            <main className="w-full bg-gray-50 p-6 rounded-lg shadow-inner">
                 <div className="w-full max-w-md mx-auto">
                     <Routes>
                         <Route path="/" element={<DeckSelectionScreen decks={decks} />} />
@@ -42,6 +33,7 @@ const AppLayout = () => {
                         <Route path="/review" element={<FlashcardView decks={decks} />} />
                         <Route path="/account" element={<AccountPage decks={decks} />} />
                         <Route path="/listen/:deckId" element={<ListeningView decks={decks} />} />
+                        <Route path="/lesson" element={<SessionManager />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </div>
@@ -53,11 +45,27 @@ const AppLayout = () => {
 // The main App component that controls everything
 export default function App() {
     const { currentUser, listenForAuthChanges, fetchDecks } = useDecksStore();
+    const navigate = useNavigate();
+    
+    // --- FIX: Use a ref to track the previous user state ---
+    const prevUserRef = useRef(currentUser);
     
     useEffect(() => {
         listenForAuthChanges(); 
         fetchDecks();
     }, []);
+
+    // This effect now correctly handles navigation ONLY on the transition from logged-out to logged-in.
+    useEffect(() => {
+        // Check if the user state has changed from null/undefined to a logged-in user object.
+        if (!prevUserRef.current && currentUser) {
+            // This is the moment the user has just logged in.
+            navigate('/');
+        }
+        // Update the ref to the current user for the next render cycle.
+        prevUserRef.current = currentUser;
+    }, [currentUser, navigate]);
+
 
     return (
         <div className="bg-gray-100 min-h-screen flex flex-col items-center justify-center font-sans p-4">

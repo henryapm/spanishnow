@@ -1,123 +1,124 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
-import DeckList from './DeckList';
 
-// This is the component for the review screen content
-const ReviewView = ({ reviewCards, onStartReview }) => (
-    <div className="text-center p-4">
-        <div className="mb-8 p-6 bg-white rounded-lg shadow-md">
-            <h2 className="text-3xl font-bold text-teal-800">Review Your Weak Cards</h2>
-            <p className="text-gray-600 my-3">
-                Spaced repetition is the key to mastery. This session contains all the cards you've recently marked for review.
-            </p>
-            <p className="text-lg text-gray-800 my-4">
-                You have <span className="font-bold text-blue-600 text-xl">{reviewCards ? reviewCards.length : 0}</span> cards ready for practice.
-            </p>
-            <button 
-                onClick={onStartReview} 
-                disabled={!reviewCards || reviewCards.length === 0} 
-                className="w-full px-8 py-4 bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-                Start Review Session
-            </button>
-        </div>
-    </div>
-);
+// Helper function to group decks by topic
+const groupDecksByTopic = (decks) => {
+    const topics = {};
+    for (const deckId in decks) {
+        const deck = decks[deckId];
+        // Default to 'General' if a topic isn't specified
+        const topic = deck.topic || 'General'; 
+        if (!topics[topic]) {
+            topics[topic] = [];
+        }
+        // Sort decks by level within the topic
+        topics[topic].push({ ...deck, id: deckId });
+        topics[topic].sort((a, b) => (a.level || 0) - (b.level || 0));
+    }
+    return topics;
+};
 
+// Helper function to chunk an array into smaller arrays
+const chunkArray = (array, size) => {
+    const chunkedArr = [];
+    for (let i = 0; i < array.length; i += size) {
+        chunkedArr.push(array.slice(i, i + size));
+    }
+    return chunkedArr;
+};
 
 const DeckSelectionScreen = ({ decks }) => {
     const navigate = useNavigate();
-    const [activeMode, setActiveMode] = useState('study'); // 'study', 'listen', or 'review'
-
+    
     const isAdmin = useDecksStore((state) => state.isAdmin);
-    const progress = useDecksStore((state) => state.progress);
-    // --- NEW: Get subscription status from the store ---
     const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
+    const progress = useDecksStore((state) => state.progress);
 
-    const reviewCards = useMemo(() => {
-        const cardsToReview = [];
-        if (progress) {
-            for (const deckId in progress) {
-                const deckData = decks[deckId];
-                if (deckData && deckData.cards) {
-                    for (const cardId in progress[deckId]) {
-                        const masteryLevel = progress[deckId][cardId];
-                        if (masteryLevel === 0) {
-                            const cardData = deckData.cards.find(c => c.id === cardId);
-                            if (cardData) {
-                                cardsToReview.push({ ...cardData, deckId });
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return cardsToReview;
-    }, [decks, progress]);
+    const topics = useMemo(() => groupDecksByTopic(decks), [decks]);
 
-    const handleReviewClick = () => {
-        if (reviewCards && reviewCards.length > 0) {
-            navigate('/review', { state: { reviewCards } });
+    const handleLessonClick = (lessonCards, deck) => {
+        const hasAccess = deck.isFree || isAdmin || hasActiveSubscription;
+        if (hasAccess) {
+            navigate('/lesson', { state: { lessonCards } });
         } else {
-            alert("Great job! You have no cards to review right now.");
+            alert("This is a premium topic. Subscribe to get access!");
         }
     };
 
     return (
-        <div className="flex flex-col h-full">
-            {/* --- Main Content Area --- */}
-            <div className="flex-grow overflow-y-auto px-4 pb-28">
-                {activeMode === 'review' ? (
-                    <ReviewView reviewCards={reviewCards} onStartReview={handleReviewClick} />
-                ) : (
-                    <div className="text-center p-4">
-                        <h1 className="text-4xl font-bold text-gray-800 mb-4">Select a Deck</h1>
-                        {/* Pass the subscription status to the DeckList component */}
-                        <DeckList decks={decks} mode={activeMode} hasActiveSubscription={hasActiveSubscription} />
+        <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-800 mb-8">Choose a Topic to Learn</h1>
 
-                        {isAdmin && (
-                            <div className="mt-12">
-                                <button onClick={() => navigate('/create')} className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
-                                    + Add New Deck
-                                </button>
+            <div className="space-y-8">
+                {Object.keys(topics).map(topicName => {
+                    const topicDecks = topics[topicName];
+                    const isTopicPremium = !topicDecks[0].isFree;
+                    const hasAccess = !isTopicPremium || isAdmin || hasActiveSubscription;
+                    
+                    let nextLessonFound = false;
+
+                    return (
+                        <div key={topicName} className="bg-white p-6 rounded-lg shadow-md">
+                            <h2 className="text-2xl font-bold text-teal-700 capitalize mb-4 flex justify-between items-center">
+                                {topicName}
+                                {isTopicPremium && (
+                                    <span className="text-xs font-bold bg-purple-600 text-white px-2 py-1 rounded-full">PREMIUM</span>
+                                )}
+                            </h2>
+                            <div className="flex flex-col gap-3">
+                                {topicDecks.map(deck => {
+                                    const lessons = chunkArray(deck.cards, 3);
+                                    return lessons.map((lessonCards, index) => {
+                                        // --- CORRECTED COMPLETION LOGIC ---
+                                        // A lesson is only completed if every card has a mastery level of 1 or higher.
+                                        const isLessonCompleted = lessonCards.every(card => (progress[deck.id]?.[card.id] || 0) >= 1);
+                                        
+                                        let lessonStatus = 'locked'; // Default status
+                                        if (isLessonCompleted) {
+                                            lessonStatus = 'completed';
+                                        } else if (!nextLessonFound) {
+                                            lessonStatus = 'next';
+                                            nextLessonFound = true;
+                                        }
+
+                                        const isDisabled = (lessonStatus === 'locked' && !isAdmin) || !hasAccess;
+
+                                        return (
+                                            <button
+                                                key={`${deck.id}-lesson-${index}`}
+                                                onClick={() => handleLessonClick(lessonCards, deck)}
+                                                disabled={isDisabled}
+                                                className={`w-full text-left p-4 rounded-md transition-colors flex justify-between items-center
+                                                    ${lessonStatus === 'next' && hasAccess ? 'bg-blue-100 hover:bg-blue-200 border-2 border-blue-500' : ''}
+                                                    ${lessonStatus === 'completed' ? 'bg-green-50 text-gray-500' : ''}
+                                                    ${isDisabled ? 'bg-gray-200 opacity-60 cursor-not-allowed' : ''}
+                                                `}
+                                            >
+                                                <span className={`font-semibold ${lessonStatus === 'next' && hasAccess ? 'text-blue-800' : 'text-gray-800'}`}>
+                                                    {deck.title} - Lesson {index + 1}
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    {lessonStatus === 'completed' && <span role="img" aria-label="completed">✅</span>}
+                                                    {isDisabled && <span role="img" aria-label="locked">🔒</span>}
+                                                </div>
+                                            </button>
+                                        )
+                                    })
+                                })}
                             </div>
-                        )}
-                    </div>
-                )}
+                        </div>
+                    );
+                })}
             </div>
 
-            {/* --- Bottom Navigation Menu --- */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 z-10">
-                <div className="flex justify-around max-w-md mx-auto">
-                    <button 
-                        onClick={() => setActiveMode('study')}
-                        className={`flex-1 py-4 text-center font-bold transition-colors ${activeMode === 'study' ? 'text-teal-600 border-b-4 border-teal-600' : 'text-gray-500'}`}
-                    >
-                        Flashcards
-                    </button>
-                    <button 
-                        onClick={() => setActiveMode('listen')}
-                        className={`flex-1 py-4 text-center font-bold transition-colors ${activeMode === 'listen' ? 'text-teal-600 border-b-4 border-teal-600' : 'text-gray-500'}`}
-                    >
-                        Listening
-                    </button>
-                    <button 
-                        onClick={() => setActiveMode('review')}
-                        className={`relative flex-1 py-4 text-center font-bold transition-colors ${activeMode === 'review' ? 'text-blue-600 border-b-4 border-blue-600' : 'text-gray-500'}`}
-                    >
-                        Review
-                        {reviewCards && reviewCards.length > 0 && (
-                            <span className="absolute top-2 right-2 flex h-5 w-5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 text-white text-xs items-center justify-center">
-                                    {reviewCards.length}
-                                </span>
-                            </span>
-                        )}
+            {isAdmin && (
+                <div className="mt-12">
+                    <button onClick={() => navigate('/create')} className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                        + Add New Deck
                     </button>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

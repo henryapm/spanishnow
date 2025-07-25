@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useDecksStore } from '../store';
 
 // Helper function to shuffle an array
@@ -14,11 +14,13 @@ const shuffleArray = (array) => {
 
 const DISTRACTOR_WORDS = ['y', 'el', 'es', 'con', 'mi', 'su', 'un', 'una'];
 
-const ListeningView = ({ decks }) => {
-    const { deckId } = useParams();
+const ListeningView = ({ decks, deckId: propDeckId, onCorrect, onIncorrect, isPracticeSession = false }) => {
+    const { deckId: paramDeckId } = useParams();
     const navigate = useNavigate();
     
-    // Get all the necessary actions and state from the store
+    // Determine the correct deckId to use
+    const deckId = isPracticeSession ? propDeckId : paramDeckId;
+    
     const updateCardProgress = useDecksStore((state) => state.updateCardProgress);
     const addXp = useDecksStore((state) => state.addXp);
     const resetStreak = useDecksStore((state) => state.resetStreak);
@@ -27,26 +29,24 @@ const ListeningView = ({ decks }) => {
     
     const deck = decks[deckId];
 
-    // --- Component State ---
     const [sessionCards, setSessionCards] = useState([]);
-    const [reviewPile, setReviewPile] = useState([]); // --- NEW: To hold incorrect cards ---
-    const [isReviewRound, setIsReviewRound] = useState(false); // --- NEW: To track the review phase ---
+    const [currentCardIndex, setCurrentCardIndex] = useState(0);
     const [userAnswer, setUserAnswer] = useState([]);
     const [wordBank, setWordBank] = useState([]);
-    const [feedback, setFeedback] = useState(''); // '', 'correct', 'incorrect'
+    const [feedback, setFeedback] = useState('');
+    const [wasIncorrectInSession, setWasIncorrectInSession] = useState(false);
     const [isSessionComplete, setIsSessionComplete] = useState(false);
     const [sessionXp, setSessionXp] = useState(0);
 
     useEffect(() => {
         if (deck && deck.cards) {
             setSessionCards(shuffleArray(deck.cards));
-            setReviewPile([]);
-            setIsReviewRound(false);
+            setWasIncorrectInSession(false);
             setSessionXp(0);
         }
     }, [deck]);
 
-    const currentCard = sessionCards[0];
+    const currentCard = sessionCards[currentCardIndex];
 
     useEffect(() => {
         if (currentCard) {
@@ -94,34 +94,16 @@ const ListeningView = ({ decks }) => {
         } else {
             setFeedback('incorrect');
             resetStreak();
-            // --- NEW: Add incorrect card to the review pile ---
-            setReviewPile(prev => [...prev, currentCard]);
+            setWasIncorrectInSession(true);
             updateCardProgress(deckId, currentCard.id, false);
         }
     };
 
     const handleContinue = () => {
-        const remainingCards = sessionCards.slice(1);
-        
-        if (remainingCards.length > 0) {
-            // If there are still cards in the main session, continue
-            setSessionCards(remainingCards);
+        if (feedback === 'correct') {
+            onCorrect();
         } else {
-            // --- NEW: Check for a review round ---
-            if (reviewPile.length > 0) {
-                // If there are cards to review, start the review round
-                setSessionCards(shuffleArray(reviewPile));
-                setReviewPile([]); // Clear the pile for the next round
-                setIsReviewRound(true);
-            } else {
-                // If no cards to review, the session is complete
-                if (!isReviewRound) { // Award bonus only if they got everything right on the first pass
-                    const bonusXp = 100;
-                    addXp(bonusXp, "Perfect Listening Session!");
-                    setSessionXp(prev => prev + bonusXp);
-                }
-                setIsSessionComplete(true);
-            }
+            onIncorrect();
         }
     };
 
@@ -148,18 +130,23 @@ const ListeningView = ({ decks }) => {
         return <div className="text-center">Loading listening session...</div>;
     }
 
-    const progressPercentage = ((deck.cards.length - sessionCards.length) / deck.cards.length) * 100;
+    const progressPercentage = (currentCardIndex / sessionCards.length) * 100;
 
     return (
         <div className="w-full animate-fade-in">
-            <h1 className="text-xl font-bold text-teal-800 mb-2 text-center">{deck.title}</h1>
-            {isReviewRound && <p className="text-center font-bold text-yellow-600 mb-2">Review Round!</p>}
+            <h1 className="text-3xl font-bold text-teal-800 mb-2 text-center">{deck.title}</h1>
             
-            <div className="mb-4 bg-white p-3 rounded-lg shadow-inner">
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
+            {!isPracticeSession && (
+                <div className="mb-4 bg-white p-3 rounded-lg shadow-inner">
+                    <div className="flex justify-between items-center mb-1 text-sm font-semibold text-gray-600">
+                        <span>Session Progress</span>
+                        <span>Total XP: {totalXp.toLocaleString()}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <p className="text-center text-gray-600 mb-4">Listen to the sentence and construct it below.</p>
@@ -216,7 +203,7 @@ const ListeningView = ({ decks }) => {
                     )}
                 </div>
             </div>
-            <button onClick={() => navigate('/')} className="mt-6 text-gray-500 hover:text-gray-700 transition-colors w-full text-center">← Back to Decks</button>
+            {!isPracticeSession && <button onClick={() => navigate('/')} className="mt-6 text-gray-500 hover:text-gray-700 transition-colors w-full text-center">← Back to Decks</button>}
         </div>
     );
 };

@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { db } from './firebase';
 import { collection, getDocs, addDoc, doc, updateDoc, setDoc, getDoc, increment } from "firebase/firestore"; 
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
-import toast from 'react-hot-toast';
 
 const auth = getAuth();
 const provider = new GoogleAuthProvider();
@@ -69,16 +68,12 @@ export const useDecksStore = create((set, get) => ({
 
     if (newStreak === 5) {
         bonus = 50;
-        toast.success('🔥 5 in a row! +50 Bonus XP!');
         set({ streak: 0 });
     } else {
         set({ streak: newStreak });
     }
     
     const totalAmount = amount + bonus;
-    if (message) {
-        toast.success(`${message} +${totalAmount} XP`);
-    }
     
     set(state => ({ totalXp: state.totalXp + totalAmount }));
     const userDocRef = doc(db, 'users', currentUser.uid);
