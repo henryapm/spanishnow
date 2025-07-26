@@ -5,14 +5,17 @@ import { useDecksStore } from '../store';
 // Helper function to group decks by topic
 const groupDecksByTopic = (decks) => {
     const topics = {};
+    const TOPIC_ORDER = ['greetings', 'restaurant', 'airport', 'hospital', 'soccer', 'General'];
+    TOPIC_ORDER.forEach(topic => {
+        topics[topic] = [];
+    });
+
     for (const deckId in decks) {
         const deck = decks[deckId];
-        // Default to 'General' if a topic isn't specified
-        const topic = deck.topic || 'General'; 
+        const topic = deck.topic || 'General';
         if (!topics[topic]) {
             topics[topic] = [];
         }
-        // Sort decks by level within the topic
         topics[topic].push({ ...deck, id: deckId });
         topics[topic].sort((a, b) => (a.level || 0) - (b.level || 0));
     }
@@ -40,11 +43,15 @@ const DeckSelectionScreen = ({ decks }) => {
     const handleLessonClick = (lessonCards, deck) => {
         const hasAccess = deck.isFree || isAdmin || hasActiveSubscription;
         if (hasAccess) {
-            navigate('/lesson', { state: { lessonCards } });
+            // --- FIX: Add the deckId to the navigation state ---
+            // This ensures the SessionManager knows which deck the lesson belongs to.
+            navigate('/lesson', { state: { lessonCards, deckId: deck.id } });
         } else {
             alert("This is a premium topic. Subscribe to get access!");
         }
     };
+
+    let globalNextLessonFound = false;
 
     return (
         <div className="text-center">
@@ -53,11 +60,11 @@ const DeckSelectionScreen = ({ decks }) => {
             <div className="space-y-8">
                 {Object.keys(topics).map(topicName => {
                     const topicDecks = topics[topicName];
+                    if (!topicDecks || topicDecks.length === 0) return null;
+
                     const isTopicPremium = !topicDecks[0].isFree;
                     const hasAccess = !isTopicPremium || isAdmin || hasActiveSubscription;
                     
-                    let nextLessonFound = false;
-
                     return (
                         <div key={topicName} className="bg-white p-6 rounded-lg shadow-md">
                             <h2 className="text-2xl font-bold text-teal-700 capitalize mb-4 flex justify-between items-center">
@@ -70,16 +77,14 @@ const DeckSelectionScreen = ({ decks }) => {
                                 {topicDecks.map(deck => {
                                     const lessons = chunkArray(deck.cards, 3);
                                     return lessons.map((lessonCards, index) => {
-                                        // --- CORRECTED COMPLETION LOGIC ---
-                                        // A lesson is only completed if every card has a mastery level of 1 or higher.
                                         const isLessonCompleted = lessonCards.every(card => (progress[deck.id]?.[card.id] || 0) >= 1);
                                         
-                                        let lessonStatus = 'locked'; // Default status
+                                        let lessonStatus = 'locked';
                                         if (isLessonCompleted) {
                                             lessonStatus = 'completed';
-                                        } else if (!nextLessonFound) {
+                                        } else if (!globalNextLessonFound) {
                                             lessonStatus = 'next';
-                                            nextLessonFound = true;
+                                            globalNextLessonFound = true;
                                         }
 
                                         const isDisabled = (lessonStatus === 'locked' && !isAdmin) || !hasAccess;
@@ -100,7 +105,6 @@ const DeckSelectionScreen = ({ decks }) => {
                                                 </span>
                                                 <div className="flex items-center gap-2">
                                                     {lessonStatus === 'completed' && <span role="img" aria-label="completed">✅</span>}
-                                                    {isDisabled && <span role="img" aria-label="locked">🔒</span>}
                                                 </div>
                                             </button>
                                         )

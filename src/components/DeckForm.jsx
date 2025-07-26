@@ -13,20 +13,23 @@ const DeckForm = ({ decks }) => {
     // --- Form State ---
     const [title, setTitle] = useState('');
     const [cards, setCards] = useState([{ spanish: '', english: '', vocab: '', id: uuidv4() }]);
-    const [isFree, setIsFree] = useState(true); // A deck is free by default
+    const [isFree, setIsFree] = useState(true);
+    // --- NEW: State for topic and level ---
+    const [topic, setTopic] = useState('');
+    const [level, setLevel] = useState(1);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (isEditMode && decks[deckId]) {
             const initialData = decks[deckId];
             setTitle(initialData.title || '');
-            // Ensure all existing cards have an ID, add one if missing
             const cardsWithIds = initialData.cards ? initialData.cards.map(card => card.id ? card : { ...card, id: uuidv4() }) : [];
             setCards(cardsWithIds.length > 0 ? cardsWithIds : [{ spanish: '', english: '', vocab: '', id: uuidv4() }]);
-            // A deck is free if isFree is explicitly true. Otherwise, it's premium.
             setIsFree(initialData.isFree === true);
+            // --- NEW: Populate topic and level fields ---
+            setTopic(initialData.topic || '');
+            setLevel(initialData.level || 1);
         } else {
-            // Default for new decks is free
             setIsFree(true);
         }
     }, [deckId, decks, isEditMode]);
@@ -38,21 +41,22 @@ const DeckForm = ({ decks }) => {
     };
 
     const addCardInput = () => {
-        // Add a unique ID to every new card
         setCards([...cards, { spanish: '', english: '', vocab: '', id: uuidv4() }]);
     };
 
     const handleSave = async () => {
-        if (!title.trim() || cards.some(c => !c.spanish.trim() || !c.english.trim())) {
-            alert('Please fill out the deck title and at least one full card.');
+        if (!title.trim() || !topic.trim()) {
+            alert('Please fill out the deck title and topic.');
             return;
         }
         setIsSaving(true);
         const deckData = {
             title,
-            // Ensure all cards have an ID before saving
             cards: cards.filter(c => c.spanish.trim() && c.english.trim()).map(c => c.id ? c : { ...c, id: uuidv4() }),
-            isFree, // Save the isFree status. If false, it's part of the premium subscription.
+            isFree,
+            // --- NEW: Add topic and level to the saved data ---
+            topic: topic.toLowerCase(), // Save topic in lowercase for consistency
+            level: Number(level),
         };
         await saveDeck(deckData, deckId);
         navigate('/');
@@ -71,11 +75,34 @@ const DeckForm = ({ decks }) => {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g., At the Airport"
+                    placeholder="e.g., At the Restaurant (Basic)"
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mb-6"
                 />
 
-                {/* --- Simplified Free vs. Premium Toggle --- */}
+                {/* --- NEW: Topic and Level Inputs --- */}
+                <div className="flex gap-4 mb-6">
+                    <div className="flex-1">
+                        <label className="block text-gray-700 text-sm font-bold mb-2">Topic</label>
+                        <input 
+                            type="text"
+                            value={topic}
+                            onChange={(e) => setTopic(e.target.value)}
+                            placeholder="e.g., Restaurant"
+                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+                        />
+                    </div>
+                    <div className="w-24">
+                        <label className="block text-gray-700 text-sm font-bold mb-2">Level</label>
+                        <input 
+                            type="number"
+                            value={level}
+                            onChange={(e) => setLevel(e.target.value)}
+                            min="1"
+                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+                        />
+                    </div>
+                </div>
+
                 <div className="bg-gray-100 p-4 rounded-lg mb-6">
                     <div className="flex items-center">
                         <input
@@ -92,9 +119,7 @@ const DeckForm = ({ decks }) => {
                     <p className="text-sm text-gray-500 mt-2 ml-8">If unchecked, this deck will require a premium subscription to access.</p>
                 </div>
 
-
                 {cards.map((card, index) => (
-                    // Use the card's unique ID as the key for better performance
                     <div key={card.id} className="mb-4 p-4 border rounded-md">
                         <h3 className="font-bold mb-2">Card {index + 1}</h3>
                         <input type="text" value={card.spanish} onChange={(e) => handleCardChange(index, 'spanish', e.target.value)} placeholder="Spanish" className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-2"/>

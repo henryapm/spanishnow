@@ -1,11 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
 
 const Header = () => {
     const navigate = useNavigate();
-    // Get the current user and auth actions from the Zustand store
-    const { currentUser, signInWithGoogle, signOutUser } = useDecksStore();
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef(null); // Ref to detect clicks outside the menu
+
+    const currentUser = useDecksStore((state) => state.currentUser);
+    const isAdmin = useDecksStore((state) => state.isAdmin);
+    const signOutUser = useDecksStore((state) => state.signOutUser);
+    const signInWithGoogle = useDecksStore((state) => state.signInWithGoogle);
+
+    // Effect to close the menu if the user clicks outside of it
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [menuRef]);
+
+    const handleNavigate = (path) => {
+        navigate(path);
+        setIsMenuOpen(false); // Close menu after navigation
+    };
 
     return (
         <header className="w-full p-4 mb-4 flex justify-between items-center bg-white shadow-md rounded-lg">
@@ -13,25 +36,49 @@ const Header = () => {
                 className="text-xl font-bold text-teal-700 cursor-pointer"
                 onClick={() => navigate('/')}
             >
-                Spanish Flashcards
+                SpanishNow
             </h1>
             <div>
                 {currentUser ? (
-                    <div className="flex items-center gap-4">
-                        <span className="text-gray-700 hidden sm:block">Welcome, {currentUser.displayName.split(' ')[0]}!</span>
-                        {/* --- NEW: Account Button --- */}
-                        <button
-                            onClick={() => navigate('/account')}
-                            className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg shadow-sm hover:bg-gray-300 transition-colors"
-                        >
-                            My Account
+                    <div className="relative" ref={menuRef}>
+                        {/* --- Dropdown Toggle Button --- */}
+                        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
+                            <img 
+                                src={currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`} 
+                                alt="Profile" 
+                                className="w-8 h-8 rounded-full"
+                            />
+                            <span className="font-semibold text-gray-700 hidden sm:block">{currentUser.displayName.split(' ')[0]}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 text-gray-500 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
                         </button>
-                        <button 
-                            onClick={signOutUser}
-                            className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg shadow-sm hover:bg-red-600 transition-colors"
-                        >
-                            Sign Out
-                        </button>
+
+                        {/* --- Dropdown Menu --- */}
+                        {isMenuOpen && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
+                                {isAdmin && (
+                                    <button
+                                        onClick={() => handleNavigate('/admin')}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    >
+                                        Admin Panel
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => handleNavigate('/account')}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                >
+                                    My Account
+                                </button>
+                                <button 
+                                    onClick={signOutUser}
+                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                >
+                                    Sign Out
+                                </button>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <button 

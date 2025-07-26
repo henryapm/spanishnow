@@ -4,6 +4,8 @@ import Flashcard from './FlashCard';
 import ListeningView from './ListeningView';
 import MultipleChoiceQuiz from './MultipleChoiceQuiz';
 import FillInTheBlankQuiz from './FillInTheBlankQuiz';
+import { useDecksStore } from '../store';
+
 
 // Helper function to shuffle an array
 const shuffleArray = (array) => {
@@ -19,12 +21,19 @@ const SessionManager = () => {
     const location = useLocation();
     const navigate = useNavigate();
     
-    const lessonCards = location.state?.lessonCards || [];
-
+    // --- NEW: Get the fetchDecks action from the store ---
+    const fetchDecks = useDecksStore((state) => state.fetchDecks);
+    // --- FIX: Get the original deckId from the navigation state ---
+    const { lessonCards, deckId } = location.state || { lessonCards: [], deckId: null };
+    
+    // Get the action from the store
+    const updateCardProgress = useDecksStore((state) => state.updateCardProgress);
+    
     const [currentCardIndex, setCurrentCardIndex] = useState(0);
     const [phase, setPhase] = useState('learn'); // 'learn', 'practice', 'review_prompt', 'complete'
     const [practiceQueue, setPracticeQueue] = useState([]);
     const [reviewPile, setReviewPile] = useState([]);
+    const [isCardFlipped, setIsCardFlipped] = useState(false);
 
     useEffect(() => {
         if (lessonCards.length > 0) {
@@ -35,12 +44,6 @@ const SessionManager = () => {
 
             shuffledCards.forEach(card => {
                 let possibleTypes = availableQuizTypes.filter(t => t !== lastQuizType);
-                if (!card.vocab) {
-                    possibleTypes = possibleTypes.filter(t => t !== 'fill');
-                }
-                if (possibleTypes.length === 0) {
-                    possibleTypes = availableQuizTypes.filter(t => !card.vocab ? t !== 'fill' : true);
-                }
                 const quizType = possibleTypes[Math.floor(Math.random() * possibleTypes.length)];
                 queue.push({ card, type: quizType });
                 lastQuizType = quizType;
@@ -50,6 +53,8 @@ const SessionManager = () => {
             setCurrentCardIndex(0);
             setPhase('learn');
             setReviewPile([]);
+            setIsCardFlipped(false); // Ensure card is not flipped when lesson starts
+
         }
     }, [lessonCards]);
 
@@ -62,26 +67,29 @@ const SessionManager = () => {
         }
     };
 
+    // --- FIX: This function now correctly saves progress ---
     const handlePracticeAnswer = (wasCorrect) => {
-        // Create a temporary, updated version of the review pile
-        let updatedReviewPile = [...reviewPile];
-        if (!wasCorrect) {
-            // If the answer was wrong, add the card to our temporary pile
-            updatedReviewPile.push(practiceQueue[currentCardIndex]);
-        }
-        // Update the actual state with the new pile
-        setReviewPile(updatedReviewPile);
+        const currentCard = practiceQueue[currentCardIndex].card;
 
-        // Check if we are at the end of the current practice round
+        // Ensure we have a valid deckId and cardId before saving
+        console.log('Before saving progress:', { deckId, cardId: currentCard.id, wasCorrect });
+        
+        if (deckId && currentCard.id) {
+            updateCardProgress(deckId, currentCard.id, wasCorrect);
+        }
+
+        if (!wasCorrect) {
+            setReviewPile(prev => [...prev, practiceQueue[currentCardIndex]]);
+        }
+
         if (currentCardIndex < practiceQueue.length - 1) {
             setCurrentCardIndex(prevIndex => prevIndex + 1);
         } else {
-            // If we are at the end, check the length of our temporary pile
-            if (updatedReviewPile.length > 0) {
-                // If there are cards to review, show the prompt
-                setPhase('review_prompt');
+            if (reviewPile.length > 0) {
+                setPracticeQueue(shuffleArray(reviewPile));
+                setReviewPile([]);
+                setCurrentCardIndex(0);
             } else {
-                // Otherwise, the lesson is complete
                 setPhase('complete');
             }
         }
@@ -94,6 +102,15 @@ const SessionManager = () => {
         setPhase('practice'); // Go back to the practice phase
     };
 
+    // --- NEW: Effect to refresh data on completion ---
+    useEffect(() => {
+        if (phase === 'complete') {
+            // When the lesson is marked as complete, re-fetch the progress data
+            // to ensure the main screen updates correctly.
+            fetchDecks();
+        }
+    }, [phase, fetchDecks]);
+
     if (lessonCards.length === 0) {
         return <div className="text-center">Loading lesson...</div>;
     }
@@ -103,9 +120,19 @@ const SessionManager = () => {
         return (
             <div className="w-full animate-fade-in">
                 <h1 className="text-2xl font-bold text-center text-teal-800 mb-4">Learn This Card</h1>
-                <p className="text-center text-gray-500 mb-4">Card {currentCardIndex + 1} of {lessonCards.length}</p>
-                <Flashcard cardData={currentCard} />
-                <div className="mt-8 text-center">
+                <p className="text-center text-gray-500 mb-2">Card {currentCardIndex + 1} of {lessonCards.length}</p>
+                
+                {/* --- Pass flip state and handler to the Flashcard --- */}
+                <Flashcard 
+                    cardData={currentCard} 
+                    isFlipped={isCardFlipped} 
+                    onFlip={() => setIsCardFlipped(!isCardFlipped)} 
+                />
+                
+                {/* --- NEW: Visual cue to flip the card --- */}
+                <p className="text-center text-gray-400 text-sm mt-2">(Tap card to flip)</p>
+
+                <div className="mt-6 text-center">
                     <button onClick={handleNextLearnCard} className="w-full px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700">
                         {currentCardIndex === lessonCards.length - 1 ? "Start Practice" : "Next"}
                     </button>
@@ -119,7 +146,7 @@ const SessionManager = () => {
         const { card, type } = currentPracticeItem;
 
         if (type === 'listen') {
-            return <ListeningView decks={{ temp: { cards: [card] } }} deckId="temp" onCorrect={() => handlePracticeAnswer(true)} onIncorrect={() => handlePracticeAnswer(false)} isPracticeSession={true} />;
+            return <ListeningView currentCard={card} onCorrect={() => handlePracticeAnswer(true)} onIncorrect={() => handlePracticeAnswer(false)} />;
         }
         if (type === 'mcq') {
             return <MultipleChoiceQuiz lessonCards={lessonCards} currentCard={card} onCorrect={() => handlePracticeAnswer(true)} onIncorrect={() => handlePracticeAnswer(false)} />;

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useDecksStore } from '../store';
 
 // Helper function to shuffle an array
@@ -14,39 +13,17 @@ const shuffleArray = (array) => {
 
 const DISTRACTOR_WORDS = ['y', 'el', 'es', 'con', 'mi', 'su', 'un', 'una'];
 
-const ListeningView = ({ decks, deckId: propDeckId, onCorrect, onIncorrect, isPracticeSession = false }) => {
-    const { deckId: paramDeckId } = useParams();
-    const navigate = useNavigate();
+const ListeningView = ({ currentCard, onCorrect, onIncorrect }) => {
     
-    // Determine the correct deckId to use
-    const deckId = isPracticeSession ? propDeckId : paramDeckId;
-    
-    const updateCardProgress = useDecksStore((state) => state.updateCardProgress);
+    // --- CORRECTED STATE SELECTION ---
+    // Selecting each piece of state individually to prevent re-render loops.
     const addXp = useDecksStore((state) => state.addXp);
     const resetStreak = useDecksStore((state) => state.resetStreak);
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
-    const totalXp = useDecksStore((state) => state.totalXp);
     
-    const deck = decks[deckId];
-
-    const [sessionCards, setSessionCards] = useState([]);
-    const [currentCardIndex, setCurrentCardIndex] = useState(0);
     const [userAnswer, setUserAnswer] = useState([]);
     const [wordBank, setWordBank] = useState([]);
     const [feedback, setFeedback] = useState('');
-    const [wasIncorrectInSession, setWasIncorrectInSession] = useState(false);
-    const [isSessionComplete, setIsSessionComplete] = useState(false);
-    const [sessionXp, setSessionXp] = useState(0);
-
-    useEffect(() => {
-        if (deck && deck.cards) {
-            setSessionCards(shuffleArray(deck.cards));
-            setWasIncorrectInSession(false);
-            setSessionXp(0);
-        }
-    }, [deck]);
-
-    const currentCard = sessionCards[currentCardIndex];
 
     useEffect(() => {
         if (currentCard) {
@@ -86,16 +63,11 @@ const ListeningView = ({ decks, deckId: propDeckId, onCorrect, onIncorrect, isPr
         const userAnswerString = userAnswer.join(' ');
 
         if (userAnswerString === correctAnswer) {
-            const xpEarned = 15;
             setFeedback('correct');
-            addXp(xpEarned, "Correct!");
-            setSessionXp(prev => prev + xpEarned);
-            updateCardProgress(deckId, currentCard.id, true);
+            addXp(15, "Correct!");
         } else {
             setFeedback('incorrect');
             resetStreak();
-            setWasIncorrectInSession(true);
-            updateCardProgress(deckId, currentCard.id, false);
         }
     };
 
@@ -106,48 +78,13 @@ const ListeningView = ({ decks, deckId: propDeckId, onCorrect, onIncorrect, isPr
             onIncorrect();
         }
     };
-
-    if (!deck || !deck.cards) {
-        return <div className="text-center">Loading...</div>;
-    }
-
-    if (isSessionComplete) {
-        return (
-            <div className="text-center animate-fade-in">
-                <h2 className="text-4xl font-bold text-teal-800 mb-4">🏆 Session Complete!</h2>
-                <p className="text-lg text-gray-600 mb-6">You've finished this listening session. Great job!</p>
-                <div className="bg-blue-100 border-2 border-blue-300 p-4 rounded-lg mb-6">
-                    <p className="text-xl font-bold text-blue-800">You earned {sessionXp} XP!</p>
-                </div>
-                <div className="flex justify-center">
-                    <button onClick={() => navigate('/')} className="px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">Back to All Decks</button>
-                </div>
-            </div>
-        );
-    }
     
     if (!currentCard) {
-        return <div className="text-center">Loading listening session...</div>;
+        return <div className="text-center">Loading exercise...</div>;
     }
-
-    const progressPercentage = (currentCardIndex / sessionCards.length) * 100;
 
     return (
         <div className="w-full animate-fade-in">
-            <h1 className="text-3xl font-bold text-teal-800 mb-2 text-center">{deck.title}</h1>
-            
-            {!isPracticeSession && (
-                <div className="mb-4 bg-white p-3 rounded-lg shadow-inner">
-                    <div className="flex justify-between items-center mb-1 text-sm font-semibold text-gray-600">
-                        <span>Session Progress</span>
-                        <span>Total XP: {totalXp.toLocaleString()}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
-                    </div>
-                </div>
-            )}
-
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <p className="text-center text-gray-600 mb-4">Listen to the sentence and construct it below.</p>
                 <div className="text-center mb-6">
@@ -176,18 +113,7 @@ const ListeningView = ({ decks, deckId: propDeckId, onCorrect, onIncorrect, isPr
 
                 {feedback && (
                     <div className={`mt-4 text-center font-bold text-lg p-3 rounded-md ${feedback === 'correct' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {feedback === 'correct' ? (
-                            <div>
-                                <p>Correct!</p>
-                                <p className="text-sm font-normal mt-1"><span className="font-semibold">{currentCard.spanish}</span></p>
-                                <p className="text-sm font-normal mt-1 text-gray-500">{currentCard.english}</p>
-                            </div>
-                        ) : (
-                            <div>
-                                <p>Not quite. The correct answer is:</p>
-                                <p className="text-sm font-normal mt-1"><span className="font-semibold">{currentCard.spanish}</span></p>
-                            </div>
-                        )}
+                        {feedback === 'correct' ? 'Correct!' : 'Not quite!'}
                     </div>
                 )}
 
@@ -203,7 +129,6 @@ const ListeningView = ({ decks, deckId: propDeckId, onCorrect, onIncorrect, isPr
                     )}
                 </div>
             </div>
-            {!isPracticeSession && <button onClick={() => navigate('/')} className="mt-6 text-gray-500 hover:text-gray-700 transition-colors w-full text-center">← Back to Decks</button>}
         </div>
     );
 };

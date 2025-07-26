@@ -97,9 +97,22 @@ export const useDecksStore = create((set, get) => ({
 
     const progressRef = doc(db, 'users', currentUser.uid, 'progress', deckId);
     try {
-        await setDoc(progressRef, { mastery: { [cardId]: newMastery } }, { merge: true });
+        // --- FIX: Use dot notation to update a specific field within a map ---
+        // This ensures we only update the progress for the current card,
+        // without overwriting the progress for all other cards in the deck.
+        await setDoc(progressRef, { 
+            mastery: { [cardId]: newMastery } 
+        }, { merge: true });
+
+        // Update local state immediately for a responsive UI
         set(state => ({
-            progress: { ...state.progress, [deckId]: { ...state.progress[deckId], [cardId]: newMastery } }
+            progress: { 
+                ...state.progress, 
+                [deckId]: { 
+                    ...state.progress[deckId], 
+                    [cardId]: newMastery 
+                } 
+            }
         }));
     } catch (error) { console.error("Error updating progress: ", error); }
   },
