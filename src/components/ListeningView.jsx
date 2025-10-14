@@ -105,7 +105,7 @@ const ListeningView = ({ currentCard, onCorrect, onIncorrect }) => {
 
                 <div className="mt-4 p-3 flex flex-wrap gap-2 justify-center">
                      {wordBank.map((word, index) => (
-                        <button key={index} onClick={() => handleWordBankClick(word, index)} className="px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-100">
+                        <button key={index} onClick={() => handleWordBankClick(word, index)} className="px-3 py-1 bg-white text-gray-800 border border-gray-300 rounded-md shadow-sm hover:bg-gray-100">
                             {word}
                         </button>
                     ))}

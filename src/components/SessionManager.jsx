@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import Flashcard from './FlashCard';
-import ListeningView from './ListeningView';
-import MultipleChoiceQuiz from './MultipleChoiceQuiz';
-import FillInTheBlankQuiz from './FillInTheBlankQuiz';
-import { useDecksStore } from '../store';
+import { useDecksStore } from '../store.js';
+import Flashcard from './Flashcard.jsx';
+import ListeningView from './ListeningView.jsx';
+import MultipleChoiceQuiz from './MultipleChoiceQuiz.jsx';
+import FillInTheBlankQuiz from './FillInTheBlankQuiz.jsx';
 
-
-// Helper function to shuffle an array
 const shuffleArray = (array) => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -21,156 +19,172 @@ const SessionManager = () => {
     const location = useLocation();
     const navigate = useNavigate();
     
-    // --- NEW: Get the fetchDecks action from the store ---
-    const fetchDecks = useDecksStore((state) => state.fetchDecks);
-    // --- FIX: Get the original deckId from the navigation state ---
     const { lessonCards, deckId } = location.state || { lessonCards: [], deckId: null };
-    
-    // Get the action from the store
     const updateCardProgress = useDecksStore((state) => state.updateCardProgress);
-    
-    const [currentCardIndex, setCurrentCardIndex] = useState(0);
-    const [phase, setPhase] = useState('learn'); // 'learn', 'practice', 'review_prompt', 'complete'
+
+    const [phase, setPhase] = useState('loading'); // loading, learn, practice, review_prompt, consolidate, complete
+    const [lessonChunks, setLessonChunks] = useState([]);
+    const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
     const [practiceQueue, setPracticeQueue] = useState([]);
+    const [currentLearnIndex, setCurrentLearnIndex] = useState(0);
     const [reviewPile, setReviewPile] = useState([]);
     const [isCardFlipped, setIsCardFlipped] = useState(false);
-
+    
     useEffect(() => {
         if (lessonCards.length > 0) {
-            const queue = [];
-            const shuffledCards = shuffleArray(lessonCards);
-            const availableQuizTypes = ['listen', 'mcq', 'fill'];
-            let lastQuizType = null;
-
-            shuffledCards.forEach(card => {
-                let possibleTypes = availableQuizTypes.filter(t => t !== lastQuizType);
-                const quizType = possibleTypes[Math.floor(Math.random() * possibleTypes.length)];
-                queue.push({ card, type: quizType });
-                lastQuizType = quizType;
-            });
-            
-            setPracticeQueue(queue);
-            setCurrentCardIndex(0);
-            setPhase('learn');
+            const chunks = [];
+            for (let i = 0; i < lessonCards.length; i += 2) {
+                chunks.push(lessonCards.slice(i, i + 2));
+            }
+            setLessonChunks(chunks);
+            setCurrentChunkIndex(0);
+            setCurrentLearnIndex(0);
+            setPracticeQueue([]);
             setReviewPile([]);
-            setIsCardFlipped(false); // Ensure card is not flipped when lesson starts
-
+            setIsCardFlipped(false);
+            setPhase('learn');
         }
     }, [lessonCards]);
 
+    const createPracticeQueue = (cards) => {
+        const queue = [];
+        const shuffled = shuffleArray(cards);
+        const types = ['mcq', 'listen', 'fill'];
+        let lastType = null;
+        shuffled.forEach(card => {
+            let possible = types.filter(t => t !== lastType && (card.vocab || t !== 'fill'));
+            if (possible.length === 0) possible = types.filter(t => card.vocab || t !== 'fill');
+            const type = possible[Math.floor(Math.random() * possible.length)];
+            queue.push({ card, type });
+            lastType = type;
+        });
+        return queue;
+    };
+
     const handleNextLearnCard = () => {
-        if (currentCardIndex < lessonCards.length - 1) {
-            setCurrentCardIndex(prevIndex => prevIndex + 1);
+        const currentChunk = lessonChunks[currentChunkIndex];
+        if (currentLearnIndex < currentChunk.length - 1) {
+            setCurrentLearnIndex(prev => prev + 1);
+            setIsCardFlipped(false);
         } else {
+            setPracticeQueue(createPracticeQueue(currentChunk));
             setPhase('practice');
-            setCurrentCardIndex(0);
         }
     };
 
-    // --- FIX: This function now correctly saves progress ---
-    const handlePracticeAnswer = (wasCorrect) => {
-        const currentCard = practiceQueue[currentCardIndex].card;
+    const handleAnswer = (wasCorrect) => {
+        const currentPracticeItem = practiceQueue[0];
+        updateCardProgress(deckId, currentPracticeItem.card.id, wasCorrect);
 
-        // Ensure we have a valid deckId and cardId before saving
-        console.log('Before saving progress:', { deckId, cardId: currentCard.id, wasCorrect });
-        
-        if (deckId && currentCard.id) {
-            updateCardProgress(deckId, currentCard.id, wasCorrect);
-        }
+        const newQueue = practiceQueue.slice(1);
+        let updatedReviewPile = [...reviewPile];
 
         if (!wasCorrect) {
-            setReviewPile(prev => [...prev, practiceQueue[currentCardIndex]]);
+            if (phase === 'practice') {
+                updatedReviewPile.push(currentPracticeItem);
+            } else if (phase === 'consolidate') {
+                console.log('consolidate phase and Card will be re-added to practice queue:', currentPracticeItem.card);
+                
+                newQueue.push(currentPracticeItem);
+            }
         }
-
-        if (currentCardIndex < practiceQueue.length - 1) {
-            setCurrentCardIndex(prevIndex => prevIndex + 1);
-        } else {
-            if (reviewPile.length > 0) {
-                setPracticeQueue(shuffleArray(reviewPile));
-                setReviewPile([]);
-                setCurrentCardIndex(0);
-            } else {
+        
+        if (newQueue.length === 0) { // End of a round
+            if (phase === 'practice') {
+                if (currentChunkIndex < lessonChunks.length - 1) {
+                    setCurrentChunkIndex(prev => prev + 1);
+                    setCurrentLearnIndex(0);
+                    setPhase('learn');
+                    setReviewPile(updatedReviewPile); 
+                } else {
+                    setReviewPile(updatedReviewPile);
+                    if (updatedReviewPile.length > 0) {
+                        setPhase('review_prompt');
+                    } else {
+                        setPhase('complete');
+                    }
+                }
+            } else if (phase === 'consolidate') {
                 setPhase('complete');
+            }
+        } else {
+            setPracticeQueue(newQueue);
+            setReviewPile(updatedReviewPile);
+            if (phase === 'consolidate' && !wasCorrect) {
+                setPhase('review_prompt');
             }
         }
     };
-
+    
     const startReviewRound = () => {
         setPracticeQueue(shuffleArray(reviewPile));
-        setReviewPile([]);
-        setCurrentCardIndex(0);
-        setPhase('practice'); // Go back to the practice phase
+        setPhase('consolidate');
     };
 
-    // --- NEW: Effect to refresh data on completion ---
-    useEffect(() => {
-        if (phase === 'complete') {
-            // When the lesson is marked as complete, re-fetch the progress data
-            // to ensure the main screen updates correctly.
-            fetchDecks();
-        }
-    }, [phase, fetchDecks]);
+    const BackButton = () => (
+        <button onClick={() => navigate('/')} className="absolute top-4 left-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+            &larr; Back to Topics
+        </button>
+    );
 
-    if (lessonCards.length === 0) {
-        return <div className="text-center">Loading lesson...</div>;
+    if (phase === 'loading' || lessonCards.length === 0) {
+        return <div className="text-center dark:text-gray-300">Loading lesson...</div>;
     }
-    
+
     if (phase === 'learn') {
-        const currentCard = lessonCards[currentCardIndex];
+        const currentCard = lessonChunks[currentChunkIndex][currentLearnIndex];
         return (
             <div className="w-full animate-fade-in">
-                <h1 className="text-2xl font-bold text-center text-teal-800 mb-4">Learn This Card</h1>
-                <p className="text-center text-gray-500 mb-2">Card {currentCardIndex + 1} of {lessonCards.length}</p>
-                
-                {/* --- Pass flip state and handler to the Flashcard --- */}
-                <Flashcard 
-                    cardData={currentCard} 
-                    isFlipped={isCardFlipped} 
-                    onFlip={() => setIsCardFlipped(!isCardFlipped)} 
-                />
-                
-                {/* --- NEW: Visual cue to flip the card --- */}
+                <h1 className="text-2xl font-bold text-center text-teal-800 dark:text-teal-300 mb-4">Learn: Part {currentChunkIndex + 1}</h1>
+                <p className="text-center text-gray-500 mb-2">Card {currentLearnIndex + 1} of {lessonChunks[currentChunkIndex].length}</p>
+                <Flashcard cardData={currentCard} isFlipped={isCardFlipped} onFlip={() => setIsCardFlipped(!isCardFlipped)} />
                 <p className="text-center text-gray-400 text-sm mt-2">(Tap card to flip)</p>
-
                 <div className="mt-6 text-center">
                     <button onClick={handleNextLearnCard} className="w-full px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700">
-                        {currentCardIndex === lessonCards.length - 1 ? "Start Practice" : "Next"}
+                        {currentLearnIndex < lessonChunks[currentChunkIndex].length - 1 ? 'Next' : 'Start Practice'}
                     </button>
                 </div>
+                <BackButton />
             </div>
         );
     }
-
-    if (phase === 'practice') {
-        const currentPracticeItem = practiceQueue[currentCardIndex];
-        const { card, type } = currentPracticeItem;
-
-        if (type === 'listen') {
-            return <ListeningView currentCard={card} onCorrect={() => handlePracticeAnswer(true)} onIncorrect={() => handlePracticeAnswer(false)} />;
-        }
-        if (type === 'mcq') {
-            return <MultipleChoiceQuiz lessonCards={lessonCards} currentCard={card} onCorrect={() => handlePracticeAnswer(true)} onIncorrect={() => handlePracticeAnswer(false)} />;
-        }
-        if (type === 'fill') {
-            return <FillInTheBlankQuiz currentCard={card} onCorrect={() => handlePracticeAnswer(true)} onIncorrect={() => handlePracticeAnswer(false)} />;
-        }
-    }
-
+    
     if (phase === 'review_prompt') {
         return (
             <div className="text-center animate-fade-in">
                 <h2 className="text-3xl font-bold text-teal-800 mb-4">Ready for a quick review?</h2>
-                <p className="text-lg text-gray-600 mb-8">You missed {reviewPile.length} card(s). Let's go over them one more time to make sure you've got it.</p>
+                <p className="text-lg text-gray-600 mb-8">You missed {reviewPile.length} card(s). Let's review them until you get them right.</p>
                 <div className="flex justify-center">
                     <button onClick={startReviewRound} className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
                         Start Review
                     </button>
                 </div>
+                <BackButton />
             </div>
         );
     }
 
-    // --- Complete Phase ---
+    if (phase === 'practice' || phase === 'consolidate') {
+        const currentPracticeItem = practiceQueue[0];
+        if (!currentPracticeItem) {
+             return <div>Loading next question...</div>;
+        }
+        const { card, type } = currentPracticeItem;
+        
+        return (
+             <div className="w-full animate-fade-in">
+                <h1 className="text-2xl font-bold text-center text-teal-800 dark:text-teal-300 mb-4">
+                    {phase === 'consolidate' ? 'Final Review' : `Practice: Part ${currentChunkIndex + 1}`}
+                </h1>
+                <p className="text-center text-gray-500 mb-4">{practiceQueue.length} card(s) remaining in this round.</p>
+                {type === 'listen' && <ListeningView currentCard={card} onCorrect={() => handleAnswer(true)} onIncorrect={() => handleAnswer(false)} />}
+                {type === 'mcq' && <MultipleChoiceQuiz lessonCards={lessonCards} currentCard={card} onCorrect={() => handleAnswer(true)} onIncorrect={() => handleAnswer(false)} />}
+                {type === 'fill' && <FillInTheBlankQuiz lessonCards={lessonCards} currentCard={card} onCorrect={() => handleAnswer(true)} onIncorrect={() => handleAnswer(false)} />}
+                <BackButton />
+            </div>
+        );
+    }
+
     return (
         <div className="text-center animate-fade-in">
             <h2 className="text-4xl font-bold text-teal-800 mb-4">🎉 Lesson Complete!</h2>
@@ -183,3 +197,4 @@ const SessionManager = () => {
 };
 
 export default SessionManager;
+

@@ -20,7 +20,10 @@ export const useDecksStore = create((set, get) => ({
   streak: 0,
 
   // --- ACTIONS ---
-  
+  toggleTheme: () => set((state) => ({
+      theme: state.theme === 'light' ? 'dark' : 'light',
+  })),
+
   listenForAuthChanges: () => {
     onAuthStateChanged(auth, async (user) => {
       if (user) {

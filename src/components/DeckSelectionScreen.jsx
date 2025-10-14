@@ -55,8 +55,6 @@ const DeckSelectionScreen = ({ decks }) => {
 
     return (
         <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-800 mb-8">Choose a Topic to Learn</h1>
-
             <div className="space-y-8">
                 {Object.keys(topics).map(topicName => {
                     const topicDecks = topics[topicName];
@@ -66,8 +64,8 @@ const DeckSelectionScreen = ({ decks }) => {
                     const hasAccess = !isTopicPremium || isAdmin || hasActiveSubscription;
                     
                     return (
-                        <div key={topicName} className="bg-white p-6 rounded-lg shadow-md">
-                            <h2 className="text-2xl font-bold text-teal-700 capitalize mb-4 flex justify-between items-center">
+                        <div key={topicName} className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-md">
+                            <h2 className="text-2xl font-bold dark:text-teal-300 text-teal-700 capitalize mb-4 flex justify-between items-center">
                                 {topicName}
                                 {isTopicPremium && (
                                     <span className="text-xs font-bold bg-purple-600 text-white px-2 py-1 rounded-full">PREMIUM</span>
@@ -75,7 +73,7 @@ const DeckSelectionScreen = ({ decks }) => {
                             </h2>
                             <div className="flex flex-col gap-3">
                                 {topicDecks.map(deck => {
-                                    const lessons = chunkArray(deck.cards, 3);
+                                    const lessons = chunkArray(deck.cards, 4);
                                     return lessons.map((lessonCards, index) => {
                                         const isLessonCompleted = lessonCards.every(card => (progress[deck.id]?.[card.id] || 0) >= 1);
                                         
@@ -95,12 +93,12 @@ const DeckSelectionScreen = ({ decks }) => {
                                                 onClick={() => handleLessonClick(lessonCards, deck)}
                                                 disabled={isDisabled}
                                                 className={`w-full text-left p-4 rounded-md transition-colors flex justify-between items-center
-                                                    ${lessonStatus === 'next' && hasAccess ? 'bg-blue-100 hover:bg-blue-200 border-2 border-blue-500' : ''}
-                                                    ${lessonStatus === 'completed' ? 'bg-green-50 text-gray-500' : ''}
-                                                    ${isDisabled ? 'bg-gray-200 opacity-60 cursor-not-allowed' : ''}
+                                                    ${lessonStatus === 'next' && hasAccess ? 'bg-blue-100 dark:bg-blue-200 dark:hover:bg-blue-700 border-2 border-blue-500 hover:dark:border-blue-200 dark:text-blue-900 hover:dark:text-blue-200 cursor-pointer' : ''}
+                                                    ${lessonStatus === 'completed' ? 'bg-green-50 hover:bg-green-200 text-gray-500 cursor-pointer' : ''}
+                                                    ${isDisabled ? 'bg-gray-400 hover:bg-gray-100 opacity-60 cursor-not-allowed' : ''}
                                                 `}
                                             >
-                                                <span className={`font-semibold ${lessonStatus === 'next' && hasAccess ? 'text-blue-800' : 'text-gray-800'}`}>
+                                                <span className={`font-semibold ${lessonStatus === 'next' && hasAccess ? '' : 'text-gray-800'}`}>
                                                     {deck.title} - Lesson {index + 1}
                                                 </span>
                                                 <div className="flex items-center gap-2">

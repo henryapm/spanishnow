@@ -28,9 +28,9 @@ const AppLayout = () => {
     }
 
     return (
-        <div className="w-full max-w-2xl">
+        <div className="w-full dark:bg-gray-900 text-gray-800 dark:text-gray-200 max-w-2xl">
             {!shouldHideHeader && <Header />}
-            <main className="w-full bg-gray-50 p-6 rounded-lg shadow-inner">
+            <main className="w-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-inner">
                 <div className="w-full max-w-md mx-auto">
                     <Routes>
                         <Route path="/" element={<DeckSelectionScreen decks={decks} />} />
@@ -71,7 +71,7 @@ export default function App() {
 
 
     return (
-        <div className="bg-gray-100 min-h-screen flex flex-col items-center justify-center font-sans p-4">
+        <div className="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col items-center justify-center font-sans p-4">
             <Routes>
                 {currentUser ? (
                     <Route path="/*" element={<AppLayout />} />
