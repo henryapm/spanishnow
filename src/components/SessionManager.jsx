@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store.js';
-import Flashcard from './Flashcard.jsx';
+import Flashcard from './FlashCard.jsx';
 import ListeningView from './ListeningView.jsx';
 import MultipleChoiceQuiz from './MultipleChoiceQuiz.jsx';
 import FillInTheBlankQuiz from './FillInTheBlankQuiz.jsx';
