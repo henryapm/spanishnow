@@ -62,7 +62,7 @@ const ListeningView = ({ currentCard, onCorrect, onIncorrect }) => {
         const correctAnswer = currentCard.spanish.replace(/[¿?¡!.,]/g, '');
         const userAnswerString = userAnswer.join(' ');
 
-        if (userAnswerString === correctAnswer) {
+        if (userAnswerString.toLowerCase() === correctAnswer.toLowerCase()) {
             setFeedback('correct');
             addXp(15, "Correct!");
         } else {

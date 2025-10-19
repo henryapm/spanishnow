@@ -13,7 +13,9 @@ export const useDecksStore = create((set, get) => ({
   isLoading: true,
   currentUser: null,
   isAdmin: false,
-  hasActiveSubscription: false, // Replaces purchasedDeckIds
+  hasActiveSubscription: false,
+  articles: {}, // New state for articles
+  dictionary: {}, // New state for the dictionary
   progress: {},
   listeningPreference: 'es-ES',
   totalXp: 0,
@@ -149,6 +151,38 @@ export const useDecksStore = create((set, get) => ({
       set({ isLoading: false });
     }
   },
+  // --- NEW: Action to fetch articles ---
+  fetchArticles: async () => {
+      set({ isLoading: true });
+      try {
+          const articlesCollection = collection(db, 'articles');
+          const articleSnapshot = await getDocs(articlesCollection);
+          const articlesData = {};
+          articleSnapshot.forEach(doc => {
+              articlesData[doc.id] = doc.data();
+          });
+          set({ articles: articlesData, isLoading: false });
+      } catch (error) {
+          console.error("Error fetching articles: ", error);
+          set({ isLoading: false });
+      }
+  },
+  // --- NEW: Action to fetch the dictionary ---
+  fetchDictionary: async () => {
+      set({ isLoading: true });
+      try {
+          const dictionaryCollection = collection(db, 'dictionary');
+          const dictionarySnapshot = await getDocs(dictionaryCollection);
+          const dictionaryData = {};
+          dictionarySnapshot.forEach(doc => {
+              dictionaryData[doc.id] = doc.data().translation;
+          });
+          set({ dictionary: dictionaryData, isLoading: false });
+      } catch (error) {
+          console.error("Error fetching dictionary: ", error);
+          set({ isLoading: false });
+      }
+  },
   saveDeck: async (deckData, deckId) => {
     try {
       if (deckId) { await updateDoc(doc(db, 'decks', deckId), deckData); } 
@@ -158,5 +192,32 @@ export const useDecksStore = create((set, get) => ({
       console.error("Error saving deck: ", error);
       alert("Failed to save deck. Please try again.");
     }
+  },
+  // --- NEW: Action to save articles ---
+  saveArticle: async (articleData, articleId) => {
+      try {
+          if (articleId) {
+              const articleRef = doc(db, 'articles', articleId);
+              await updateDoc(articleRef, articleData);
+          } else {
+              await addDoc(collection(db, 'articles'), articleData);
+          }
+      } catch (error) {
+          console.error("Error saving article: ", error);
+          alert("Failed to save article. Please try again.");
+      }
+  },
+  // --- NEW: Action to save a word to the dictionary ---
+  saveWord: async (wordData) => {
+      try {
+          // The document ID is the Spanish word itself for easy lookup
+          const wordRef = doc(db, 'dictionary', wordData.spanish);
+          await setDoc(wordRef, { translation: wordData.translation });
+          // Refresh the dictionary in the store
+          get().fetchDictionary();
+      } catch (error) {
+          console.error("Error saving word: ", error);
+          alert("Failed to save word.");
+      }
   },
 }));

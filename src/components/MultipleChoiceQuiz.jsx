@@ -77,7 +77,7 @@ const MultipleChoiceQuiz = ({ lessonCards, currentCard, onCorrect, onIncorrect }
                             key={index}
                             onClick={() => handleAnswerSelect(option)}
                             disabled={feedback !== ''}
-                            className={`w-full p-4 text-left font-semibold rounded-lg border-2 transition-colors
+                            className={`w-full p-4 text-left font-semibold rounded-lg border-2 transition-colors text-gray-800
                                 ${selectedAnswer === option 
                                     ? 'bg-blue-100 border-blue-500' 
                                     : 'bg-white border-gray-300 hover:bg-gray-50'

@@ -13,6 +13,10 @@ import ListeningView from './components/ListeningView';
 import SessionManager from './components/SessionManager';
 import TopicManager from './components/TopicManager'; // Import the new TopicManager
 import { useLocation } from 'react-router-dom';
+import ArticleForm from './components/ArticleForm';
+import ReaderView from './components/ReaderView';
+import DictionaryManager from './components/DictionaryManager';
+import ReadingLibrary from './components/ReadingLibrary';
 
 // This component is the main layout for authenticated (logged-in) users.
 const AppLayout = () => {
@@ -36,14 +40,19 @@ const AppLayout = () => {
                         <Route path="/" element={<DeckSelectionScreen decks={decks} />} />
                         <Route path="/decks/:deckId" element={<FlashcardView decks={decks} />} />
                         <Route path="/create" element={<DeckForm decks={decks} />} />
-                        <Route path="/edit/:deckId" element={<DeckForm decks={decks} />} />
                         <Route path="/review" element={<FlashcardView decks={decks} />} />
                         <Route path="/account" element={<AccountPage decks={decks} />} />
                         <Route path="/listen/:deckId" element={<ListeningView decks={decks} />} />
+                        <Route path="/reading/:articleId" element={<ReaderView />} />
+                        <Route path="/reading-library" element={<ReadingLibrary />} />
                         <Route path="/lesson" element={<SessionManager />} />
                         {/* --- NEW: Admin Route --- */}
                         <Route path="/admin" element={<TopicManager decks={decks} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
+                        <Route path="/admin/create-article" element={<ArticleForm />} />
+                        <Route path="/admin/edit-article/:articleId" element={<ArticleForm />} />
+                        <Route path="/edit/:deckId" element={<DeckForm decks={decks} />} />
+                        <Route path="/admin/dictionary" element={<DictionaryManager />} />
                     </Routes>
                 </div>
             </main>
@@ -56,6 +65,8 @@ export default function App() {
     const { currentUser, listenForAuthChanges, fetchDecks } = useDecksStore();
     const navigate = useNavigate();
     const prevUserRef = useRef(currentUser);
+    const theme = useDecksStore((state) => state.theme);
+
     
     useEffect(() => {
         listenForAuthChanges(); 
@@ -69,6 +80,13 @@ export default function App() {
         prevUserRef.current = currentUser;
     }, [currentUser, navigate]);
 
+    useEffect(() => {
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [theme]);
 
     return (
         <div className="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col items-center justify-center font-sans p-4">
