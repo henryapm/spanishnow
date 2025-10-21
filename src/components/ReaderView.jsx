@@ -47,7 +47,9 @@ const ReaderView = () => {
 
         if (dictionary[cleanedWord]) {
             setLookupResult({ word: cleanedWord, translation: dictionary[cleanedWord] });
-            setPopupPosition({ x: rect.right, y: rect.bottom});
+            setPopupPosition({ x: rect.left, y: rect.bottom});
+            console.log(popupPosition.x, popupPosition.y);
+            
         } else {
             setLookupResult(null);
         }
@@ -107,8 +109,8 @@ const ReaderView = () => {
         <div className="w-full animate-fade-in" onClick={closePopup}>
             {lookupResult && (
                 <div 
-                    style={{ top: `${popupPosition.y}px`, left: `${popupPosition.x}px` }}
-                    className="fixed max-w-sm bg-gray-800 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-lg z-50 transform -translate-x-1/2"
+                    style={{ top: `${popupPosition.y}px`, left: `${popupPosition.x < 0 ? 0 : popupPosition.x}px` }}
+                    className="fixed max-w-sm bg-gray-800 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-lg z-50"
                 >
                     <p className="font-bold capitalize">{lookupResult.word}</p>
                     <p>&rarr; {lookupResult.translation}</p>
