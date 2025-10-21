@@ -43,10 +43,11 @@ const ReaderView = () => {
     const handleWordClick = (e, word) => {
         e.stopPropagation();
         const cleanedWord = word.toLowerCase().replace(/[¿?¡!.,]/g, '');
-        
+        const rect = e.target.getBoundingClientRect();
+
         if (dictionary[cleanedWord]) {
             setLookupResult({ word: cleanedWord, translation: dictionary[cleanedWord] });
-            setPopupPosition({ x: e.pageX, y: e.pageY });
+            setPopupPosition({ x: rect.right, y: rect.bottom});
         } else {
             setLookupResult(null);
         }
@@ -106,7 +107,7 @@ const ReaderView = () => {
         <div className="w-full animate-fade-in" onClick={closePopup}>
             {lookupResult && (
                 <div 
-                    style={{ top: `${popupPosition.y + 15}px`, left: `${popupPosition.x}px` }}
+                    style={{ top: `${popupPosition.y}px`, left: `${popupPosition.x}px` }}
                     className="fixed max-w-sm bg-gray-800 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-lg z-50 transform -translate-x-1/2"
                 >
                     <p className="font-bold capitalize">{lookupResult.word}</p>

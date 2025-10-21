@@ -69,7 +69,7 @@ const AccountPage = ({ decks }) => {
                         id="listening-preference"
                         value={listeningPreference}
                         onChange={handlePreferenceChange}
-                        className="p-2 border border-gray-300 rounded-md shadow-sm"
+                        className="p-2 border border-gray-300 rounded-md shadow-sm text-gray-700"
                     >
                         <option value="es-ES">Spain</option>
                         <option value="es-MX">Mexico</option>
