@@ -2,19 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useDecksStore } from '../store.js';
 
 const DictionaryManager = () => {
-    const dictionary = useDecksStore((state) => state.dictionary);
-    const fetchDictionary = useDecksStore((state) => state.fetchDictionary);
     const saveWord = useDecksStore((state) => state.saveWord);
 
     const [spanishWord, setSpanishWord] = useState('');
     const [englishTranslation, setEnglishTranslation] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-
-    useEffect(() => {
-        if (Object.keys(dictionary).length === 0) {
-            fetchDictionary();
-        }
-    }, [dictionary, fetchDictionary]);
 
     const handleSave = async () => {
         if (!spanishWord.trim() || !englishTranslation.trim()) {
@@ -27,8 +19,6 @@ const DictionaryManager = () => {
         setSpanishWord('');
         setEnglishTranslation('');
     };
-
-    const dictionaryArray = Object.entries(dictionary).sort(([a], [b]) => a.localeCompare(b));
 
     return (
         <div className="w-full animate-fade-in">
@@ -61,19 +51,6 @@ const DictionaryManager = () => {
                     <button onClick={handleSave} disabled={isSaving} className="px-6 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 disabled:bg-gray-400">
                         {isSaving ? 'Saving...' : 'Save Word'}
                     </button>
-                </div>
-            </div>
-
-            {/* List of existing words */}
-            <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-3">Existing Words ({dictionaryArray.length})</h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {dictionaryArray.map(([word, translation]) => (
-                        <div key={word} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-600 rounded-md">
-                            <span className="font-semibold text-gray-700 dark:text-gray-300 capitalize">{word}</span>
-                            <span className="text-gray-600 dark:text-gray-400">{translation}</span>
-                        </div>
-                    ))}
                 </div>
             </div>
         </div>

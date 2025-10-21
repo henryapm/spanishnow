@@ -265,4 +265,24 @@ export const useDecksStore = create((set, get) => ({
             alert("Failed to save word.");
         }
     },
+    saveWordTranslation: async (spanishWord, newTranslation) => {
+        if (!get().isAdmin) {
+            console.error("User is not authorized to perform this action.");
+            alert("You do not have permission to edit the dictionary.");
+            return;
+        }
+        try {
+            const wordRef = doc(db, 'dictionary', spanishWord);
+            await setDoc(wordRef, { translation: newTranslation });
+    
+            set(state => {
+                const newTranslations = new Map(state.activeArticleTranslations);
+                newTranslations.set(spanishWord, newTranslation);
+                return { activeArticleTranslations: newTranslations };
+            });
+        } catch (error) {
+            console.error("Error saving word translation: ", error);
+            alert("Failed to save translation. Please try again.");
+        }
+    },
 }));
