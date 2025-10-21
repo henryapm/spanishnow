@@ -3,33 +3,33 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store.js';
 import { LuTurtle } from "react-icons/lu";
 
-
 const ReaderView = () => {
-    const { articleId } = useParams();
+    const { articleId } = useParams(); 
     const navigate = useNavigate();
-
-    // Get necessary data from the store
-    const articles = useDecksStore((state) => state.articles);
-    const dictionary = useDecksStore((state) => state.dictionary);
+    const fetchArticleById = useDecksStore((state) => state.fetchArticleById);
+    const article = useDecksStore((state) => state.articles[articleId]);
+    const isLoading = useDecksStore((state) => state.isLoading);
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
-    const fetchArticles = useDecksStore((state) => state.fetchArticles);
-    const fetchDictionary = useDecksStore((state) => state.fetchDictionary);
     
-    const article = articles[articleId];
+    // --- MODIFIED: Get the new on-demand translations Map instead of the whole dictionary ---
+    const translations = useDecksStore((state) => state.activeArticleTranslations);
+    // You can also get the new loading state if you want to show a spinner for translations
+    const isDictionaryLoading = useDecksStore((state) => state.isDictionaryLoading);
 
-    // State for UI features
     const [lookupResult, setLookupResult] = useState(null);
     const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-    const [showTranslations, setShowTranslations] = useState(false); // Re-added state for translations
+    const [showTranslations, setShowTranslations] = useState(false);
 
     useEffect(() => {
-        if (!article) {
-            fetchArticles();
+        if (articleId) {
+          fetchArticleById(articleId);
         }
-        if (Object.keys(dictionary).length === 0) {
-            fetchDictionary();
-        }
-    }, [article, dictionary, fetchArticles, fetchDictionary]);
+    }, [articleId, fetchArticleById]);
+
+    // --- MODIFIED: Handle the new, secondary loading state ---
+    if (isLoading || !article) {
+        return <div>Loading article...</div>;
+    }
 
     const handleSpeak = (textToSpeak, rate = 1.0) => {
         if (!textToSpeak || !window.speechSynthesis) return;
@@ -40,28 +40,26 @@ const ReaderView = () => {
         window.speechSynthesis.speak(utterance);
     };
 
+    // --- MODIFIED: This function now uses the new `translations` Map ---
     const handleWordClick = (e, word) => {
         e.stopPropagation();
         const cleanedWord = word.toLowerCase().replace(/[¿?¡!.,]/g, '');
         const rect = e.target.getBoundingClientRect();
+        
+        // Use `translations.get()` to look up the word in our on-demand Map
+        const translation = translations.get(cleanedWord);
 
-        if (dictionary[cleanedWord]) {
-            setLookupResult({ word: cleanedWord, translation: dictionary[cleanedWord] });
-            setPopupPosition({ x: rect.left, y: rect.bottom});
-            console.log(popupPosition.x, popupPosition.y);
-            
+        if (translation) {
+            setLookupResult({ word: cleanedWord, translation: translation });
+            setPopupPosition({ x: rect.left, y: rect.bottom });
         } else {
-            setLookupResult(null);
+            setLookupResult(null); // No translation found for this word
         }
     };
 
     const closePopup = () => {
         setLookupResult(null);
     };
-
-    if (!article) {
-        return <div className="text-center dark:text-gray-300">Loading article...</div>;
-    }
 
     const renderedContent = (article.sentences || []).map((sentenceObj, sIndex) => (
         <div key={sIndex}>
@@ -79,9 +77,7 @@ const ReaderView = () => {
                         className="mt-2 text-gray-400 hover:text-blue-500 transition-colors"
                         title="Read paragraph slowly"
                     >
-                        {/* Turtle Icon SVG */}
                         <LuTurtle />
-
                     </button>
                 </div>
                 <p className="leading-loose">
@@ -96,7 +92,6 @@ const ReaderView = () => {
                     ))}
                 </p>
             </div>
-            {/* --- RE-ADDED: Conditional Translation --- */}
             {showTranslations && (
                 <p className="leading-loose text-blue-600 dark:text-blue-400 mt-2 italic pl-10">
                     &rarr; {sentenceObj.english}
@@ -121,7 +116,6 @@ const ReaderView = () => {
                 <button onClick={() => navigate('/reading-library')} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
                     &larr; Back to Library
                 </button>
-                {/* --- RE-ADDED: Show Translations Button --- */}
                 <button 
                     onClick={() => setShowTranslations(!showTranslations)}
                     className="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-sm hover:bg-teal-600 transition-colors"
@@ -134,11 +128,10 @@ const ReaderView = () => {
             <p className="text-sm font-semibold uppercase text-teal-500 dark:text-teal-400 mb-8">{article.topic}</p>
             
             <div className="text-lg text-gray-700 dark:text-gray-300 space-y-6">
-                {renderedContent}
+                {isDictionaryLoading ? <p>Loading translations...</p> : renderedContent}
             </div>
         </div>
     );
 };
 
 export default ReaderView;
-

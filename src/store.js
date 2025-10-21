@@ -167,21 +167,68 @@ export const useDecksStore = create((set, get) => ({
           set({ isLoading: false });
       }
   },
-  // --- NEW: Action to fetch the dictionary ---
-  fetchDictionary: async () => {
-      set({ isLoading: true });
-      try {
-          const dictionaryCollection = collection(db, 'dictionary');
-          const dictionarySnapshot = await getDocs(dictionaryCollection);
-          const dictionaryData = {};
-          dictionarySnapshot.forEach(doc => {
-              dictionaryData[doc.id] = doc.data().translation;
-          });
-          set({ dictionary: dictionaryData, isLoading: false });
-      } catch (error) {
-          console.error("Error fetching dictionary: ", error);
-          set({ isLoading: false });
+  // --- OLD `fetchDictionary` function is REMOVED ---
+
+  // --- NEW: Action to fetch translations on-demand for specific text ---
+  fetchTranslationsForArticle: async (articleText) => {
+    set({ isDictionaryLoading: true });
+    
+    // 1. Extract unique words from the article text
+    // This regex finds word boundaries and converts to lowercase to avoid duplicates
+    const uniqueWords = [...new Set(articleText.toLowerCase().match(/\b(\w+)\b/g) || [])];
+    
+    if (uniqueWords.length === 0) {
+      set({ activeArticleTranslations: new Map(), isDictionaryLoading: false });
+      return;
+    }
+
+    const translations = new Map();
+    const chunks = [];
+    
+    // 2. Firestore 'in' queries are limited to 30 items, so we chunk the words
+    for (let i = 0; i < uniqueWords.length; i += 30) {
+      chunks.push(uniqueWords.slice(i, i + 30));
+    }
+
+    // 3. Fetch translations for each chunk
+    for (const chunk of chunks) {
+      const q = query(
+        collection(db, "dictionary"),
+        where(documentId(), 'in', chunk)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach((doc) => {
+        translations.set(doc.id, doc.data().translation);
+      });
+    }
+    
+    set({ activeArticleTranslations: translations, isDictionaryLoading: false });
+  },
+
+  // --- NEW: Action to fetch a single article and its translations ---
+  fetchArticleById: async (articleId) => {
+    set({ isLoading: true, activeArticleTranslations: new Map() }); // Reset state
+    try {
+      const articleRef = doc(db, 'articles', articleId);
+      const articleSnap = await getDoc(articleRef);
+
+      if (articleSnap.exists()) {
+        const articleData = articleSnap.data();
+        // Set the single article in the state
+        set({ articles: { [articleId]: articleData } }); 
+        
+        // Now, trigger the on-demand translation fetch using the article's content
+        await get().fetchTranslationsForArticle(articleData.content);
+
+      } else {
+        console.error("No such article found!");
       }
+    } catch (error) {
+      console.error("Error fetching single article: ", error);
+    } finally {
+      set({ isLoading: false });
+    }
   },
   saveDeck: async (deckData, deckId) => {
     try {
