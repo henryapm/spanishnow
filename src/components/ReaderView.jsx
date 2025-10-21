@@ -112,7 +112,7 @@ const ReaderView = () => {
                     {sentenceObj.spanish.split(' ').map((word, wIndex) => (
                         <span 
                             key={wIndex}
-                            style={{ backgroundColor: translations.get(word.toLowerCase().replace(/[¿?¡!.,]/g, '')) ? 'transparent' : '#fe9380ff' }}
+                            style={{ backgroundColor: translations.get(word.toLowerCase().replace(/[¿?¡!.,]/g, '')) ? 'transparent' : isAdmin ? '#fe9380ff' : 'transparent' }}
                             className="cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-600 rounded transition-colors duration-150"
                             onClick={(e) => handleWordClick(e, word)}
                         >
