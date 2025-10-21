@@ -172,7 +172,9 @@ export const useDecksStore = create((set, get) => ({
             return;
         }
         
-        const uniqueWords = [...new Set(articleText.toLowerCase().match(/\b(\w+)\b/g) || [])];
+        // The /[\p{L}]+/gu regex matches sequences of Unicode letter characters.
+        const matchedWords = articleText.toLowerCase().match(/[\p{L}]+/gu);
+        const uniqueWords = [...new Set(matchedWords || [])];
         
         if (uniqueWords.length === 0) {
             set({ activeArticleTranslations: new Map(), isDictionaryLoading: false });
