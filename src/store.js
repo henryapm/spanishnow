@@ -8,6 +8,59 @@ const auth = getAuth();
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
 
+// --- Caching Configuration ---
+const CACHE_KEY = 'spanishAppCache';
+const CACHE_DURATION = 168 * 60 * 60 * 1000; // 7 days
+
+// --- Cache Helper Functions ---
+
+/**
+ * Gets the entire cache object from localStorage.
+ */
+function getCache() {
+  const cachedData = localStorage.getItem(CACHE_KEY);
+  if (!cachedData) {
+    // Return a default structure if no cache exists
+    return { articles: null, articleDetail: {} };
+  }
+  return JSON.parse(cachedData);
+}
+
+/**
+ * Saves the provided data object to localStorage.
+ */
+function setCache(data) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("Error saving to cache:", error);
+    // This can happen if localStorage is full
+  }
+}
+
+/**
+ * Checks if a timestamp is still valid (less than 24 hours old).
+ */
+function isCacheValid(timestamp) {
+  if (!timestamp) return false;
+  return (Date.now() - timestamp) < CACHE_DURATION;
+}
+
+/**
+ * Converts a Map to a JSON-safe string.
+ */
+function serializeMap(map) {
+  return JSON.stringify(Array.from(map.entries()));
+}
+
+/**
+ * Converts a JSON-safe string back into a Map.
+ */
+function deserializeMap(jsonString) {
+  if (!jsonString) return new Map();
+  return new Map(JSON.parse(jsonString));
+}
+
 export const useDecksStore = create((set, get) => ({
     // --- STATE ---
     decks: {},
@@ -147,9 +200,18 @@ export const useDecksStore = create((set, get) => ({
         }
     },
 
+    // --- MODIFIED: Caching added ---
     fetchArticles: async () => {
-        // ... (function is correct, no changes)
         set({ isLoading: true });
+
+        // 1. Check cache
+        const cache = getCache();
+        if (cache.articles && isCacheValid(cache.articles.timestamp)) {
+            set({ articles: cache.articles.data, isLoading: false });
+            return; // Use cached data
+        }
+
+        // 2. If cache invalid, fetch from Firestore
         try {
             const articlesCollection = collection(db, 'articles');
             const articleSnapshot = await getDocs(articlesCollection);
@@ -157,6 +219,14 @@ export const useDecksStore = create((set, get) => ({
             articleSnapshot.forEach(doc => {
                 articlesData[doc.id] = doc.data();
             });
+
+            // 3. Save to cache
+            cache.articles = {
+                timestamp: Date.now(),
+                data: articlesData
+            };
+            setCache(cache);
+            
             set({ articles: articlesData, isLoading: false });
         } catch (error) {
             console.error("Error fetching articles: ", error);
@@ -203,29 +273,64 @@ export const useDecksStore = create((set, get) => ({
         set({ activeArticleTranslations: translations, isDictionaryLoading: false });
     },
 
+    // --- MODIFIED: Caching added ---
     fetchArticleById: async (articleId) => {
         set({ isLoading: true, activeArticleTranslations: new Map() });
+
+        // 1. Check cache for this specific article
+        const cache = getCache();
+        const cachedDetail = cache.articleDetail[articleId];
+        
+        if (cachedDetail && isCacheValid(cachedDetail.timestamp)) {
+            const articleData = cachedDetail.data;
+            const translations = deserializeMap(cachedDetail.translations);
+            
+            set((state) => ({ 
+                articles: { ...state.articles, [articleId]: articleData },
+                activeArticleTranslations: translations,
+                isLoading: false
+            }));
+            return; // Use cached data
+        }
+
+        // 2. If cache invalid, fetch from Firestore
         try {
             const articleRef = doc(db, 'articles', articleId);
             const articleSnap = await getDoc(articleRef);
 
             if (articleSnap.exists()) {
                 const articleData = articleSnap.data();
-                set((state) => ({ articles: { ...state.articles, [articleId]: articleData } }));
                 
+                let fullText = '';
                 if (articleData.sentences && Array.isArray(articleData.sentences)) {
-                    const fullText = articleData.sentences.map(s => s.spanish).join(' ');
-                    await get().fetchTranslationsForArticle(fullText);
-                } else {
-                    await get().fetchTranslationsForArticle('');
+                    fullText = articleData.sentences.map(s => s.spanish).join(' ');
                 }
+                
+                // Fetch translations and wait for them to be set in the state
+                await get().fetchTranslationsForArticle(fullText); 
+                
+                const translations = get().activeArticleTranslations; // Get the newly fetched translations
+
+                // 3. Save to cache
+                cache.articleDetail[articleId] = {
+                    timestamp: Date.now(),
+                    data: articleData,
+                    translations: serializeMap(translations) // Serialize the Map
+                };
+                setCache(cache);
+                
+                // 4. Set article state (translations are already set)
+                set((state) => ({ 
+                    articles: { ...state.articles, [articleId]: articleData },
+                    isLoading: false 
+                }));
 
             } else {
                 console.error("No such article found!");
+                set({ isLoading: false });
             }
         } catch (error) {
             console.error("Error fetching single article: ", error);
-        } finally {
             set({ isLoading: false });
         }
     },
@@ -267,6 +372,7 @@ export const useDecksStore = create((set, get) => ({
             alert("Failed to save word.");
         }
     },
+    // --- MODIFIED: Cache invalidation added ---
     saveWordTranslation: async (spanishWord, newTranslation) => {
         if (!get().isAdmin) {
             console.error("User is not authorized to perform this action.");
@@ -277,11 +383,20 @@ export const useDecksStore = create((set, get) => ({
             const wordRef = doc(db, 'dictionary', spanishWord);
             await setDoc(wordRef, { translation: newTranslation });
     
+            // Update local state immediately
             set(state => {
                 const newTranslations = new Map(state.activeArticleTranslations);
                 newTranslations.set(spanishWord, newTranslation);
                 return { activeArticleTranslations: newTranslations };
             });
+
+            // --- IMPORTANT: Invalidate the cache ---
+            // This clears all cached articles, forcing a refetch on next view.
+            // This ensures users will see the new translation.
+            const cache = getCache();
+            cache.articleDetail = {}; // Clear all cached article details
+            setCache(cache);
+            
         } catch (error) {
             console.error("Error saving word translation: ", error);
             alert("Failed to save translation. Please try again.");
