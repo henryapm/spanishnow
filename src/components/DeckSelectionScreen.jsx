@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import ReadingLibrary from './ReadingLibrary'; // Import the new component
+import TrainingMode from './TrainingMode.jsx'; // Make sure the path is correct
+
 
 // Helper function to group decks by topic
 const groupDecksByTopic = (decks) => {
@@ -68,6 +70,12 @@ const DeckSelectionScreen = ({ decks }) => {
                     className={`px-6 py-3 font-semibold ${mode === 'reading' ? 'border-b-2 border-teal-500 text-teal-500' : 'text-gray-500 cursor-pointer'}`}
                 >
                     Reading
+                </button>
+                <button 
+                    onClick={() => setMode('training')}
+                    className={`px-6 py-3 font-semibold ${mode === 'training' ? 'border-b-2 border-teal-500 text-teal-500' : 'text-gray-500 cursor-pointer'}`}
+                >
+                    Training
                 </button>
             </div>
 
@@ -144,6 +152,10 @@ const DeckSelectionScreen = ({ decks }) => {
             
             {mode === 'reading' && (
                 <ReadingLibrary />
+            )}
+
+            {mode === 'training' && (
+                <TrainingMode />
             )}
         </div>
     );

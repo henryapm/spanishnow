@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { db } from './firebase';
 // --- FIX: Added query, where, and documentId to the import list ---
-import { collection, getDocs, addDoc, doc, updateDoc, setDoc, getDoc, increment, query, where, documentId } from "firebase/firestore"; 
+import { collection, getDocs, addDoc, doc, updateDoc, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp } from "firebase/firestore"; 
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
 
 const auth = getAuth();
@@ -10,7 +10,7 @@ provider.setCustomParameters({ prompt: 'select_account' });
 
 // --- Caching Configuration ---
 const CACHE_KEY = 'spanishAppCache';
-const CACHE_DURATION = 168 * 60 * 60 * 1000; // 7 days
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 1 day
 
 // --- Cache Helper Functions ---
 
@@ -21,7 +21,7 @@ function getCache() {
   const cachedData = localStorage.getItem(CACHE_KEY);
   if (!cachedData) {
     // Return a default structure if no cache exists
-    return { articles: null, articleDetail: {} };
+    return { articles: null, articleDetail: {}, articlesVersion: 0 };
   }
   return JSON.parse(cachedData);
 }
@@ -76,6 +76,9 @@ export const useDecksStore = create((set, get) => ({
     listeningPreference: 'es-ES',
     totalXp: 0,
     streak: 0,
+    savedWordsSet: new Set(),
+    savedWordsList: [], // For the new TrainingMode component
+    trainingDeck: null, // For the virtual flashcard deck
 
     // --- ACTIONS ---
     toggleTheme: () => set((state) => ({
@@ -118,6 +121,147 @@ export const useDecksStore = create((set, get) => ({
         });
     },
 
+    // --- MODIFIED: Now fetches translations along with saved words ---
+    fetchSavedWords: async () => {
+        const { currentUser } = get();
+        if (!currentUser) return;
+        
+        try {
+            // 1. Fetch the user's saved words (IDs, addedAt, active)
+            const q = query(
+                collection(db, 'users', currentUser.uid, 'savedWords'),
+                where("active", "==", true),
+                orderBy("addedAt", "desc")
+            );
+            const savedWordsSnapshot = await getDocs(q);
+            
+            const wordsSet = new Set();
+            const wordsToTranslate = [];
+            const savedWordDataMap = new Map(); // Store temp data
+
+            savedWordsSnapshot.docs.forEach(d => {
+                const wordId = d.id;
+                wordsSet.add(wordId);
+                wordsToTranslate.push(wordId);
+                savedWordDataMap.set(wordId, d.data()); // Store { addedAt, active }
+            });
+
+            if (wordsToTranslate.length === 0) {
+                set({ savedWordsSet: new Set(), savedWordsList: [] });
+                return;
+            }
+
+            // 2. Fetch the translations for these words from the 'dictionary' collection
+            const translations = new Map();
+            const chunks = [];
+            for (let i = 0; i < wordsToTranslate.length; i += 30) {
+                chunks.push(wordsToTranslate.slice(i, i + 30));
+            }
+
+            for (const chunk of chunks) {
+                const transQuery = query(
+                    collection(db, "dictionary"),
+                    where(documentId(), 'in', chunk)
+                );
+                const querySnapshot = await getDocs(transQuery);
+                querySnapshot.forEach((doc) => {
+                    translations.set(doc.id, doc.data().translation);
+                });
+            }
+
+            // 3. Combine the data into the final list
+            const fullWordsList = wordsToTranslate.map(wordId => {
+                const data = savedWordDataMap.get(wordId);
+                return {
+                    id: wordId, // This is the Spanish word
+                    translation: translations.get(wordId) || "No translation",
+                    addedAt: data.addedAt,
+                    active: data.active
+                };
+            });
+
+            set({ savedWordsSet: wordsSet, savedWordsList: fullWordsList });
+
+        } catch (error) {
+            console.error("Error fetching saved words: ", error);
+        }
+    },
+
+    // --- MODIFIED: Implements "soft delete" by toggling the 'active' flag ---
+    toggleSavedWord: async (spanishWord) => {
+        const { currentUser, savedWordsSet } = get();
+// ... (existing code) ...
+        if (!currentUser) {
+            alert("Please log in to save words.");
+            return;
+        }
+
+        const wordRef = doc(db, 'users', currentUser.uid, 'savedWords', spanishWord);
+        const newSavedWordsSet = new Set(savedWordsSet);
+
+        try {
+            if (savedWordsSet.has(spanishWord)) {
+                // Word is in the active set, so "remove" it by setting active: false
+                await updateDoc(wordRef, { active: false });
+                newSavedWordsSet.delete(spanishWord);
+            } else {
+                // Word is not in the active set, so add it or re-activate it
+                await setDoc(wordRef, { 
+                    addedAt: serverTimestamp(), 
+                    active: true 
+                }, { merge: true });
+                newSavedWordsSet.add(spanishWord);
+            }
+            // Update the local state
+            set({ savedWordsSet: newSavedWordsSet });
+            // Refresh the list to reflect changes (optional, but good for consistency)
+            get().fetchSavedWords(); 
+        } catch (error) {
+            console.error("Error toggling saved word: ", error);
+            alert("Could not save word. Please try again.");
+        }
+    },
+
+    // --- NEW: Action to build the virtual deck for flashcards ---
+    prepareTrainingDeck: async (wordsToStudy) => {
+        set({ isLoading: true });
+        const translations = new Map();
+        const chunks = [];
+        
+        // Chunk the words for Firestore 'in' query
+        for (let i = 0; i < wordsToStudy.length; i += 30) {
+            chunks.push(wordsToStudy.slice(i, i + 30));
+        }
+
+        // Fetch translations for all words in the training deck
+        for (const chunk of chunks) {
+            const q = query(
+                collection(db, "dictionary"),
+                where(documentId(), 'in', chunk)
+            );
+            
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+                translations.set(doc.id, doc.data().translation);
+            });
+        }
+        
+        // Build the deck object in the format your LessonsView expects
+        const trainingCards = wordsToStudy.map(word => ({
+            spanish: word,
+            english: translations.get(word) || "No translation found"
+            // You can add other properties here if your flashcard needs them
+        }));
+
+        const virtualDeck = {
+            title: "My Saved Words",
+            description: "Practice all the words you've saved.",
+            cards: trainingCards
+        };
+
+        set({ trainingDeck: virtualDeck, isLoading: false });
+    },
+
     addXp: (amount, message) => {
         // ... (function is correct, no changes)
         const { currentUser, streak } = get();
@@ -143,6 +287,7 @@ export const useDecksStore = create((set, get) => ({
     resetStreak: () => {
         set({ streak: 0 });
     },
+    
 
     updateCardProgress: async (deckId, cardId, knewIt) => {
         // ... (function is correct, no changes)
@@ -200,19 +345,27 @@ export const useDecksStore = create((set, get) => ({
         }
     },
 
-    // --- MODIFIED: Caching added ---
+    // --- MODIFIED: fetchArticles now checks version numbers ---
     fetchArticles: async () => {
         set({ isLoading: true });
-
-        // 1. Check cache
         const cache = getCache();
-        if (cache.articles && isCacheValid(cache.articles.timestamp)) {
-            set({ articles: cache.articles.data, isLoading: false });
-            return; // Use cached data
-        }
-
-        // 2. If cache invalid, fetch from Firestore
+        
         try {
+            // 1. Fetch the remote metadata version
+            const metadataRef = doc(db, 'appInfo', 'metadata');
+            const metadataSnap = await getDoc(metadataRef);
+            const remoteArticlesVersion = metadataSnap.exists() ? metadataSnap.data().articlesVersion : 1;
+
+            // 2. Compare with local cached version
+            const localArticlesVersion = cache.articlesVersion || 0;
+
+            if (cache.articles && localArticlesVersion === remoteArticlesVersion && isCacheValid(cache.articles.timestamp)) {
+                // Cache is valid and version matches, use cache
+                set({ articles: cache.articles.data, isLoading: false });
+                return; 
+            }
+
+            // 3. Cache is stale or invalid. Fetch from Firestore.
             const articlesCollection = collection(db, 'articles');
             const articleSnapshot = await getDocs(articlesCollection);
             const articlesData = {};
@@ -220,21 +373,30 @@ export const useDecksStore = create((set, get) => ({
                 articlesData[doc.id] = doc.data();
             });
 
-            // 3. Save to cache
+            // 4. Save new data and the new version number to cache
             cache.articles = {
                 timestamp: Date.now(),
                 data: articlesData
             };
+            cache.articlesVersion = remoteArticlesVersion; // Save the new version
             setCache(cache);
-            
+
             set({ articles: articlesData, isLoading: false });
+
         } catch (error) {
             console.error("Error fetching articles: ", error);
-            set({ isLoading: false });
+            // Fallback to cache if network fails but cache exists
+            if (cache.articles) {
+                set({ articles: cache.articles.data, isLoading: false });
+            } else {
+                set({ isLoading: false });
+            }
         }
     },
 
+    // --- MODIFIED: Cache invalidation for article details ---
     fetchTranslationsForArticle: async (articleText) => {
+        // ... (rest of the function is the same) ...
         set({ isDictionaryLoading: true });
         
         if (typeof articleText !== 'string' || !articleText) {
@@ -242,7 +404,6 @@ export const useDecksStore = create((set, get) => ({
             return;
         }
         
-        // The /[\p{L}]+/gu regex matches sequences of Unicode letter characters.
         const matchedWords = articleText.toLowerCase().match(/[\p{L}]+/gu);
         const uniqueWords = [...new Set(matchedWords || [])];
         
@@ -273,28 +434,33 @@ export const useDecksStore = create((set, get) => ({
         set({ activeArticleTranslations: translations, isDictionaryLoading: false });
     },
 
-    // --- MODIFIED: Caching added ---
     fetchArticleById: async (articleId) => {
         set({ isLoading: true, activeArticleTranslations: new Map() });
-
-        // 1. Check cache for this specific article
         const cache = getCache();
-        const cachedDetail = cache.articleDetail[articleId];
-        
-        if (cachedDetail && isCacheValid(cachedDetail.timestamp)) {
-            const articleData = cachedDetail.data;
-            const translations = deserializeMap(cachedDetail.translations);
-            
-            set((state) => ({ 
-                articles: { ...state.articles, [articleId]: articleData },
-                activeArticleTranslations: translations,
-                isLoading: false
-            }));
-            return; // Use cached data
-        }
 
-        // 2. If cache invalid, fetch from Firestore
         try {
+            // 1. Fetch metadata to check if article cache is valid
+            const metadataRef = doc(db, 'appInfo', 'metadata');
+            const metadataSnap = await getDoc(metadataRef);
+            const remoteArticlesVersion = metadataSnap.exists() ? metadataSnap.data().articlesVersion : 1;
+
+            const cachedDetail = cache.articleDetail[articleId];
+            const localArticlesVersion = cache.articlesVersion || 0;
+
+            // 2. Check cache validity
+            if (cachedDetail && localArticlesVersion === remoteArticlesVersion && isCacheValid(cachedDetail.timestamp)) {
+                const articleData = cachedDetail.data;
+                const translations = deserializeMap(cachedDetail.translations);
+                
+                set((state) => ({ 
+                    articles: { ...state.articles, [articleId]: articleData },
+                    activeArticleTranslations: translations,
+                    isLoading: false
+                }));
+                return; 
+            }
+
+            // 3. Cache is stale, fetch from Firestore
             const articleRef = doc(db, 'articles', articleId);
             const articleSnap = await getDoc(articleRef);
 
@@ -306,20 +472,20 @@ export const useDecksStore = create((set, get) => ({
                     fullText = articleData.sentences.map(s => s.spanish).join(' ');
                 }
                 
-                // Fetch translations and wait for them to be set in the state
                 await get().fetchTranslationsForArticle(fullText); 
                 
-                const translations = get().activeArticleTranslations; // Get the newly fetched translations
+                const translations = get().activeArticleTranslations; 
 
-                // 3. Save to cache
+                // 4. Save new data to cache
                 cache.articleDetail[articleId] = {
                     timestamp: Date.now(),
                     data: articleData,
-                    translations: serializeMap(translations) // Serialize the Map
+                    translations: serializeMap(translations) 
                 };
+                // Ensure the main cache version is also updated
+                cache.articlesVersion = remoteArticlesVersion;
                 setCache(cache);
                 
-                // 4. Set article state (translations are already set)
                 set((state) => ({ 
                     articles: { ...state.articles, [articleId]: articleData },
                     isLoading: false 
@@ -372,8 +538,9 @@ export const useDecksStore = create((set, get) => ({
             alert("Failed to save word.");
         }
     },
-    // --- MODIFIED: Cache invalidation added ---
+    // --- MODIFIED: This now also invalidates the article list cache ---
     saveWordTranslation: async (spanishWord, newTranslation) => {
+        // ... (admin check is the same) ...
         if (!get().isAdmin) {
             console.error("User is not authorized to perform this action.");
             alert("You do not have permission to edit the dictionary.");
@@ -383,18 +550,16 @@ export const useDecksStore = create((set, get) => ({
             const wordRef = doc(db, 'dictionary', spanishWord);
             await setDoc(wordRef, { translation: newTranslation });
     
-            // Update local state immediately
             set(state => {
                 const newTranslations = new Map(state.activeArticleTranslations);
                 newTranslations.set(spanishWord, newTranslation);
                 return { activeArticleTranslations: newTranslations };
             });
 
-            // --- IMPORTANT: Invalidate the cache ---
-            // This clears all cached articles, forcing a refetch on next view.
-            // This ensures users will see the new translation.
+            // --- MODIFIED: Invalidate all caches on edit ---
             const cache = getCache();
-            cache.articleDetail = {}; // Clear all cached article details
+            cache.articleDetail = {}; // Clear all detailed article caches
+            cache.articlesVersion = 0; // Force-invalidate the main article list
             setCache(cache);
             
         } catch (error) {

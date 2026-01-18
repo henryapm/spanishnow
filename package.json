@@ -11,9 +11,10 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
+    "@vitejs/plugin-rsc": "^0.5.14",
     "firebase": "^11.10.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.3",
     "uuid": "^11.1.0",

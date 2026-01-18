@@ -2,28 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store.js'; // Make sure this path is correct
 import { LuTurtle } from "react-icons/lu";
+// --- NEW: Import bookmark icons for the "save word" feature ---
+import { BsBookmark, BsBookmarkFill } from "react-icons/bs";
 
 const ReaderView = () => {
     const { articleId } = useParams(); 
     const navigate = useNavigate();
     
-    // Get data and actions from the store
+    // --- Store Data ---
     const fetchArticleById = useDecksStore((state) => state.fetchArticleById);
-    const article = useDecksStore((state) => state.articles[state.articleId] || state.articles[articleId]);
-    const translations = useDecksStore((state) => state.activeArticleTranslations);
+    const article = useDecksStore((state) => state.articles[articleId]);
     const isLoading = useDecksStore((state) => state.isLoading);
-    const isDictionaryLoading = useDecksStore((state) => state.isDictionaryLoading);
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
+    const translations = useDecksStore((state) => state.activeArticleTranslations);
+    const isDictionaryLoading = useDecksStore((state) => state.isDictionaryLoading);
     const isAdmin = useDecksStore((state) => state.isAdmin);
+    
+    // --- NEW: Get saved words state and actions from the store ---
+    const savedWords = useDecksStore((state) => state.savedWordsSet);
+    const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
     const saveWordTranslation = useDecksStore((state) => state.saveWordTranslation);
     
-    // State for UI features
+    // --- UI State ---
     const [lookupResult, setLookupResult] = useState(null);
     const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
     const [showTranslations, setShowTranslations] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [editText, setEditText] = useState('');
+    const [editText, setEditText] = useState("");
+    const POPUP_WIDTH = 220; // Fixed width for popup calculations
+    // --- NEW: Add an estimated height for vertical checks ---
+    const POPUP_HEIGHT_ESTIMATE = 120; // Estimated height for admin popup
 
+    // Fetch article and translations when component mounts
     useEffect(() => {
         if (articleId) {
           fetchArticleById(articleId);
@@ -31,8 +41,10 @@ const ReaderView = () => {
     }, [articleId, fetchArticleById]);
 
     if (isLoading || !article) {
-        return <div className="text-center p-8">Loading article...</div>;
+        return <div className="p-4">Loading article...</div>;
     }
+
+    // --- Event Handlers ---
 
     const handleSpeak = (textToSpeak, rate = 1.0) => {
         if (!textToSpeak || !window.speechSynthesis) return;
@@ -43,52 +55,72 @@ const ReaderView = () => {
         window.speechSynthesis.speak(utterance);
     };
 
+    // --- MODIFIED: Upgraded positioning logic ---
     const handleWordClick = (e, word) => {
         e.stopPropagation();
-        closePopup(); // Close any existing popup first
-        const cleanedWord = word.toLowerCase().replace(/[¿?¡!.,']/g, '');
-        if (!cleanedWord) return; // Don't do anything for empty strings
-
-        const translation = translations.get(cleanedWord);
-
-        const rect = e.target.getBoundingClientRect();
-        const POPUP_WIDTH = 220;
-        const PADDING = 16;
-        let x = rect.left;
-        let y = rect.bottom + 8;
-
-        if (x + POPUP_WIDTH > window.innerWidth) {
-            x = rect.right - POPUP_WIDTH;
-        }
-        if (x < 0) {
-            x = PADDING;
-        }
-
-        setPopupPosition({ x, y });
-        setLookupResult({ word: cleanedWord, translation: translation });
-        setEditText(translation || '');
+        // Clean the word to match dictionary keys
+        const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
+        if (!cleanedWordMatch) return; // Not a valid word
         
-        // If admin clicks a word with no translation, go straight to edit mode
-        if (isAdmin && !translation) {
-            setIsEditing(true);
+        const cleanedWord = cleanedWordMatch[0];
+        
+        const rect = e.target.getBoundingClientRect();
+        const translation = translations.get(cleanedWord) || "No translation found.";
+        
+        // --- Smart Popup Positioning Logic ---
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const scrollY = window.scrollY;
+
+        // --- X Axis (Horizontal) Calculation ---
+        let x = rect.left;
+        if (x + POPUP_WIDTH > screenWidth) {
+            x = screenWidth - POPUP_WIDTH - 16; // 16px buffer
         }
+        if (x < 16) {
+            x = 16; // 16px buffer
+        }
+        
+        // --- Y Axis (Vertical) Calculation ---
+        let y;
+        if (rect.bottom + POPUP_HEIGHT_ESTIMATE > screenHeight) {
+            // Not enough space below, place it ABOVE the word
+            y = rect.top + scrollY - POPUP_HEIGHT_ESTIMATE - 8;
+        } else {
+            // Default: place it BELOW the word
+            y = rect.bottom + scrollY + 8; // 8px buffer
+        }
+        
+        setLookupResult({ word: cleanedWord, translation: translation });
+        setPopupPosition({ x, y });
+        setIsEditing(false); // Reset editing state on new word click
+        setEditText(translation === "No translation found." ? "" : translation);
     };
 
     const closePopup = () => {
         setLookupResult(null);
         setIsEditing(false);
-        setEditText('');
     };
 
-    const handleSaveTranslation = () => {
-        if (lookupResult) {
-            saveWordTranslation(lookupResult.word, editText);
-            // Optimistically update the local state for immediate feedback
-            setLookupResult(prev => ({ ...prev, translation: editText }));
-            setIsEditing(false);
-        }
+    const handleSaveEdit = (e) => {
+        e.stopPropagation(); 
+        if (!lookupResult) return;
+        
+        saveWordTranslation(lookupResult.word, editText);
+        setLookupResult(prev => ({ ...prev, translation: editText }));
+        setIsEditing(false);
     };
 
+    // --- NEW: Handler for the save/unsave word button ---
+    const handleToggleSaveWord = (e) => {
+        e.stopPropagation(); // Stop click from bubbling to the main div
+        if (!lookupResult) return;
+        toggleSavedWord(lookupResult.word);
+    };
+
+    // --- Component Renders ---
+
+    // This renders the main article content
     const renderedContent = (article.sentences || []).map((sentenceObj, sIndex) => (
         <div key={sIndex}>
             <div className="flex gap-4 items-start">
@@ -109,16 +141,35 @@ const ReaderView = () => {
                     </button>
                 </div>
                 <p className="leading-loose">
-                    {sentenceObj.spanish.split(' ').map((word, wIndex) => (
-                        <span 
-                            key={wIndex}
-                            style={{ backgroundColor: translations.get(word.toLowerCase().replace(/[¿?¡!.,']/g, '')) ? 'transparent' : isAdmin ? '#fe9380ff' : 'transparent' }}
-                            className="cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-600 rounded transition-colors duration-150"
-                            onClick={(e) => handleWordClick(e, word)}
-                        >
-                            {word}{' '}
-                        </span>
-                    ))}
+                    {/* --- MODIFIED: Added logic to conditionally style words for admins --- */}
+                    {sentenceObj.spanish.split(' ').map((word, wIndex) => {
+                        const baseClass = "cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-600 rounded transition-colors duration-150";
+                        let adminClass = "";
+
+                        // Check if admin is logged in and if word is missing translation
+                        if (isAdmin && word.length > 0) {
+                            const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
+                            if (cleanedWordMatch) {
+                                const cleanedWord = cleanedWordMatch[0];
+                                const translation = translations.get(cleanedWord);
+                                
+                                // If no translation is found, apply the admin highlight class
+                                if (!translation || translation === "No translation found.") {
+                                    adminClass = "bg-red-200 dark:bg-red-700 opacity-75"; // Highlight missing words
+                                }
+                            }
+                        }
+
+                        return (
+                            <span 
+                                key={wIndex} 
+                                className={`${baseClass} ${adminClass}`}
+                                onClick={(e) => handleWordClick(e, word)}
+                            >
+                                {word}{' '}
+                            </span>
+                        );
+                    })}
                 </p>
             </div>
             {showTranslations && (
@@ -129,46 +180,72 @@ const ReaderView = () => {
         </div>
     ));
 
-    return (
-        <div className="w-full animate-fade-in p-4" onClick={closePopup}>
-            {lookupResult && (
-                <div 
-                    style={{ top: `${popupPosition.y}px`, left: `${popupPosition.x}px` }}
-                    className="fixed w-[220px] bg-gray-800 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-lg z-50 flex flex-col gap-2"
-                    onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside popup
-                >
-                    <p className="font-bold capitalize">{lookupResult.word}</p>
-                    
-                    {isEditing ? (
-                        <>
-                            <input 
-                                type="text"
-                                value={editText}
-                                onChange={(e) => setEditText(e.target.value)}
-                                className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white w-full"
-                                autoFocus
-                            />
-                            <div className="flex justify-end gap-2">
-                                <button onClick={() => setIsEditing(false)} className="text-xs text-gray-400 hover:text-white">Cancel</button>
-                                <button onClick={handleSaveTranslation} className="text-xs bg-teal-500 hover:bg-teal-600 text-white font-bold py-1 px-2 rounded">Save</button>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <p>&rarr; {lookupResult.translation || <span className="italic text-gray-400">No translation found.</span>}</p>
-                            {isAdmin && (
-                                <button 
-                                    onClick={() => setIsEditing(true)} 
-                                    className="text-xs self-start mt-1 text-teal-400 hover:text-teal-300"
-                                >
-                                    {lookupResult.translation ? 'Edit Translation' : 'Add Translation'}
-                                </button>
-                            )}
-                        </>
-                    )}
-                </div>
-            )}
+    // This renders the word-click popup
+    const renderPopup = () => {
+        if (!lookupResult) return null;
 
+        // Check if the current word is in the user's savedWords Set
+        const isSaved = savedWords.has(lookupResult.word);
+
+        return (
+            <div 
+                style={{ top: `${popupPosition.y}px`, left: `${popupPosition.x}px` }}
+                // --- MODIFIED: Changed 'fixed' to 'absolute' to scroll with the page ---
+                className={`absolute w-[220px] bg-gray-800 text-white text-sm font-semibold px-4 py-3 rounded-lg shadow-lg z-50`}
+                onClick={(e) => e.stopPropagation()} // Prevents popup from closing when clicking inside it
+            >
+                <div className="flex justify-between items-center mb-2">
+                    <p className="font-bold capitalize text-base">{lookupResult.word}</p>
+                    
+                    {/* --- NEW: Save Word Button --- */}
+                    <button 
+                        onClick={handleToggleSaveWord}
+                        className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors`}
+                        title={isSaved ? "Remove from saved words" : "Save word for training"}
+                    >
+                        {isSaved ? <BsBookmarkFill /> : <BsBookmark />}
+                    </button>
+                </div>
+                
+                {/* Admin Editing UI */}
+                {isEditing ? (
+                    <div>
+                        <textarea
+                            className="w-full bg-gray-700 text-white rounded p-2 text-sm"
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            rows={2}
+                        />
+                        <button
+                            onClick={handleSaveEdit}
+                            className="w-full mt-2 px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-white font-bold"
+                        >
+                            Save
+                        </button>
+                    </div>
+                ) : (
+                    // Standard Translation View
+                    <div>
+                        <p className="font-normal">&rarr; {lookupResult.translation}</p>
+                        {isAdmin && (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="w-full mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white font-bold text-xs"
+                            >
+                                {lookupResult.translation === "No translation found." ? "Add" : "Edit"} Translation
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    // --- Main Component Return ---
+    return (
+        <div className="w-full animate-fade-in" onClick={closePopup}>
+            {renderPopup()}
+            
             <div className="mb-4 flex justify-between items-center">
                 <button onClick={() => navigate('/reading-library')} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
                     &larr; Back to Library
