@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import ReadingLibrary from './ReadingLibrary'; // Import the new component
-import TrainingMode from './TrainingMode.jsx'; // Make sure the path is correct
 
 
 // Helper function to group decks by topic
