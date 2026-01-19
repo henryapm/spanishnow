@@ -1,8 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDecksStore } from '../store';
-import ReadingLibrary from './ReadingLibrary'; // Import the new component
-
+import { useDecksStore } from '../store.js';
+import ReadingLibrary from './ReadingLibrary.jsx';
 
 // Helper function to group decks by topic
 const groupDecksByTopic = (decks) => {
@@ -35,7 +34,7 @@ const chunkArray = (array, size) => {
 
 const DeckSelectionScreen = ({ decks }) => {
     const navigate = useNavigate();
-    const [mode, setMode] = useState('lessons'); // 'lessons' or 'reading'
+    const [tab, setTab] = React.useState('lessons'); 
     
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
@@ -43,10 +42,12 @@ const DeckSelectionScreen = ({ decks }) => {
 
     const topics = useMemo(() => groupDecksByTopic(decks), [decks]);
 
-    const handleLessonClick = (lessonCards, deck) => {
+    // Handle navigation with specific mode
+    const handleLessonClick = (lessonCards, deck, mode) => {
         const hasAccess = deck.isFree || isAdmin || hasActiveSubscription;
         if (hasAccess) {
-            navigate('/lesson', { state: { lessonCards, deckId: deck.id } });
+            // Pass the mode ('flashcards', 'practice', 'test') to the session
+            navigate('/lesson', { state: { lessonCards, deckId: deck.id, mode } });
         } else {
             alert("This is a premium topic. Subscribe to get access!");
         }
@@ -54,25 +55,40 @@ const DeckSelectionScreen = ({ decks }) => {
 
     let globalNextLessonFound = false;
 
+    // Calculate score: (Correctly Answered Cards / Total Cards) * 100
+    const calculateScore = (lessonCards, deckId) => {
+        const totalCards = lessonCards.length;
+        if (totalCards === 0) return 0;
+        
+        // Count cards with mastery >= 1 (Assuming 1 means they got it right at least once)
+        const correctCount = lessonCards.filter(card => (progress[deckId]?.[card.id] || 0) >= 1).length;
+        
+        const pointsPerCard = 100 / totalCards;
+        const score = Math.round(correctCount * pointsPerCard);
+        return score;
+    };
+
     return (
-        <div className="w-full animate-fade-in">
-            {/* --- Tab Navigation --- */}
-            <div className="mb-6 flex justify-center border-b border-gray-200 dark:border-gray-600">
+        <div className="w-full animate-fade-in pb-24">
+             {/* --- Tab Navigation --- */}
+             <div className="mb-6 flex justify-center border-b border-gray-200 dark:border-gray-600">
                 <button 
-                    onClick={() => setMode('lessons')}
-                    className={`px-6 py-3 font-semibold ${mode === 'lessons' ? 'border-b-2 border-teal-500 text-teal-500' : 'text-gray-500 cursor-pointer'}`}
+                    onClick={() => setTab('lessons')}
+                    className={`px-6 py-3 font-semibold ${tab === 'lessons' ? 'border-b-2 border-teal-500 text-teal-500' : 'text-gray-500'}`}
                 >
                     Lessons
                 </button>
                 <button 
-                    onClick={() => setMode('reading')}
-                    className={`px-6 py-3 font-semibold ${mode === 'reading' ? 'border-b-2 border-teal-500 text-teal-500' : 'text-gray-500 cursor-pointer'}`}
+                    onClick={() => setTab('reading')}
+                    className={`px-6 py-3 font-semibold ${tab === 'reading' ? 'border-b-2 border-teal-500 text-teal-500' : 'text-gray-500'}`}
                 >
                     Reading
                 </button>
             </div>
 
-            {mode === 'lessons' && (
+            {tab === 'reading' ? (
+                <ReadingLibrary />
+            ) : (
                 <div className="text-center">
                     <div className="space-y-8">
                         {Object.keys(topics).map(topicName => {
@@ -83,18 +99,19 @@ const DeckSelectionScreen = ({ decks }) => {
                             const hasAccess = !isTopicPremium || isAdmin || hasActiveSubscription;
                             
                             return (
-                                <div key={topicName} className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-md">
-                                    <h2 className="text-2xl font-bold dark:text-teal-300 text-teal-700 capitalize mb-4 flex justify-between items-center">
+                                <div key={topicName} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                                    <h2 className="text-2xl font-bold text-teal-700 dark:text-teal-400 capitalize mb-6 flex justify-between items-center">
                                         {topicName}
                                         {isTopicPremium && (
                                             <span className="text-xs font-bold bg-purple-600 text-white px-2 py-1 rounded-full">PREMIUM</span>
                                         )}
                                     </h2>
-                                    <div className="flex flex-col gap-3">
+                                    <div className="flex flex-col gap-6">
                                         {topicDecks.map(deck => {
                                             const lessons = chunkArray(deck.cards, 4);
                                             return lessons.map((lessonCards, index) => {
-                                                const isLessonCompleted = lessonCards.every(card => (progress[deck.id]?.[card.id] || 0) >= 1);
+                                                const score = calculateScore(lessonCards, deck.id);
+                                                const isLessonCompleted = score === 100;
                                                 
                                                 let lessonStatus = 'locked';
                                                 if (isLessonCompleted) {
@@ -104,26 +121,66 @@ const DeckSelectionScreen = ({ decks }) => {
                                                     globalNextLessonFound = true;
                                                 }
 
-                                                const isDisabled = (lessonStatus === 'locked' && !isAdmin) || !hasAccess;
+                                                // Allow access if it's the next lesson, completed, or if user is admin
+                                                const isLocked = lessonStatus === 'locked' && !isAdmin;
+                                                const isContentLocked = !hasAccess; 
 
                                                 return (
-                                                    <button
+                                                    <div 
                                                         key={`${deck.id}-lesson-${index}`}
-                                                        onClick={() => handleLessonClick(lessonCards, deck)}
-                                                        disabled={isDisabled}
-                                                        className={`w-full text-left p-4 rounded-md transition-colors flex justify-between items-center
-                                                            ${lessonStatus === 'next' && hasAccess ? 'bg-blue-100 dark:bg-blue-200 dark:hover:bg-blue-700 border-2 border-blue-500 hover:dark:border-blue-200 dark:text-blue-900 hover:dark:text-blue-200 cursor-pointer' : ''}
-                                                            ${lessonStatus === 'completed' ? 'bg-green-50 hover:bg-green-200 text-gray-500 cursor-pointer' : ''}
-                                                            ${isDisabled ? 'bg-gray-400 hover:bg-gray-100 opacity-60 cursor-not-allowed' : ''}
-                                                        `}
+                                                        className={`border-2 rounded-xl p-4 transition-all ${
+                                                            lessonStatus === 'next' ? 'border-blue-500 bg-blue-50 dark:bg-gray-700' : 'border-gray-200 dark:border-gray-600'
+                                                        } ${isLocked || isContentLocked ? 'opacity-60 grayscale' : ''}`}
                                                     >
-                                                        <span className={`font-semibold ${lessonStatus === 'next' && hasAccess ? '' : 'text-gray-800'}`}>
-                                                            {deck.title} - Lesson {index + 1}
-                                                        </span>
-                                                        <div className="flex items-center gap-2">
-                                                            {lessonStatus === 'completed' && <span role="img" aria-label="completed">✅</span>}
+                                                        {/* Header: Title & Score */}
+                                                        <div className="flex justify-between items-center mb-4">
+                                                            <span className="font-bold text-lg text-gray-800 dark:text-gray-200">
+                                                                {deck.title} - Part {index + 1}
+                                                            </span>
+                                                            <div className="flex items-center gap-2">
+                                                                {isContentLocked ? (
+                                                                     <span role="img" aria-label="locked">🔒</span>
+                                                                ) : (
+                                                                    <span className={`text-sm font-bold px-2 py-1 rounded ${score === 100 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                                        Score: {score}/100
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    </button>
+
+                                                        {/* Action Buttons Row */}
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            {/* 1. Flashcards (Learn) */}
+                                                            <button
+                                                                onClick={() => handleLessonClick(lessonCards, deck, 'flashcards')}
+                                                                disabled={isLocked || isContentLocked}
+                                                                className="flex flex-col items-center justify-center p-2 rounded-lg bg-teal-50 dark:bg-gray-600 hover:bg-teal-100 dark:hover:bg-gray-500 transition-colors disabled:cursor-not-allowed"
+                                                            >
+                                                                <span className="text-xl mb-1">📖</span>
+                                                                <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">Learn</span>
+                                                            </button>
+
+                                                            {/* 2. Practice (Quizzes) */}
+                                                            <button
+                                                                onClick={() => handleLessonClick(lessonCards, deck, 'practice')}
+                                                                disabled={isLocked || isContentLocked}
+                                                                className="flex flex-col items-center justify-center p-2 rounded-lg bg-indigo-50 dark:bg-gray-600 hover:bg-indigo-100 dark:hover:bg-gray-500 transition-colors disabled:cursor-not-allowed"
+                                                            >
+                                                                <span className="text-xl mb-1">🏋️</span>
+                                                                <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">Practice</span>
+                                                            </button>
+
+                                                            {/* 3. Test (Scored) */}
+                                                            <button
+                                                                onClick={() => handleLessonClick(lessonCards, deck, 'test')}
+                                                                disabled={isLocked || isContentLocked}
+                                                                className="flex flex-col items-center justify-center p-2 rounded-lg bg-orange-50 dark:bg-gray-600 hover:bg-orange-100 dark:hover:bg-gray-500 transition-colors disabled:cursor-not-allowed"
+                                                            >
+                                                                <span className="text-xl mb-1">📝</span>
+                                                                <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">Test</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 )
                                             })
                                         })}
@@ -135,24 +192,15 @@ const DeckSelectionScreen = ({ decks }) => {
 
                     {isAdmin && (
                         <div className="mt-12">
-                            <button onClick={() => navigate('/create')} className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
+                            <button onClick={() => navigate('/create-deck')} className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
                                 + Add New Deck
                             </button>
                         </div>
                     )}
                 </div>
             )}
-            
-            {mode === 'reading' && (
-                <ReadingLibrary />
-            )}
-
-            {mode === 'training' && (
-                <TrainingMode />
-            )}
         </div>
     );
 };
 
 export default DeckSelectionScreen;
-
