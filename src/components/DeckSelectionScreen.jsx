@@ -71,12 +71,6 @@ const DeckSelectionScreen = ({ decks }) => {
                 >
                     Reading
                 </button>
-                <button 
-                    onClick={() => setMode('training')}
-                    className={`px-6 py-3 font-semibold ${mode === 'training' ? 'border-b-2 border-teal-500 text-teal-500' : 'text-gray-500 cursor-pointer'}`}
-                >
-                    Training
-                </button>
             </div>
 
             {mode === 'lessons' && (
