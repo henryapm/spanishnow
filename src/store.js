@@ -77,8 +77,8 @@ export const useDecksStore = create((set, get) => ({
     totalXp: 0,
     streak: 0,
     savedWordsSet: new Set(),
-    savedWordsList: [], // For the new TrainingMode component
-    trainingDeck: null, // For the virtual flashcard deck
+    dailyFreeAccess: null, // { date: "YYYY-MM-DD", deckId: "..." }
+
 
     // --- ACTIONS ---
     toggleTheme: () => set((state) => ({
@@ -95,11 +95,13 @@ export const useDecksStore = create((set, get) => ({
                 let userPreference = 'es-ES';
                 let userXp = 0;
                 let subscriptionStatus = false;
+                let dailyFreeAccess = null;
 
                 if (userDocSnap.exists()) {
                     userPreference = userDocSnap.data().listeningPreference || 'es-ES';
                     userXp = userDocSnap.data().totalXp || 0;
                     subscriptionStatus = userDocSnap.data().hasActiveSubscription === true;
+                    dailyFreeAccess = userDocSnap.data().dailyFreeAccess || null;
                 }
 
                 const progressSnapshot = await getDocs(collection(db, 'users', user.uid, 'progress'));
@@ -113,12 +115,51 @@ export const useDecksStore = create((set, get) => ({
                     progress: progressData,
                     listeningPreference: userPreference,
                     totalXp: userXp,
-                    streak: 0
+                    streak: 0,
+                    dailyFreeAccess: dailyFreeAccess
                 });
             } else {
-                set({ currentUser: null, isAdmin: false, progress: {}, listeningPreference: 'es-ES', totalXp: 0, streak: 0 });
+                set({ currentUser: null, isAdmin: false, progress: {}, listeningPreference: 'es-ES', totalXp: 0, streak: 0, dailyFreeAccess: null });
             }
         });
+    },
+
+    // --- NEW: Check and Record Daily Access ---
+    checkAndRecordDailyAccess: async (deckId) => {
+        const { currentUser, isAdmin, hasActiveSubscription, dailyFreeAccess } = get();
+        
+        // Admins and Subscribers have unlimited access
+        if (isAdmin || hasActiveSubscription) return true;
+        
+        const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+
+        // If user has accessed a deck today
+        if (dailyFreeAccess && dailyFreeAccess.date === today) {
+            // If it's the SAME deck, allow it
+            if (dailyFreeAccess.deckId === deckId) {
+                return true;
+            }
+            // If it's a DIFFERENT deck, block it
+            return false;
+        }
+
+        // If it's a new day (or first time), allow and record usage
+        const newAccess = { date: today, deckId };
+        
+        // Update local state immediately
+        set({ dailyFreeAccess: newAccess });
+
+        // Persist to Firestore
+        if (currentUser) {
+            const userDocRef = doc(db, "users", currentUser.uid);
+            try {
+                await setDoc(userDocRef, { dailyFreeAccess: newAccess }, { merge: true });
+            } catch (error) {
+                console.error("Error recording daily access:", error);
+            }
+        }
+        
+        return true;
     },
 
     // --- MODIFIED: Now fetches translations along with saved words ---

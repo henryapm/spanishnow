@@ -30,16 +30,32 @@ const DeckSelectionScreen = ({ decks }) => {
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
     const progress = useDecksStore((state) => state.progress);
+    const checkAndRecordDailyAccess = useDecksStore((state) => state.checkAndRecordDailyAccess);
 
     const topics = useMemo(() => groupDecksByTopic(decks), [decks]);
 
     // Handle navigation with specific mode
-    const handleDeckClick = (lessonCards, deck, mode) => {
-        const hasAccess = deck.isFree || isAdmin || hasActiveSubscription;
-        if (hasAccess) {
-            navigate('/lesson', { state: { lessonCards, deckId: deck.id, mode } });
+    const handleDeckClick = async (lessonCards, deck, mode) => {
+        // --- Daily Limit Logic ---
+        // 1. Check if the user has access (free deck OR admin OR subscription)
+        // 2. If it's a paid deck and user is NOT admin/subscribed, perform daily check
+        
+        const isFreeDeck = deck.isFree;
+        const isUserPremium = isAdmin || hasActiveSubscription;
+
+        if (isUserPremium) {
+            // Unrestricted access
+             navigate('/lesson', { state: { lessonCards, deckId: deck.id, mode } });
         } else {
-            alert("This is a premium topic. Subscribe to get access!");
+             // It's a paid deck and user is free tier
+             // Check if they can use their "one free per day" token
+             const canAccessToday = await checkAndRecordDailyAccess(deck.id);
+             
+             if (canAccessToday) {
+                 navigate('/lesson', { state: { lessonCards, deckId: deck.id, mode } });
+             } else {
+                 alert("You've reached your daily limit of practice! Subscribe to unlock unlimited access.");
+             }
         }
     };
 
@@ -50,7 +66,7 @@ const DeckSelectionScreen = ({ decks }) => {
         const totalCards = lessonCards.length;
         if (totalCards === 0) return 0;
         
-        // Count cards with mastery >= 1
+        // Count cards with mastery >= 1 (Assuming 1 means they got it right at least once)
         const correctCount = lessonCards.filter(card => (progress[deckId]?.[card.id] || 0) >= 1).length;
         
         const pointsPerCard = 100 / totalCards;
@@ -98,10 +114,14 @@ const DeckSelectionScreen = ({ decks }) => {
                                     <div className="flex flex-col gap-6">
                                         {topicDecks.map(deck => {
                                             const hasAccess = deck.isFree || isAdmin || hasActiveSubscription;
-                                            // Pass ALL cards to the session, no chunking
+                                            
+                                            // Use the full deck cards (No chunks)
                                             const lessonCards = deck.cards || [];
                                             const score = calculateScore(lessonCards, deck.id);
-                                            const isDeckCompleted = score === 100;
+                                            
+                                            // A deck is completed if the user has attempted all cards (progress exists).
+                                            const attemptedCount = lessonCards.filter(card => progress[deck.id]?.[card.id] !== undefined).length;
+                                            const isDeckCompleted = attemptedCount === lessonCards.length && lessonCards.length > 0;
                                             
                                             let deckStatus = 'locked';
                                             if (isDeckCompleted) {
@@ -111,8 +131,9 @@ const DeckSelectionScreen = ({ decks }) => {
                                                 globalNextDeckFound = true;
                                             }
 
-                                            // Allow access if it's the next deck, completed, or if user is admin
-                                            const isLocked = deckStatus === 'locked' && !isAdmin;
+                                            // MODIFIED: Remove linear progression restriction.
+                                            // Users can access any deck, but premium/daily limits still apply via handleDeckClick.
+                                            // const isLocked = deckStatus === 'locked' && !isAdmin; // Removed
                                             const isContentLocked = !hasAccess; 
 
                                             return (
@@ -120,7 +141,7 @@ const DeckSelectionScreen = ({ decks }) => {
                                                     key={deck.id}
                                                     className={`border-2 rounded-xl p-4 transition-all ${
                                                         deckStatus === 'next' ? 'border-blue-500 bg-blue-50 dark:bg-gray-700' : 'border-gray-200 dark:border-gray-600'
-                                                    } ${isLocked || isContentLocked ? 'opacity-60 grayscale' : ''}`}
+                                                    }`}
                                                 >
                                                     {/* Header: Title & Score */}
                                                     <div className="flex justify-between items-center mb-4">
@@ -129,10 +150,10 @@ const DeckSelectionScreen = ({ decks }) => {
                                                         </span>
                                                         <div className="flex items-center gap-2">
                                                             {isContentLocked ? (
-                                                                 <span role="img" aria-label="locked">🔒</span>
+                                                                 <span role="img" aria-label="premium" title="Premium Deck">💎</span>
                                                             ) : (
                                                                 <span className={`text-sm font-bold px-2 py-1 rounded ${score === 100 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                                    Score: {score}/100
+                                                                    {score ? `Score: ${score}/100` : 'No Score'}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -143,8 +164,7 @@ const DeckSelectionScreen = ({ decks }) => {
                                                         {/* 1. Flashcards (Learn) */}
                                                         <button
                                                             onClick={() => handleDeckClick(lessonCards, deck, 'flashcards')}
-                                                            disabled={isLocked || isContentLocked}
-                                                            className="flex flex-col items-center justify-center p-2 rounded-lg bg-teal-50 dark:bg-gray-600 hover:bg-teal-100 dark:hover:bg-gray-500 transition-colors disabled:cursor-not-allowed"
+                                                            className="flex flex-col items-center justify-center p-2 rounded-lg bg-teal-50 dark:bg-gray-600 hover:bg-teal-100 dark:hover:bg-gray-500 transition-colors"
                                                         >
                                                             <span className="text-xl mb-1">📖</span>
                                                             <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">Learn</span>
@@ -153,8 +173,7 @@ const DeckSelectionScreen = ({ decks }) => {
                                                         {/* 2. Practice (Quizzes) */}
                                                         <button
                                                             onClick={() => handleDeckClick(lessonCards, deck, 'practice')}
-                                                            disabled={isLocked || isContentLocked}
-                                                            className="flex flex-col items-center justify-center p-2 rounded-lg bg-indigo-50 dark:bg-gray-600 hover:bg-indigo-100 dark:hover:bg-gray-500 transition-colors disabled:cursor-not-allowed"
+                                                            className="flex flex-col items-center justify-center p-2 rounded-lg bg-indigo-50 dark:bg-gray-600 hover:bg-indigo-100 dark:hover:bg-gray-500 transition-colors"
                                                         >
                                                             <span className="text-xl mb-1">🏋️</span>
                                                             <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">Practice</span>
@@ -163,8 +182,7 @@ const DeckSelectionScreen = ({ decks }) => {
                                                         {/* 3. Test (Scored) */}
                                                         <button
                                                             onClick={() => handleDeckClick(lessonCards, deck, 'test')}
-                                                            disabled={isLocked || isContentLocked}
-                                                            className="flex flex-col items-center justify-center p-2 rounded-lg bg-orange-50 dark:bg-gray-600 hover:bg-orange-100 dark:hover:bg-gray-500 transition-colors disabled:cursor-not-allowed"
+                                                            className="flex flex-col items-center justify-center p-2 rounded-lg bg-orange-50 dark:bg-gray-600 hover:bg-orange-100 dark:hover:bg-gray-500 transition-colors"
                                                         >
                                                             <span className="text-xl mb-1">📝</span>
                                                             <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">Test</span>
