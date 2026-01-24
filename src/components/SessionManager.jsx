@@ -33,8 +33,9 @@ const SessionManager = () => {
     const [sessionScore, setSessionScore] = useState(0);
 
     const createPracticeQueue = (cards) => {
-        const queue = [];
+        // Shuffle the cards for the practice session
         const shuffled = shuffleArray(cards);
+        const queue = [];
         const types = ['listen', 'mcq', 'fill'];
         let lastType = null;
         

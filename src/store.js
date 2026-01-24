@@ -12,8 +12,6 @@ provider.setCustomParameters({ prompt: 'select_account' });
 const CACHE_KEY = 'spanishAppCache';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 1 day
 
-// --- Cache Helper Functions ---
-
 /**
  * Gets the entire cache object from localStorage.
  */
@@ -61,6 +59,43 @@ function deserializeMap(jsonString) {
   return new Map(JSON.parse(jsonString));
 }
 
+// --- HELPER: SuperMemo-2 Algorithm ---
+const calculateSRS = (currentData, wasCorrect) => {
+    // 1. Get current values (or defaults)
+    let interval = currentData.interval || 0;
+    let repetition = currentData.repetition || 0;
+    let easeFactor = currentData.easeFactor || 2.5;
+
+    if (!wasCorrect) {
+        // --- WRONG ANSWER ---
+        // Reset progress. Show it again essentially immediately (or tomorrow).
+        repetition = 0;
+        interval = 1; 
+    } else {
+        // --- CORRECT ANSWER ---
+        if (repetition === 0) {
+            interval = 1;
+        } else if (repetition === 1) {
+            interval = 6;
+        } else {
+            interval = Math.round(interval * easeFactor);
+        }
+        repetition += 1;
+    }
+
+    // 2. Calculate Next Review Date
+    const nextReviewDate = new Date();
+    nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+    
+    return {
+        interval,
+        repetition,
+        easeFactor,
+        nextReviewDate: nextReviewDate.getTime(), // Save as timestamp
+        mastery: repetition // We keep 'mastery' synced with repetition for UI compatibility
+    };
+};
+
 export const useDecksStore = create((set, get) => ({
     // --- STATE ---
     decks: {},
@@ -101,7 +136,21 @@ export const useDecksStore = create((set, get) => ({
                     userPreference = userDocSnap.data().listeningPreference || 'es-ES';
                     userXp = userDocSnap.data().totalXp || 0;
                     subscriptionStatus = userDocSnap.data().hasActiveSubscription === true;
-                    dailyFreeAccess = userDocSnap.data().dailyFreeAccess || null;
+                    
+                    // --- FIX: Race Condition Handling ---
+                    // If we have a local record for TODAY, but server has nothing (or old date), 
+                    // keep the local version. This prevents the auth listener from overwriting 
+                    // our optimistic update before the server write completes.
+                    const serverAccess = userDocSnap.data().dailyFreeAccess || null;
+                    const localAccess = get().dailyFreeAccess;
+                    const now = new Date();
+                    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+                    if (localAccess && localAccess.date === today && (!serverAccess || serverAccess.date !== today)) {
+                        dailyFreeAccess = localAccess;
+                    } else {
+                        dailyFreeAccess = serverAccess;
+                    }
                 }
 
                 const progressSnapshot = await getDocs(collection(db, 'users', user.uid, 'progress'));
@@ -131,12 +180,13 @@ export const useDecksStore = create((set, get) => ({
         // Admins and Subscribers have unlimited access
         if (isAdmin || hasActiveSubscription) return true;
         
-        const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
         // If user has accessed a deck today
         if (dailyFreeAccess && dailyFreeAccess.date === today) {
             // If it's the SAME deck, allow it
-            if (dailyFreeAccess.deckId === deckId) {
+            if (String(dailyFreeAccess.deckId) === String(deckId)) {
                 return true;
             }
             // If it's a DIFFERENT deck, block it
@@ -144,7 +194,7 @@ export const useDecksStore = create((set, get) => ({
         }
 
         // If it's a new day (or first time), allow and record usage
-        const newAccess = { date: today, deckId };
+        const newAccess = { date: today, deckId: String(deckId) };
         
         // Update local state immediately
         set({ dailyFreeAccess: newAccess });
@@ -330,27 +380,39 @@ export const useDecksStore = create((set, get) => ({
     },
     
 
-    updateCardProgress: async (deckId, cardId, knewIt) => {
-        // ... (function is correct, no changes)
+    // --- UPDATED: SRS Progress Logic ---
+    updateCardProgress: async (deckId, cardId, wasCorrect) => {
         const { currentUser, progress } = get();
         if (!currentUser) return;
-        const currentMastery = progress[deckId]?.[cardId] || 0;
-        const newMastery = knewIt ? currentMastery + 1 : 0;
-        const progressRef = doc(db, 'users', currentUser.uid, 'progress', deckId);
+
+        // 1. Get existing card data (or empty object)
+        const deckProgress = progress[deckId] || {};
+        const currentCardData = deckProgress[cardId] || {};
+        
+        // 2. Calculate new SRS values
+        const newSRSData = calculateSRS(currentCardData, wasCorrect);
+        
+        const progressDocRef = doc(db, `users/${currentUser.uid}/progress`, deckId);
+
         try {
-            await setDoc(progressRef, { 
-                mastery: { [cardId]: newMastery } 
+            // Use dot notation to update specific card field in the cardData map
+            await setDoc(progressDocRef, { 
+                cardData: { [cardId]: newSRSData } 
             }, { merge: true });
+
+            // Update local state
             set(state => ({
-                progress: { 
-                    ...state.progress, 
-                    [deckId]: { 
-                        ...state.progress[deckId], 
-                        [cardId]: newMastery 
-                    } 
+                progress: {
+                    ...state.progress,
+                    [deckId]: {
+                        ...state.progress[deckId],
+                        [cardId]: newSRSData
+                    }
                 }
             }));
-        } catch (error) { console.error("Error updating progress: ", error); }
+        } catch (error) {
+            console.error("Error updating progress: ", error);
+        }
     },
 
     updateListeningPreference: async (pref) => {

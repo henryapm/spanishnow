@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDecksStore } from '../store.js';
-import ReadingLibrary from './ReadingLibrary.jsx';
+import { useDecksStore } from '../store';
+import ReadingLibrary from './ReadingLibrary';
+import Modal from './Modal';
 
 // Helper function to group decks by topic
 const groupDecksByTopic = (decks) => {
@@ -26,6 +27,8 @@ const groupDecksByTopic = (decks) => {
 const DeckSelectionScreen = ({ decks }) => {
     const navigate = useNavigate();
     const [tab, setTab] = useState('lessons'); 
+    const [showLimitModal, setShowLimitModal] = useState(false);
+    const [limitModalMessage, setLimitModalMessage] = useState('');
     
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
@@ -40,7 +43,6 @@ const DeckSelectionScreen = ({ decks }) => {
         // 1. Check if the user has access (free deck OR admin OR subscription)
         // 2. If it's a paid deck and user is NOT admin/subscribed, perform daily check
         
-        const isFreeDeck = deck.isFree;
         const isUserPremium = isAdmin || hasActiveSubscription;
 
         if (isUserPremium) {
@@ -54,12 +56,15 @@ const DeckSelectionScreen = ({ decks }) => {
              if (canAccessToday) {
                  navigate('/lesson', { state: { lessonCards, deckId: deck.id, mode } });
              } else {
-                 alert("You've reached your daily limit of practice! Subscribe to unlock unlimited access.");
+                 const now = new Date();
+                 const tomorrow = new Date(now);
+                 tomorrow.setDate(tomorrow.getDate() + 1);
+                 const dayName = tomorrow.toLocaleDateString('en-US', { weekday: 'long' });
+                 setLimitModalMessage(`You've reached your daily limit for premium decks! You can access a new deck on ${dayName} after 12:00 AM. Subscribe to unlock unlimited access.`);
+                 setShowLimitModal(true);
              }
         }
     };
-
-    let globalNextDeckFound = false;
 
     // Calculate score: (Correctly Answered Cards / Total Cards) * 100
     const calculateScore = (lessonCards, deckId) => {
@@ -67,7 +72,12 @@ const DeckSelectionScreen = ({ decks }) => {
         if (totalCards === 0) return 0;
         
         // Count cards with mastery >= 1 (Assuming 1 means they got it right at least once)
-        const correctCount = lessonCards.filter(card => (progress[deckId]?.[card.id] || 0) >= 1).length;
+        const correctCount = lessonCards.filter(card => {
+             // Check for mastery in the new SRS object structure or legacy number
+             const cardData = progress[deckId]?.[card.id];
+             const mastery = typeof cardData === 'object' ? cardData.mastery : cardData;
+             return (mastery || 0) >= 1;
+        }).length;
         
         const pointsPerCard = 100 / totalCards;
         const score = Math.round(correctCount * pointsPerCard);
@@ -76,6 +86,14 @@ const DeckSelectionScreen = ({ decks }) => {
 
     return (
         <div className="w-full animate-fade-in pb-24">
+            <Modal 
+                isOpen={showLimitModal} 
+                onClose={() => setShowLimitModal(false)} 
+                title="Daily Limit Reached 🔒"
+            >
+                <p>{limitModalMessage}</p>
+            </Modal>
+
              {/* --- Tab Navigation --- */}
              <div className="mb-6 flex justify-center border-b border-gray-200 dark:border-gray-600">
                 <button 
@@ -119,29 +137,13 @@ const DeckSelectionScreen = ({ decks }) => {
                                             const lessonCards = deck.cards || [];
                                             const score = calculateScore(lessonCards, deck.id);
                                             
-                                            // A deck is completed if the user has attempted all cards (progress exists).
-                                            const attemptedCount = lessonCards.filter(card => progress[deck.id]?.[card.id] !== undefined).length;
-                                            const isDeckCompleted = attemptedCount === lessonCards.length && lessonCards.length > 0;
-                                            
-                                            let deckStatus = 'locked';
-                                            if (isDeckCompleted) {
-                                                deckStatus = 'completed';
-                                            } else if (!globalNextDeckFound) {
-                                                deckStatus = 'next';
-                                                globalNextDeckFound = true;
-                                            }
-
-                                            // MODIFIED: Remove linear progression restriction.
-                                            // Users can access any deck, but premium/daily limits still apply via handleDeckClick.
-                                            // const isLocked = deckStatus === 'locked' && !isAdmin; // Removed
+                                            // Determine if content is premium (for visual indicator only)
                                             const isContentLocked = !hasAccess; 
 
                                             return (
                                                 <div 
                                                     key={deck.id}
-                                                    className={`border-2 rounded-xl p-4 transition-all ${
-                                                        deckStatus === 'next' ? 'border-blue-500 bg-blue-50 dark:bg-gray-700' : 'border-gray-200 dark:border-gray-600'
-                                                    }`}
+                                                    className="border-2 rounded-xl p-4 transition-all border-gray-200 dark:border-gray-600 hover:border-teal-300 dark:hover:border-teal-700"
                                                 >
                                                     {/* Header: Title & Score */}
                                                     <div className="flex justify-between items-center mb-4">
@@ -153,7 +155,7 @@ const DeckSelectionScreen = ({ decks }) => {
                                                                  <span role="img" aria-label="premium" title="Premium Deck">💎</span>
                                                             ) : (
                                                                 <span className={`text-sm font-bold px-2 py-1 rounded ${score === 100 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                                    {score ? `Score: ${score}/100` : 'No Score'}
+                                                                    Score: {score}/100
                                                                 </span>
                                                             )}
                                                         </div>
