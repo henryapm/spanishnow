@@ -17,6 +17,8 @@ const ReaderView = () => {
     const translations = useDecksStore((state) => state.activeArticleTranslations);
     const isDictionaryLoading = useDecksStore((state) => state.isDictionaryLoading);
     const isAdmin = useDecksStore((state) => state.isAdmin);
+    const currentUser = useDecksStore((state) => state.currentUser);
+    const fetchSavedWords = useDecksStore((state) => state.fetchSavedWords);
     
     // --- NEW: Get saved words state and actions from the store ---
     const savedWords = useDecksStore((state) => state.savedWordsSet);
@@ -39,6 +41,13 @@ const ReaderView = () => {
           fetchArticleById(articleId);
         }
     }, [articleId, fetchArticleById]);
+
+    // Fetch saved words when component mounts or user changes
+    useEffect(() => {
+        if (currentUser) {
+            fetchSavedWords();
+        }
+    }, [currentUser, fetchSavedWords]);
 
     if (isLoading || !article) {
         return <div className="p-4">Loading article...</div>;
@@ -247,7 +256,7 @@ const ReaderView = () => {
             {renderPopup()}
             
             <div className="mb-4 flex justify-between items-center">
-                <button onClick={() => navigate('/reading-library')} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
+                <button onClick={() => navigate('/')} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
                     &larr; Back to Library
                 </button>
                 <button 
@@ -269,4 +278,3 @@ const ReaderView = () => {
 };
 
 export default ReaderView;
-

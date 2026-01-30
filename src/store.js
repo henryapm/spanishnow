@@ -102,6 +102,7 @@ export const useDecksStore = create((set, get) => ({
     isLoading: true,
     currentUser: null,
     isAdmin: false,
+    tab: 'lessons',
     hasActiveSubscription: false,
     articles: {},
     // --- MODIFIED: This will now hold translations for ONLY the active article ---
@@ -112,6 +113,7 @@ export const useDecksStore = create((set, get) => ({
     totalXp: 0,
     streak: 0,
     savedWordsSet: new Set(),
+    savedWordsList: [],
     dailyFreeAccess: null, // { date: "YYYY-MM-DD", deckId: "..." }
 
 
@@ -119,6 +121,8 @@ export const useDecksStore = create((set, get) => ({
     toggleTheme: () => set((state) => ({
         theme: state.theme === 'light' ? 'dark' : 'light',
     })),
+
+    setTab: (tab) => set({ tab }),
 
     listenForAuthChanges: () => {
         onAuthStateChanged(auth, async (user) => {

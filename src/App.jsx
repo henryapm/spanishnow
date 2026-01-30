@@ -17,6 +17,7 @@ import ArticleForm from './components/ArticleForm';
 import ReaderView from './components/ReaderView';
 import DictionaryManager from './components/DictionaryManager';
 import ReadingLibrary from './components/ReadingLibrary';
+import SpeakCompanion from './components/SpeakCompanion';
 
 // This component is the main layout for authenticated (logged-in) users.
 const AppLayout = () => {
@@ -46,6 +47,7 @@ const AppLayout = () => {
                         <Route path="/reading/:articleId" element={<ReaderView />} />
                         <Route path="/reading-library" element={<ReadingLibrary />} />
                         <Route path="/lesson" element={<SessionManager />} />
+                        <Route path="/speak" element={<SpeakCompanion />} />
                         {/* --- NEW: Admin Route --- */}
                         <Route path="/admin" element={<TopicManager decks={decks} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
