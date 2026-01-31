@@ -25,6 +25,7 @@ const ReaderView = () => {
     const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
     const saveWordTranslation = useDecksStore((state) => state.saveWordTranslation);
     const fetchTranslationForWord = useDecksStore((state) => state.fetchTranslationForWord);
+    const fetchArticleTranslationsForAdmin = useDecksStore((state) => state.fetchArticleTranslationsForAdmin);
     
     // --- UI State ---
     const [lookupResult, setLookupResult] = useState(null);
@@ -49,6 +50,14 @@ const ReaderView = () => {
             fetchSavedWords();
         }
     }, [currentUser, fetchSavedWords]);
+
+    // --- NEW: Admin-only bulk fetch to highlight missing translations ---
+    useEffect(() => {
+        if (article && isAdmin) {
+            const fullText = article.sentences.map(s => s.spanish).join(' ');
+            fetchArticleTranslationsForAdmin(fullText);
+        }
+    }, [article, isAdmin, fetchArticleTranslationsForAdmin]);
 
     if (isLoading || !article) {
         return <div className="p-4">Loading article...</div>;
@@ -169,7 +178,7 @@ const ReaderView = () => {
                                     const translation = translations.get(cleanedWord);
                                     
                                     // If no translation is found, apply the admin highlight class
-                                    if (!translation || translation === "No translation found.") {
+                                    if (!translation || translation === "No translation found") {
                                         adminClass = "bg-red-200 dark:bg-red-700 opacity-75"; // Highlight missing words
                                     }
                                 }

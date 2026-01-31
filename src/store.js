@@ -533,6 +533,43 @@ export const useDecksStore = create((set, get) => ({
         }
     },
 
+    // --- NEW: Fetch all translations for admin to highlight missing words ---
+    fetchArticleTranslationsForAdmin: async (articleText) => {
+        if (!articleText) return;
+        const { activeArticleTranslations } = get();
+        
+        const matchedWords = articleText.toLowerCase().match(/[\p{L}]+/gu);
+        const uniqueWords = [...new Set(matchedWords || [])];
+        
+        // Filter words that are not yet in the map
+        const wordsToFetch = uniqueWords.filter(w => !activeArticleTranslations.has(w));
+        
+        if (wordsToFetch.length === 0) return;
+
+        const chunks = [];
+        for (let i = 0; i < wordsToFetch.length; i += 30) {
+            chunks.push(wordsToFetch.slice(i, i + 30));
+        }
+
+        // Optimistic update: assume missing until found
+        const newTranslations = new Map(activeArticleTranslations);
+        wordsToFetch.forEach(w => newTranslations.set(w, "No translation found"));
+        
+        for (const chunk of chunks) {
+            const q = query(
+                collection(db, "dictionary"),
+                where(documentId(), 'in', chunk)
+            );
+            
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((doc) => {
+                newTranslations.set(doc.id, doc.data().translation);
+            });
+        }
+        
+        set({ activeArticleTranslations: newTranslations });
+    },
+
     fetchArticleById: async (articleId) => {
         set({ isLoading: true, activeArticleTranslations: new Map() });
         const cache = getCache();

@@ -129,6 +129,11 @@ const SessionManager = () => {
                         {(currentLearnIndex === lessonCards.length - 1) ? 'Finish' : 'Next'}
                     </button>
                 </div>
+                <div className="mt-4 text-center">
+                    <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                        Back to Decks
+                    </button>
+                </div>
             </div>
         );
     }
@@ -156,6 +161,12 @@ const SessionManager = () => {
                 {type === 'listen' && <ListeningView currentCard={card} onCorrect={() => handleAnswer(true)} onIncorrect={() => handleAnswer(false)} />}
                 {type === 'mcq' && <MultipleChoiceQuiz lessonCards={lessonCards} currentCard={card} onCorrect={() => handleAnswer(true)} onIncorrect={() => handleAnswer(false)} />}
                 {type === 'fill' && <FillInTheBlankQuiz lessonCards={lessonCards} currentCard={card} onCorrect={() => handleAnswer(true)} onIncorrect={() => handleAnswer(false)} />}
+                
+                <div className="mt-8 text-center">
+                    <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                        Back to Decks
+                    </button>
+                </div>
             </div>
         );
     }
