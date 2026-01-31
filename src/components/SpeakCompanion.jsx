@@ -13,7 +13,7 @@ const PERSONAS = [
     { id: 'doctor', name: 'Doctor 🩺', context: 'You are a doctor in a clinic. Ask the patient what their symptoms are and how they are feeling.' },
 ];
 
-const MAX_FREE_INTERACTIONS = 5;
+const MAX_FREE_INTERACTIONS = 3;
 const MAX_FREE_CHARS = 100;
 
 const SpeakCompanion = () => {
@@ -74,8 +74,6 @@ const SpeakCompanion = () => {
             recognitionRef.current.interimResults = true; // Get real-time results
             // Default to Spanish, use store preference if available
             recognitionRef.current.lang = listeningPreference || 'es-ES';
-
-            let silenceTimer;
 
             recognitionRef.current.onstart = () => {
                 setIsRecording(true);

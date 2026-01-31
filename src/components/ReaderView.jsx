@@ -24,6 +24,7 @@ const ReaderView = () => {
     const savedWords = useDecksStore((state) => state.savedWordsSet);
     const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
     const saveWordTranslation = useDecksStore((state) => state.saveWordTranslation);
+    const fetchTranslationForWord = useDecksStore((state) => state.fetchTranslationForWord);
     
     // --- UI State ---
     const [lookupResult, setLookupResult] = useState(null);
@@ -74,7 +75,11 @@ const ReaderView = () => {
         const cleanedWord = cleanedWordMatch[0];
         
         const rect = e.target.getBoundingClientRect();
-        const translation = translations.get(cleanedWord) || "No translation found.";
+        
+        if (!translations.has(cleanedWord)) {
+            fetchTranslationForWord(cleanedWord);
+        }
+        const translation = translations.get(cleanedWord) || "Loading...";
         
         // --- Smart Popup Positioning Logic ---
         const screenWidth = window.innerWidth;
@@ -103,7 +108,7 @@ const ReaderView = () => {
         setLookupResult({ word: cleanedWord, translation: translation });
         setPopupPosition({ x, y });
         setIsEditing(false); // Reset editing state on new word click
-        setEditText(translation === "No translation found." ? "" : translation);
+        setEditText((translation === "No translation found." || translation === "Loading...") ? "" : translation);
     };
 
     const closePopup = () => {
@@ -160,11 +165,13 @@ const ReaderView = () => {
                             const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
                             if (cleanedWordMatch) {
                                 const cleanedWord = cleanedWordMatch[0];
-                                const translation = translations.get(cleanedWord);
-                                
-                                // If no translation is found, apply the admin highlight class
-                                if (!translation || translation === "No translation found.") {
-                                    adminClass = "bg-red-200 dark:bg-red-700 opacity-75"; // Highlight missing words
+                                if (translations.has(cleanedWord)) {
+                                    const translation = translations.get(cleanedWord);
+                                    
+                                    // If no translation is found, apply the admin highlight class
+                                    if (!translation || translation === "No translation found.") {
+                                        adminClass = "bg-red-200 dark:bg-red-700 opacity-75"; // Highlight missing words
+                                    }
                                 }
                             }
                         }
@@ -195,6 +202,7 @@ const ReaderView = () => {
 
         // Check if the current word is in the user's savedWords Set
         const isSaved = savedWords.has(lookupResult.word);
+        const liveTranslation = translations.get(lookupResult.word) || lookupResult.translation;
 
         return (
             <div 
@@ -235,13 +243,16 @@ const ReaderView = () => {
                 ) : (
                     // Standard Translation View
                     <div>
-                        <p className="font-normal">&rarr; {lookupResult.translation}</p>
+                        <p className="font-normal">&rarr; {liveTranslation}</p>
                         {isAdmin && (
                             <button
-                                onClick={() => setIsEditing(true)}
+                                onClick={() => {
+                                    setIsEditing(true);
+                                    setEditText((liveTranslation === "No translation found." || liveTranslation === "Loading...") ? "" : liveTranslation);
+                                }}
                                 className="w-full mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white font-bold text-xs"
                             >
-                                {lookupResult.translation === "No translation found." ? "Add" : "Edit"} Translation
+                                {liveTranslation === "No translation found." ? "Add" : "Edit"} Translation
                             </button>
                         )}
                     </div>

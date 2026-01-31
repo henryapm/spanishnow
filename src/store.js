@@ -114,6 +114,7 @@ export const useDecksStore = create((set, get) => ({
     streak: 0,
     savedWordsSet: new Set(),
     savedWordsList: [],
+    savedWordsLoaded: false,
     dailyFreeAccess: null, // { date: "YYYY-MM-DD", deckId: "..." }
 
 
@@ -169,10 +170,11 @@ export const useDecksStore = create((set, get) => ({
                     listeningPreference: userPreference,
                     totalXp: userXp,
                     streak: 0,
-                    dailyFreeAccess: dailyFreeAccess
+                    dailyFreeAccess: dailyFreeAccess,
+                    savedWordsLoaded: false // Reset so we fetch fresh for the new user
                 });
             } else {
-                set({ currentUser: null, isAdmin: false, progress: {}, listeningPreference: 'es-ES', totalXp: 0, streak: 0, dailyFreeAccess: null });
+                set({ currentUser: null, isAdmin: false, progress: {}, listeningPreference: 'es-ES', totalXp: 0, streak: 0, dailyFreeAccess: null, savedWordsLoaded: false, savedWordsSet: new Set(), savedWordsList: [] });
             }
         });
     },
@@ -217,9 +219,11 @@ export const useDecksStore = create((set, get) => ({
     },
 
     // --- MODIFIED: Now fetches translations along with saved words ---
-    fetchSavedWords: async () => {
-        const { currentUser } = get();
+    fetchSavedWords: async (force = false) => {
+        const { currentUser, savedWordsLoaded } = get();
         if (!currentUser) return;
+        
+        if (savedWordsLoaded && !force) return;
         
         try {
             // 1. Fetch the user's saved words (IDs, addedAt, active)
@@ -242,7 +246,7 @@ export const useDecksStore = create((set, get) => ({
             });
 
             if (wordsToTranslate.length === 0) {
-                set({ savedWordsSet: new Set(), savedWordsList: [] });
+                set({ savedWordsSet: new Set(), savedWordsList: [], savedWordsLoaded: true });
                 return;
             }
 
@@ -275,7 +279,7 @@ export const useDecksStore = create((set, get) => ({
                 };
             });
 
-            set({ savedWordsSet: wordsSet, savedWordsList: fullWordsList });
+            set({ savedWordsSet: wordsSet, savedWordsList: fullWordsList, savedWordsLoaded: true });
 
         } catch (error) {
             console.error("Error fetching saved words: ", error);
@@ -310,7 +314,7 @@ export const useDecksStore = create((set, get) => ({
             // Update the local state
             set({ savedWordsSet: newSavedWordsSet });
             // Refresh the list to reflect changes (optional, but good for consistency)
-            get().fetchSavedWords(); 
+            get().fetchSavedWords(true); 
         } catch (error) {
             console.error("Error toggling saved word: ", error);
             alert("Could not save word. Please try again.");
@@ -501,44 +505,32 @@ export const useDecksStore = create((set, get) => ({
         }
     },
 
-    // --- MODIFIED: Cache invalidation for article details ---
-    fetchTranslationsForArticle: async (articleText) => {
-        // ... (rest of the function is the same) ...
-        set({ isDictionaryLoading: true });
-        
-        if (typeof articleText !== 'string' || !articleText) {
-            set({ activeArticleTranslations: new Map(), isDictionaryLoading: false });
-            return;
-        }
-        
-        const matchedWords = articleText.toLowerCase().match(/[\p{L}]+/gu);
-        const uniqueWords = [...new Set(matchedWords || [])];
-        
-        if (uniqueWords.length === 0) {
-            set({ activeArticleTranslations: new Map(), isDictionaryLoading: false });
-            return;
-        }
+    // --- NEW: Fetch translation for a single word on demand ---
+    fetchTranslationForWord: async (word) => {
+        if (!word) return;
+        // Clean the word to ensure we match the dictionary key format
+        const normalizedWord = word.toLowerCase().replace(/[^\p{L}]/gu, '');
+        if (!normalizedWord) return;
 
-        const translations = new Map();
-        const chunks = [];
+        const { activeArticleTranslations } = get();
         
-        for (let i = 0; i < uniqueWords.length; i += 30) {
-            chunks.push(uniqueWords.slice(i, i + 30));
-        }
+        // If we already have it in memory, skip the network request
+        if (activeArticleTranslations.has(normalizedWord)) return;
 
-        for (const chunk of chunks) {
-            const q = query(
-                collection(db, "dictionary"),
-                where(documentId(), 'in', chunk)
-            );
+        try {
+            const wordRef = doc(db, 'dictionary', normalizedWord);
+            const wordSnap = await getDoc(wordRef);
             
-            const querySnapshot = await getDocs(q);
-            querySnapshot.forEach((doc) => {
-                translations.set(doc.id, doc.data().translation);
+            const translation = wordSnap.exists() ? wordSnap.data().translation : "No translation found";
+
+            set(state => {
+                const newMap = new Map(state.activeArticleTranslations);
+                newMap.set(normalizedWord, translation);
+                return { activeArticleTranslations: newMap };
             });
+        } catch (error) {
+            console.error("Error fetching translation for word:", word, error);
         }
-        
-        set({ activeArticleTranslations: translations, isDictionaryLoading: false });
     },
 
     fetchArticleById: async (articleId) => {
@@ -574,14 +566,9 @@ export const useDecksStore = create((set, get) => ({
             if (articleSnap.exists()) {
                 const articleData = articleSnap.data();
                 
-                let fullText = '';
-                if (articleData.sentences && Array.isArray(articleData.sentences)) {
-                    fullText = articleData.sentences.map(s => s.spanish).join(' ');
-                }
-                
-                await get().fetchTranslationsForArticle(fullText); 
-                
-                const translations = get().activeArticleTranslations; 
+                // Reset translations map for the new article
+                set({ activeArticleTranslations: new Map() });
+                const translations = new Map();
 
                 // 4. Save new data to cache
                 cache.articleDetail[articleId] = {
