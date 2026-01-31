@@ -95,15 +95,20 @@ const SpeakCompanion = () => {
             recognitionRef.current.onresult = (event) => {
                 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
                 
-                let interimTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                // Rebuild transcript to handle Android duplication bugs and missing spaces
+                let newFinalTranscript = '';
+                let newInterimTranscript = '';
+                
+                for (let i = 0; i < event.results.length; ++i) {
+                    const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        finalTranscriptRef.current += event.results[i][0].transcript;
+                        newFinalTranscript += transcript.trim() + ' ';
                     } else {
-                        interimTranscript += event.results[i][0].transcript;
+                        newInterimTranscript += transcript;
                     }
                 }
-                setUserSpeech(finalTranscriptRef.current + interimTranscript);
+                finalTranscriptRef.current = newFinalTranscript;
+                setUserSpeech(newFinalTranscript + newInterimTranscript);
 
                 // Wait 5 seconds of silence before stopping automatically
                 silenceTimerRef.current = setTimeout(() => {
