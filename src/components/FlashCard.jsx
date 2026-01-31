@@ -43,7 +43,12 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
             <div style={cardStyle} className="relative w-full h-full transition-transform duration-700">
                 {/* Front of the card */}
                 <div style={faceStyle} className="absolute w-full h-full bg-white rounded-xl shadow-lg flex flex-col justify-center items-center p-6">
-                    <p className="text-3xl font-semibold text-gray-800 text-center mb-4">{truncateText(cardData.spanish, 80)}</p>
+                    <p 
+                        className="text-3xl font-semibold text-gray-800 text-center mb-4"
+                        title={cardData.spanish && cardData.spanish.length > 80 ? cardData.spanish : undefined}
+                    >
+                        {truncateText(cardData.spanish, 80)}
+                    </p>
                     {/* --- NEW: Speak Button --- */}
                     <button 
                         onClick={speakSentence} 
@@ -57,7 +62,12 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
                 </div>
                 {/* Back of the card */}
                 <div style={{...faceStyle, transform: 'rotateY(180deg)'}} className="absolute w-full h-full bg-teal-500 text-white rounded-xl shadow-lg flex flex-col justify-center items-center p-6">
-                    <p className="text-2xl font-semibold text-center">{truncateText(cardData.english, 100)}</p>
+                    <p 
+                        className="text-2xl font-semibold text-center"
+                        title={cardData.english && cardData.english.length > 100 ? cardData.english : undefined}
+                    >
+                        {truncateText(cardData.english, 100)}
+                    </p>
                     {cardData.english === "No translation found" && (
                         <a href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(cardData.spanish)}&op=translate`} className="text-teal-200 hover:underline" target="_blank" rel="noopener noreferrer">Open in Google Translate</a>
                     )}
