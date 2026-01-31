@@ -34,6 +34,7 @@ const SpeakCompanion = () => {
     const recognitionRef = useRef(null);
     const chatContainerRef = useRef(null);
     const silenceTimerRef = useRef(null);
+    const finalTranscriptRef = useRef('');
 
 
     // Listen for interaction count changes from Firebase
@@ -94,11 +95,15 @@ const SpeakCompanion = () => {
             recognitionRef.current.onresult = (event) => {
                 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
                 
-                let transcript = '';
-                for (let i = 0; i < event.results.length; i++) {
-                    transcript += event.results[i][0].transcript;
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscriptRef.current += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
                 }
-                setUserSpeech(transcript);
+                setUserSpeech(finalTranscriptRef.current + interimTranscript);
 
                 // Wait 5 seconds of silence before stopping automatically
                 silenceTimerRef.current = setTimeout(() => {
@@ -135,6 +140,7 @@ const SpeakCompanion = () => {
         if (recognitionRef.current && !isRecording) {
             try {
                 setUserSpeech(''); // Clear previous speech
+                finalTranscriptRef.current = '';
                 recognitionRef.current.start();
             } catch (error) {
                 console.error("Error starting speech recognition:", error);
