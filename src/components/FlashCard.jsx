@@ -83,10 +83,10 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
                             <>
                                 {cardData.english.substring(0, 100)}
                                 <button 
-                                    className="text-teal-200 hover:text-white ml-1 font-bold focus:outline-none"
+                                    className="text-teal-800 hover:text-white ml-1 font-bold focus:outline-none"
                                     onClick={(e) => handleShowMore(e, cardData.english)}
                                 >
-                                    ...
+                                    ...More
                                 </button>
                             </>
                         ) : (
