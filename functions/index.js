@@ -26,7 +26,7 @@ const PERSONAS = {
     'doctor': { context: 'You are a doctor in a clinic. Ask the patient what their symptoms are and how they are feeling.' },
 };
 
-const MAX_FREE_INTERACTIONS = 5;
+const MAX_FREE_INTERACTIONS = 3;
 
 // --- FIX: Added `cors: true` to options ---
 exports.chatWithGemini = onCall({ 

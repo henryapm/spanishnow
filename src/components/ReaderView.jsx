@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store.js'; // Make sure this path is correct
 import { LuTurtle } from "react-icons/lu";
 // --- NEW: Import bookmark icons for the "save word" feature ---
-import { BsBookmark, BsBookmarkFill } from "react-icons/bs";
+import { BsBookmark, BsBookmarkFill, BsFillVolumeUpFill } from "react-icons/bs";
 
 const ReaderView = () => {
     const { articleId } = useParams(); 
@@ -212,7 +212,16 @@ const ReaderView = () => {
                 onClick={(e) => e.stopPropagation()} // Prevents popup from closing when clicking inside it
             >
                 <div className="flex justify-between items-center mb-2">
-                    <p className="font-bold capitalize text-base">{lookupResult.word}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="font-bold capitalize text-base">{lookupResult.word}</p>
+                        <button 
+                            onClick={() => handleSpeak(lookupResult.word)}
+                            className="text-gray-400 hover:text-teal-400 transition-colors"
+                            title="Listen"
+                        >
+                            <BsFillVolumeUpFill size={16} />
+                        </button>
+                    </div>
                     
                     {/* --- NEW: Save Word Button --- */}
                     <button 
