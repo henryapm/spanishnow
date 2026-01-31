@@ -13,6 +13,12 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
     };
     const faceStyle = { backfaceVisibility: 'hidden' };
 
+    const truncateText = (text, limit) => {
+        if (!text) return '';
+        if (text.length <= limit) return text;
+        return text.substring(0, limit) + '...';
+    };
+
     // Function to speak the Spanish sentence
     const speakSentence = (e) => {
         // Stop the click from bubbling up and flipping the card
@@ -37,7 +43,7 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
             <div style={cardStyle} className="relative w-full h-full transition-transform duration-700">
                 {/* Front of the card */}
                 <div style={faceStyle} className="absolute w-full h-full bg-white rounded-xl shadow-lg flex flex-col justify-center items-center p-6">
-                    <p className="text-3xl font-semibold text-gray-800 text-center mb-4">{cardData.spanish}</p>
+                    <p className="text-3xl font-semibold text-gray-800 text-center mb-4">{truncateText(cardData.spanish, 80)}</p>
                     {/* --- NEW: Speak Button --- */}
                     <button 
                         onClick={speakSentence} 
@@ -51,7 +57,10 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
                 </div>
                 {/* Back of the card */}
                 <div style={{...faceStyle, transform: 'rotateY(180deg)'}} className="absolute w-full h-full bg-teal-500 text-white rounded-xl shadow-lg flex flex-col justify-center items-center p-6">
-                    <p className="text-2xl font-semibold text-center">{cardData.english}</p>
+                    <p className="text-2xl font-semibold text-center">{truncateText(cardData.english, 100)}</p>
+                    {cardData.english === "No translation found" && (
+                        <a href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(cardData.spanish)}&op=translate`} className="text-teal-200 hover:underline" target="_blank" rel="noopener noreferrer">Open in Google Translate</a>
+                    )}
                     <hr className="w-4/5 my-4 border-teal-300" />
                     <p className="text-lg"><strong>Key Vocab:</strong> {cardData.vocab}</p>
                 </div>

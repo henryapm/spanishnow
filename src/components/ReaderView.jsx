@@ -262,6 +262,16 @@ const ReaderView = () => {
                     // Standard Translation View
                     <div>
                         <p className="font-normal">&rarr; {liveTranslation}</p>
+                        {liveTranslation === "No translation found" && (
+                            <a 
+                                href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(lookupResult.word)}&op=translate`}
+                                className="text-teal-300 hover:underline text-xs"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Translate with Google.
+                            </a>
+                        )}
                         {isAdmin && (
                             <button
                                 onClick={() => {
