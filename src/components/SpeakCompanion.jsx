@@ -35,6 +35,7 @@ const SpeakCompanion = () => {
     const chatContainerRef = useRef(null);
     const silenceTimerRef = useRef(null);
     const finalTranscriptRef = useRef('');
+    const shouldListenRef = useRef(false);
 
 
     // Listen for interaction count changes from Firebase
@@ -69,7 +70,7 @@ const SpeakCompanion = () => {
         
         if (SpeechRecognition) {
             recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = true; // Keep listening to allow pauses
+            recognitionRef.current.continuous = false; // Use manual restart to avoid Android bugs
             recognitionRef.current.interimResults = true; // Get real-time results
             // Default to Spanish, use store preference if available
             recognitionRef.current.lang = listeningPreference || 'es-ES';
@@ -81,6 +82,7 @@ const SpeakCompanion = () => {
                 // Start a timer in case the user doesn't say anything initially
                 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
                 silenceTimerRef.current = setTimeout(() => {
+                    shouldListenRef.current = false;
                     if (recognitionRef.current) {
                         recognitionRef.current.stop();
                     }
@@ -88,30 +90,43 @@ const SpeakCompanion = () => {
             };
 
             recognitionRef.current.onend = () => {
-                setIsRecording(false);
-                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+                if (shouldListenRef.current) {
+                    try {
+                        recognitionRef.current.start();
+                    } catch (error) {
+                        console.error("Failed to restart speech recognition:", error);
+                        setIsRecording(false);
+                        shouldListenRef.current = false;
+                    }
+                } else {
+                    setIsRecording(false);
+                    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+                }
             };
 
             recognitionRef.current.onresult = (event) => {
                 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
                 
-                // Rebuild transcript to handle Android duplication bugs and missing spaces
-                let newFinalTranscript = '';
-                let newInterimTranscript = '';
+                let interimTranscript = '';
+                let finalChunk = '';
                 
-                for (let i = 0; i < event.results.length; ++i) {
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
                     const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        newFinalTranscript += transcript.trim() + ' ';
+                        finalChunk += transcript.trim() + ' ';
                     } else {
-                        newInterimTranscript += transcript;
+                        interimTranscript += transcript;
                     }
                 }
-                finalTranscriptRef.current = newFinalTranscript;
-                setUserSpeech(newFinalTranscript + newInterimTranscript);
+                
+                if (finalChunk) {
+                    finalTranscriptRef.current += finalChunk;
+                }
+                setUserSpeech(finalTranscriptRef.current + interimTranscript);
 
                 // Wait 5 seconds of silence before stopping automatically
                 silenceTimerRef.current = setTimeout(() => {
+                    shouldListenRef.current = false;
                     if (recognitionRef.current) {
                         recognitionRef.current.stop();
                     }
@@ -120,6 +135,7 @@ const SpeakCompanion = () => {
 
             recognitionRef.current.onerror = (event) => {
                 console.error("Speech recognition error", event.error);
+                shouldListenRef.current = false;
                 setIsRecording(false);
                 if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
             };
@@ -144,6 +160,7 @@ const SpeakCompanion = () => {
     const startListening = () => {
         if (recognitionRef.current && !isRecording) {
             try {
+                shouldListenRef.current = true;
                 setUserSpeech(''); // Clear previous speech
                 finalTranscriptRef.current = '';
                 recognitionRef.current.start();
@@ -156,6 +173,7 @@ const SpeakCompanion = () => {
     };
 
     const stopListening = () => {
+        shouldListenRef.current = false;
         if (recognitionRef.current && isRecording) {
             recognitionRef.current.stop();
         }
