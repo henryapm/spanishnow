@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDecksStore } from '../store'; // Import the store to get the listening preference
+import Modal from './Modal';
 
 // Component for a single Flashcard
 const Flashcard = ({ cardData, isFlipped, onFlip }) => {
     // Get the user's listening preference from the store
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
+    const [showModal, setShowModal] = useState(false);
+    const [modalContent, setModalContent] = useState('');
 
     const containerStyle = { perspective: '1000px' };
     const cardStyle = {
@@ -13,10 +16,10 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
     };
     const faceStyle = { backfaceVisibility: 'hidden' };
 
-    const truncateText = (text, limit) => {
-        if (!text) return '';
-        if (text.length <= limit) return text;
-        return text.substring(0, limit) + '...';
+    const handleShowMore = (e, text) => {
+        e.stopPropagation(); // Prevent card flip
+        setModalContent(text);
+        setShowModal(true);
     };
 
     // Function to speak the Spanish sentence
@@ -39,15 +42,28 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
     }
 
     return (
+        <>
+        <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Full Text">
+            <p className="text-lg leading-relaxed text-gray-800 dark:text-gray-200">{modalContent}</p>
+        </Modal>
         <div style={containerStyle} className="w-full h-64 cursor-pointer" onClick={onFlip}>
             <div style={cardStyle} className="relative w-full h-full transition-transform duration-700">
                 {/* Front of the card */}
                 <div style={faceStyle} className="absolute w-full h-full bg-white rounded-xl shadow-lg flex flex-col justify-center items-center p-6">
-                    <p 
-                        className="text-3xl font-semibold text-gray-800 text-center mb-4"
-                        title={cardData.spanish && cardData.spanish.length > 80 ? cardData.spanish : undefined}
-                    >
-                        {truncateText(cardData.spanish, 80)}
+                    <p className="text-3xl font-semibold text-gray-800 text-center mb-4">
+                        {cardData.spanish && cardData.spanish.length > 80 ? (
+                            <>
+                                {cardData.spanish.substring(0, 80)}
+                                <button 
+                                    className="text-blue-500 hover:text-blue-700 ml-1 font-bold focus:outline-none"
+                                    onClick={(e) => handleShowMore(e, cardData.spanish)}
+                                >
+                                    ...
+                                </button>
+                            </>
+                        ) : (
+                            cardData.spanish
+                        )}
                     </p>
                     {/* --- NEW: Speak Button --- */}
                     <button 
@@ -62,20 +78,36 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
                 </div>
                 {/* Back of the card */}
                 <div style={{...faceStyle, transform: 'rotateY(180deg)'}} className="absolute w-full h-full bg-teal-500 text-white rounded-xl shadow-lg flex flex-col justify-center items-center p-6">
-                    <p 
-                        className="text-2xl font-semibold text-center"
-                        title={cardData.english && cardData.english.length > 100 ? cardData.english : undefined}
-                    >
-                        {truncateText(cardData.english, 100)}
+                    <p className="text-2xl font-semibold text-center">
+                        {cardData.english && cardData.english.length > 100 ? (
+                            <>
+                                {cardData.english.substring(0, 100)}
+                                <button 
+                                    className="text-teal-200 hover:text-white ml-1 font-bold focus:outline-none"
+                                    onClick={(e) => handleShowMore(e, cardData.english)}
+                                >
+                                    ...
+                                </button>
+                            </>
+                        ) : (
+                            cardData.english
+                        )}
                     </p>
                     {cardData.english === "No translation found" && (
                         <a href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(cardData.spanish)}&op=translate`} className="text-teal-200 hover:underline" target="_blank" rel="noopener noreferrer">Open in Google Translate</a>
                     )}
                     <hr className="w-4/5 my-4 border-teal-300" />
-                    <p className="text-lg"><strong>Key Vocab:</strong> {cardData.vocab}</p>
+                    {cardData.vocab && cardData.vocab.length > 0 && 
+                        
+                        (
+                            <><p className="text-lg"><strong>Key Vocab:</strong> {cardData.vocab}</p>
+                            <hr className="w-4/5 my-4 border-teal-300" />
+                            </>
+                        )}
                 </div>
             </div>
         </div>
+        </>
     );
 };
 
