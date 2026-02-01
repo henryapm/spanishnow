@@ -13,6 +13,7 @@ const ReviewItem = ({ word }) => {
                     <p className={`text-gray-600 dark:text-gray-400 text-sm text-left transition-all duration-300 ${isRevealed ? '' : 'blur-sm select-none'}`}>
                         {word.translation}
                     </p>
+                    <span className="flex align-left text-xs text-gray-500 dark:text-gray-400">{`tap to ${isRevealed ? 'Hide' : 'Show'}`}</span>
                 </button>
                 <br />
                 {word.translation === 'No translation' && <a href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(word.id)}&op=translate`} className="text-teal-200 hover:underline" target="_blank" rel="noopener noreferrer">Open in Google Translate</a>}
@@ -46,7 +47,7 @@ const Review = () => {
     return (
         isPremium ? (
                     <div className="w-full max-w-4xl mx-auto p-6">
-                        <h2 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-6 text-center">My Saved Words</h2>
+                        <h2 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-6 text-center">Spaced Repetition</h2>
                         
                         {!currentUser ? (
                             <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
