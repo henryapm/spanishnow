@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store.js';
+import { MdCalendarToday, MdCreditCard } from 'react-icons/md';
+import { FaBookOpen } from 'react-icons/fa';
+import { IoPersonSharp } from 'react-icons/io5';
+import { RiBrain2Fill } from 'react-icons/ri';
 
 const Header = () => {
     const navigate = useNavigate();
@@ -11,6 +15,14 @@ const Header = () => {
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const signOutUser = useDecksStore((state) => state.signOutUser);
     const signInWithGoogle = useDecksStore((state) => state.signInWithGoogle);
+    const savedWordsList = useDecksStore((state) => state.savedWordsList);
+    const fetchSavedWords = useDecksStore((state) => state.fetchSavedWords);
+
+    useEffect(() => {
+        if (currentUser) {
+            fetchSavedWords();
+        }
+    }, [currentUser, fetchSavedWords]);
 
     // Effect to close the menu if the user clicks outside of it
     useEffect(() => {
@@ -56,7 +68,7 @@ const Header = () => {
 
                         {/* --- Dropdown Menu --- */}
                         {isMenuOpen && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 rounded-md shadow-lg py-1 z-20 border dark:border-gray-700">
+                            <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-gray-900 rounded-md shadow-lg py-1 z-20 border dark:border-gray-700">
                                 {isAdmin && (
                                     <button
                                         onClick={() => handleNavigate('/admin')}
@@ -73,33 +85,39 @@ const Header = () => {
                                 </button>
                                 <button
                                     onClick={() => handleNavigate('/flashcards')}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                    Flashcards
+                                    <MdCreditCard />
+                                    <span className="ml-2">Flashcards</span>
                                 </button>
                                 <button
                                     onClick={() => handleNavigate('/reading')}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                    Reading Library
+                                    <FaBookOpen />
+                                    <span className="ml-2">Reading Library</span>
                                 </button>
                                 <button
                                     onClick={() => handleNavigate('/speak')}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                    Speak Companion
+                                    <IoPersonSharp />
+                                    <span className="ml-2">Speak Companion</span>
                                 </button>
                                 <button
                                     onClick={() => handleNavigate('/spaced-repetition')}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                    Spaced Repetition
+                                    <RiBrain2Fill />
+                                    <span className="ml-2">Spaced Repetition</span>
+                                    <span className="ml-2 text-xs bg-teal-500 text-white px-2 py-1 rounded-full">{savedWordsList.length}</span>
                                 </button>
                                 <button
                                     onClick={() => handleNavigate('/bookings')}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                    Book a session
+                                    <MdCalendarToday />
+                                    <span className="ml-2">Book a session</span>
                                 </button>
                                 <button 
                                     onClick={signOutUser}
