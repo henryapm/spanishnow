@@ -18,6 +18,9 @@ import ReaderView from './components/ReaderView';
 import DictionaryManager from './components/DictionaryManager';
 import ReadingLibrary from './components/ReadingLibrary';
 import SpeakCompanion from './components/SpeakCompanion';
+import Booking from './components/Booking';
+import Review from './components/Review';
+import Flashcards from './components/Flashcards';
 
 // This component is the main layout for authenticated (logged-in) users.
 const AppLayout = () => {
@@ -38,16 +41,18 @@ const AppLayout = () => {
             <main className="w-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-inner">
                 <div className="w-full max-w-md mx-auto">
                     <Routes>
-                        <Route path="/" element={<DeckSelectionScreen decks={decks} />} />
-                        <Route path="/decks/:deckId" element={<FlashcardView decks={decks} />} />
+                        <Route path="/" element={<Flashcards decks={decks} />} />
+                        <Route path="/flashcards" element={<Flashcards decks={decks} />} />
                         <Route path="/create" element={<DeckForm decks={decks} />} />
-                        <Route path="/review" element={<FlashcardView decks={decks} />} />
+                        <Route path="/review/:deckId" element={<FlashcardView />} />
+                        <Route path="/review" element={<Review decks={decks} />} />
                         <Route path="/account" element={<AccountPage decks={decks} />} />
                         <Route path="/listen/:deckId" element={<ListeningView decks={decks} />} />
                         <Route path="/reading/:articleId" element={<ReaderView />} />
-                        <Route path="/reading-library" element={<ReadingLibrary />} />
-                        <Route path="/lesson" element={<SessionManager />} />
+                        <Route path="/reading" element={<ReadingLibrary />} />
+                        <Route path="/deck/:deckId" element={<SessionManager />} />
                         <Route path="/speak" element={<SpeakCompanion />} />
+                        <Route path="/bookings" element={<Booking />} />
                         {/* --- NEW: Admin Route --- */}
                         <Route path="/admin" element={<TopicManager decks={decks} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />

@@ -14,6 +14,8 @@ const ReviewItem = ({ word }) => {
                         {word.translation}
                     </p>
                 </button>
+                <br />
+                {word.translation === 'No translation' && <a href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(word.id)}&op=translate`} className="text-teal-200 hover:underline" target="_blank" rel="noopener noreferrer">Open in Google Translate</a>}
             </div>
         </div>
     );
@@ -33,7 +35,7 @@ const Review = () => {
             if (!savedWordsList || savedWordsList.length === 0) return;
             const words = savedWordsList.map(w => w.id);
             await prepareTrainingDeck(words);
-            navigate('/decks/training');
+            navigate('/review/training');
         };
     return (
         isPremium ? (

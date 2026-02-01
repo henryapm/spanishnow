@@ -170,7 +170,7 @@ const FlashcardView = () => {
                     I Knew This
                  </button>
             </div>
-            <button onClick={() => navigate('/')} className="mt-6 text-gray-500 hover:text-gray-700 transition-colors w-full text-center">← Back to Decks</button>
+            <button onClick={() => navigate('/review')} className="mt-6 text-gray-500 hover:text-gray-700 transition-colors w-full text-center">← Back to review</button>
         </div>
     );
 };

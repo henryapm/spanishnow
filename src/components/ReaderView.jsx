@@ -295,7 +295,7 @@ const ReaderView = () => {
             {renderPopup()}
             
             <div className="mb-4 flex justify-between items-center">
-                <button onClick={() => navigate('/')} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
+                <button onClick={() => navigate('/reading')} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
                     &larr; Back to Library
                 </button>
                 <button 

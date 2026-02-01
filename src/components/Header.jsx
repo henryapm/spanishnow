@@ -71,6 +71,36 @@ const Header = () => {
                                 >
                                     My Account
                                 </button>
+                                <button
+                                    onClick={() => handleNavigate('/flashcards')}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                    Flashcards
+                                </button>
+                                <button
+                                    onClick={() => handleNavigate('/reading')}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                    Reading Library
+                                </button>
+                                <button
+                                    onClick={() => handleNavigate('/speak')}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                    Speak Companion
+                                </button>
+                                <button
+                                    onClick={() => handleNavigate('/review')}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                    Spaced Repetition
+                                </button>
+                                <button
+                                    onClick={() => handleNavigate('/bookings')}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                    Book a session
+                                </button>
                                 <button 
                                     onClick={signOutUser}
                                     className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800"
