@@ -79,9 +79,14 @@ const Header = () => {
                                 )}
                                 <button
                                     onClick={() => handleNavigate('/account')}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                    My Account
+                                    <img 
+                                        src={currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`} 
+                                        alt="Profile" 
+                                        className="w-8 h-8 rounded-full"
+                                    />
+                                    <span className="ml-2">My Account</span>
                                 </button>
                                 <button
                                     onClick={() => handleNavigate('/flashcards')}

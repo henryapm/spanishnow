@@ -49,7 +49,7 @@ const Flashcards = ({decks}) => {
                 const canAccessToday = await checkAndRecordDailyAccess(deck.id);
                 
                 if (canAccessToday) {
-                    navigate('/deck', { state: { lessonCards, deckId: deck.id, mode } });
+                    navigate(`/deck/${deck.id}`, { state: { lessonCards, deckId: deck.id, mode } });
                 } else {
                     const now = new Date();
                     const tomorrow = new Date(now);
