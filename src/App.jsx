@@ -3,7 +3,6 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
 // Import the store and our components
 import { useDecksStore } from './store'; 
-import DeckSelectionScreen from './components/DeckSelectionScreen';
 import FlashcardView from './components/FlashcardView';
 import DeckForm from './components/DeckForm';
 import Header from './components/Header';
@@ -45,7 +44,7 @@ const AppLayout = () => {
                         <Route path="/flashcards" element={<Flashcards decks={decks} />} />
                         <Route path="/create" element={<DeckForm decks={decks} />} />
                         <Route path="/review/:deckId" element={<FlashcardView />} />
-                        <Route path="/review" element={<Review decks={decks} />} />
+                        <Route path="/spaced-repetition" element={<Review />} />
                         <Route path="/account" element={<AccountPage decks={decks} />} />
                         <Route path="/listen/:deckId" element={<ListeningView decks={decks} />} />
                         <Route path="/reading/:articleId" element={<ReaderView />} />

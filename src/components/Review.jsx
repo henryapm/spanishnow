@@ -22,27 +22,27 @@ const ReviewItem = ({ word }) => {
 };
 
 const Review = () => {
-        const navigate = useNavigate();
-        const isAdmin = useDecksStore((state) => state.isAdmin);
-        const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
-        const isPremium = isAdmin || hasActiveSubscription;
-        const currentUser = useDecksStore((state) => state.currentUser);
-        const savedWordsList = useDecksStore((state) => state.savedWordsList);
-        const prepareTrainingDeck = useDecksStore((state) => state.prepareTrainingDeck);
-        const fetchSavedWords = useDecksStore((state) => state.fetchSavedWords);
+    const navigate = useNavigate();
+    const isAdmin = useDecksStore((state) => state.isAdmin);
+    const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
+    const isPremium = isAdmin || hasActiveSubscription;
+    const currentUser = useDecksStore((state) => state.currentUser);
+    const savedWordsList = useDecksStore((state) => state.savedWordsList);
+    const prepareTrainingDeck = useDecksStore((state) => state.prepareTrainingDeck);
+    const fetchSavedWords = useDecksStore((state) => state.fetchSavedWords);
 
-        useEffect(() => {
-            if (currentUser) {
-                fetchSavedWords();
-            }
-        }, [currentUser, fetchSavedWords]);
-        
-        const handleStartReview = async () => {
-            if (!savedWordsList || savedWordsList.length === 0) return;
-            const words = savedWordsList.map(w => w.id);
-            await prepareTrainingDeck(words);
-            navigate('/review/training');
-        };
+    useEffect(() => {
+        if (currentUser) {
+            fetchSavedWords();
+        }
+    }, [currentUser, fetchSavedWords]);
+    
+    const handleStartReview = async () => {
+        if (!savedWordsList || savedWordsList.length === 0) return;
+        const words = savedWordsList.map(w => w.id);
+        await prepareTrainingDeck(words);
+        navigate('/review/training');
+    };
     return (
         isPremium ? (
                     <div className="w-full max-w-4xl mx-auto p-6">
