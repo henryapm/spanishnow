@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const ReviewItem = ({ word }) => {
     const [isRevealed, setIsRevealed] = useState(false);
@@ -28,8 +28,14 @@ const Review = () => {
         const isPremium = isAdmin || hasActiveSubscription;
         const currentUser = useDecksStore((state) => state.currentUser);
         const savedWordsList = useDecksStore((state) => state.savedWordsList);
-        const setTab = useDecksStore((state) => state.setTab);
         const prepareTrainingDeck = useDecksStore((state) => state.prepareTrainingDeck);
+        const fetchSavedWords = useDecksStore((state) => state.fetchSavedWords);
+
+        useEffect(() => {
+            if (currentUser) {
+                fetchSavedWords();
+            }
+        }, [currentUser, fetchSavedWords]);
         
         const handleStartReview = async () => {
             if (!savedWordsList || savedWordsList.length === 0) return;
@@ -50,7 +56,7 @@ const Review = () => {
                             <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
                                 <p className="text-gray-600 dark:text-gray-300 mb-4">You haven't saved any words yet.</p>
                                 <p className="text-gray-500 dark:text-gray-400">Read articles and click on words to save them!</p>
-                                <button onClick={() => setTab('reading')} className="mt-4 px-6 py-2 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-colors">
+                                <button onClick={() => navigate('/reading')} className="mt-4 px-6 py-2 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-colors">
                                     Go to Reading Library
                                 </button>
                             </div>
