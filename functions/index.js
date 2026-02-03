@@ -19,7 +19,8 @@ if (admin.apps.length === 0) {
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
-const scenariosGoals = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context.";
+const scenariosGoals = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context, if the user doesn't seem to understand what to do, and says things out of the context or doesn't attempt to complete an objective suggest a response that they could use so that the role play makes sense and is completed. If the user deviates from the scenario, gently steer them back on track by reminding them of the context and objectives. If the user completes the objectives, congratulate them and suggest they try another scenario for further practice. ";
+
 const SCENARIOS = [
     { 
         id: 'restaurant', 
@@ -51,6 +52,28 @@ const SCENARIOS = [
                 objectives: ['Explain the problem', 'Ask for a solution', 'Polite closing'],
                 context: 'You are the restaurant manager. The user has a complaint about their dish (e.g., cold, wrong item). Listen to the complaint, apologize, and offer a solution (replacement or refund).' 
             }
+        ]
+    },
+    {
+        id: 'hotel', 
+        name: 'Hotel 🏨', 
+        emoji: '🏨',
+        rolePlays: [
+            {
+                name: 'Standard Hotel Reservation',
+                role: 'Receptionist',
+                difficulty: 'Beginner',
+                description: 'Book a room at a hotel.',
+                objectives: ['Request room', 'Specify dates', 'Confirm booking'],
+                context: 'You are a guest calling to book a room at a hotel in Seville. Ask for room type, check-in and check-out dates, and confirm the reservation.' 
+            },
+            {
+                name: 'Check-in Process 🛎️', 
+                role: 'Receptionist',
+                difficulty: 'Intermediate',
+                description: 'Practice checking into a hotel.',
+                objectives: ['Provide ID', 'Ask about amenities', 'Request room service'],
+                context: 'You are a guest checking into a hotel in Valencia. Provide your name and ID, ask about hotel amenities, and request room service information.'}
         ]
     },
     { 
