@@ -130,7 +130,7 @@ const SessionManager = () => {
                     </button>
                 </div>
                 <div className="mt-4 text-center">
-                    <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                    <button onClick={() => navigate('/decks')} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
                         Back to Decks
                     </button>
                 </div>
@@ -163,7 +163,7 @@ const SessionManager = () => {
                 {type === 'fill' && <FillInTheBlankQuiz lessonCards={lessonCards} currentCard={card} onCorrect={() => handleAnswer(true)} onIncorrect={() => handleAnswer(false)} />}
                 
                 <div className="mt-8 text-center">
-                    <button onClick={() => navigate('/')} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                    <button onClick={() => navigate('/decks')} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
                         Back to Decks
                     </button>
                 </div>
@@ -200,7 +200,7 @@ const SessionManager = () => {
             )}
 
             <div className="flex justify-center">
-                <button onClick={() => navigate('/')} className="px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">Back to Decks</button>
+                <button onClick={() => navigate('/decks')} className="px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">Back to Decks</button>
             </div>
         </div>
     );
