@@ -48,7 +48,7 @@ const Header = () => {
                 className="text-xl font-bold text-teal-700 dark:text-teal-400 cursor-pointer"
                 onClick={() => navigate('/')}
             >
-                Spanish Today With Henry
+                Spanish Today With Henry <span className="text-xs font-normal text-gray-500 ml-1">v1.1</span>
             </h1>
             <div>
                 {currentUser ? (
@@ -147,4 +147,3 @@ const Header = () => {
 };
 
 export default Header;
-
