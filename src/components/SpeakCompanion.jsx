@@ -80,6 +80,8 @@ const SCENARIOS = [
                 role: 'Barista',
                 description: 'Create a custom coffee order.',
                 objectives: ['Ask for preferences', 'ask for ingredients', 'Confirm order'],
+                context: 'You are a barista at a specialty coffee shop. The customer wants a custom order. Ask them about their preferences (hot/iced, milk type, sweetness) and specific ingredients. Confirm the final order.'
+
             }
         ]
     },

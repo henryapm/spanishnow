@@ -88,6 +88,13 @@ const SCENARIOS = [
                 objectives: ['Order a coffee', 'Ask for a pastry', 'Pay'],
                 context: 'You are a friendly barista at a coffee shop in Madrid. Ask the customer what they would like to drink or eat. Keep responses concise.' 
             },
+            {
+                name: 'Custom Coffee Order 🎨', 
+                role: 'Barista',
+                description: 'Create a custom coffee order.',
+                objectives: ['Ask for preferences', 'ask for ingredients', 'Confirm order'],
+                context: 'You are a barista at a specialty coffee shop. The customer wants a custom order. Ask them about their preferences (hot/iced, milk type, sweetness) and specific ingredients. Confirm the final order.'
+            }
         ]
     },
     { 
