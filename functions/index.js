@@ -25,47 +25,89 @@ const SCENARIOS = [
         id: 'restaurant', 
         name: 'Restaurant 🍽️', 
         emoji: '🍽️',
-        role: 'Waiter',
-        description: 'Practice ordering food and drinks in a restaurant setting.',
-        objectives: ['Ask for the menu', 'Order food', 'Ask for the bill'],
-        context: `You are a waiter at a restaurant in Madrid. The user is a customer. 
-        Greet them, ask what they want to eat/drink, and handle the bill. `
+        rolePlays: [
+            {
+                name: 'Standard Restaurant',
+                role: 'Waiter',
+                difficulty: 'Beginner',
+                description: 'Practice ordering food and drinks in a restaurant setting.',
+                objectives: ['Ask for the menu', 'Order food', 'Ask for the bill'],
+                context: `You are a waiter at a restaurant in Madrid. The user is a customer. 
+                Greet them, ask what they want to eat/drink, and handle the bill. `
+            },
+            {
+                name: 'Restaurant Reservation 📅', 
+                role: 'Host',
+                difficulty: 'Intermediate',
+                description: 'Practice making a reservation for a group.',
+                objectives: ['Request a table', 'Specify time and people', 'Confirm details'],
+                context: 'You are the host at a popular restaurant in Barcelona. The user calls to book a table. Ask for the date, time, number of people, and contact name.' 
+            },
+            {
+                name: 'Order Complaint 🍲', 
+                role: 'Manager',
+                difficulty: 'Advanced',
+                description: 'Practice resolving an issue with your food order.',
+                objectives: ['Explain the problem', 'Ask for a solution', 'Polite closing'],
+                context: 'You are the restaurant manager. The user has a complaint about their dish (e.g., cold, wrong item). Listen to the complaint, apologize, and offer a solution (replacement or refund).' 
+            }
+        ]
     },
     { 
         id: 'cafe', 
         name: 'Coffee Shop ☕', 
         emoji: '☕',
-        role: 'Barista',
-        description: 'Order your morning coffee and a snack.',
-        objectives: ['Order a coffee', 'Ask for a pastry', 'Pay'],
-        context: 'You are a friendly barista at a coffee shop in Madrid. Ask the customer what they would like to drink or eat. Keep responses concise.' 
+        rolePlays: [
+            {
+                name: 'Standard Coffee Shop',
+                role: 'Barista',
+                description: 'Order your morning coffee and a snack.',
+                objectives: ['Order a coffee', 'Ask for a pastry', 'Pay'],
+                context: 'You are a friendly barista at a coffee shop in Madrid. Ask the customer what they would like to drink or eat. Keep responses concise.' 
+            },
+        ]
     },
     { 
         id: 'taxi', 
         name: 'Taxi Driver 🚕', 
         emoji: '🚕',
-        role: 'Driver',
-        description: 'Practice giving directions and making small talk.',
-        objectives: ['Give destination', 'Ask about travel time', 'Pay the fare'],
-        context: 'You are a talkative taxi driver in Mexico City. Ask the passenger where they are going and make small talk about the traffic or weather.' 
+        rolePlays: [
+            {
+                name: 'Standard Taxi Ride',
+                role: 'Driver',
+                description: 'Practice giving directions and making small talk.',
+                objectives: ['Give destination', 'Ask about travel time', 'Pay the fare'],
+                context: 'You are a talkative taxi driver in Mexico City. Ask the passenger where they are going and make small talk about the traffic or weather.' 
+            },
+        ]
     },
     { 
         id: 'friend', 
         name: 'Amigo 👋', 
         emoji: '👋',
-        role: 'Friend',
-        description: 'Catch up with a friend.',
-        objectives: ['Ask about weekend', 'Share news', 'Make plans'],
-        context: 'You are a close friend catching up. Ask how their week has been and what their plans are for the weekend.' 
+        rolePlays: [
+            {
+                name: 'Standard Friend Catch-up',
+                role: 'Friend',
+                description: 'Catch up with a friend.',
+                objectives: ['Ask about weekend', 'Share news', 'Make plans'],
+                context: 'You are a close friend catching up. Ask how their week has been and what their plans are for the weekend.' 
+            },
+        ]
     },
     { 
         id: 'doctor', 
         name: 'Doctor 🩺', 
         emoji: '🩺',
-        role: 'Doctor',
-        description: 'Describe symptoms and get medical advice.',
-        objectives: ['Describe pain', 'Answer questions', 'Get prescription'],
-        context: 'You are a doctor in a clinic. Ask the patient what their symptoms are and how they are feeling.' 
+        rolePlays: [
+            {
+                name: 'Standard Doctor Visit',
+                role: 'Doctor',
+                description: 'Describe symptoms and get medical advice.',
+                objectives: ['Describe pain', 'Answer questions', 'Get prescription'],
+                context: 'You are a doctor in a clinic. Ask the patient what their symptoms are and how they are feeling.' 
+            },
+        ]
     },
 ];
 
@@ -82,7 +124,7 @@ exports.chatWithGemini = onCall({
     }
 
     const uid = request.auth.uid;
-    const { history, personaId, date } = request.data;
+    const { history, personaId, date, context, objectives } = request.data;
 
     const selectedScenario = SCENARIOS.find(s => s.id === personaId);
 
@@ -96,7 +138,7 @@ exports.chatWithGemini = onCall({
     const userData = userDoc.data() || {};
     
     // Check if user is admin or has active subscription
-    const isPremium = userData.isAdmin === true || userData.hasActiveSubscription === true;
+    const isPremium = userData.isAdmin === true || userData.hasActiveSubscription === true || request.auth.token.admin === true;
 
     if (!isPremium) {
         const today = date || new Date().toLocaleDateString('en-CA'); // Use user's local date or fallback to server date
@@ -125,12 +167,15 @@ exports.chatWithGemini = onCall({
         throw new HttpsError('failed-precondition', 'Gemini API key is missing. Make sure to set it via "firebase functions:secrets:set GEMINI_API_KEY".');
     }
 
+    const rolePlay = selectedScenario.rolePlays ? selectedScenario.rolePlays.find(rp => rp.context === context) : null;
+    const role = rolePlay ? rolePlay.role : 'Assistant';
+
     const systemInstruction = `${scenariosGoals}
 
     Scenario: ${selectedScenario.name}
-    Role: ${selectedScenario.role}
-    Context: ${selectedScenario.context}
-    Objectives: ${selectedScenario.objectives.join(', ')}`;
+    Role: ${role}
+    Context: ${context}
+    Objectives: ${objectives.join(', ')}`;
     
     try {
         const response = await axios.post(

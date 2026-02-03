@@ -13,47 +13,89 @@ const SCENARIOS = [
         id: 'restaurant', 
         name: 'Restaurant 🍽️', 
         emoji: '🍽️',
-        role: 'Waiter',
-        description: 'Practice ordering food and drinks in a restaurant setting.',
-        objectives: ['Ask for the menu', 'Order food', 'Ask for the bill'],
-        context: `You are a waiter at a restaurant in Madrid. The user is a customer. 
-        Greet them, ask what they want to eat/drink, and handle the bill. `
+        rolePlays: [
+            {
+                name: 'Standard Restaurant',
+                role: 'Waiter',
+                difficulty: 'Beginner',
+                description: 'Practice ordering food and drinks in a restaurant setting.',
+                objectives: ['Ask for the menu', 'Order food', 'Ask for the bill'],
+                context: `You are a waiter at a restaurant in Madrid. The user is a customer. 
+                Greet them, ask what they want to eat/drink, and handle the bill. `
+            },
+            {
+                name: 'Restaurant Reservation 📅', 
+                role: 'Host',
+                difficulty: 'Intermediate',
+                description: 'Practice making a reservation for a group.',
+                objectives: ['Request a table', 'Specify time and people', 'Confirm details'],
+                context: 'You are the host at a popular restaurant in Barcelona. The user calls to book a table. Ask for the date, time, number of people, and contact name.' 
+            },
+            {
+                name: 'Order Complaint 🍲', 
+                role: 'Manager',
+                difficulty: 'Advanced',
+                description: 'Practice resolving an issue with your food order.',
+                objectives: ['Explain the problem', 'Ask for a solution', 'Polite closing'],
+                context: 'You are the restaurant manager. The user has a complaint about their dish (e.g., cold, wrong item). Listen to the complaint, apologize, and offer a solution (replacement or refund).' 
+            }
+        ]
     },
     { 
         id: 'cafe', 
         name: 'Coffee Shop ☕', 
         emoji: '☕',
-        role: 'Barista',
-        description: 'Order your morning coffee and a snack.',
-        objectives: ['Order a coffee', 'Ask for a pastry', 'Pay'],
-        context: 'You are a friendly barista at a coffee shop in Madrid. Ask the customer what they would like to drink or eat. Keep responses concise.' 
+        rolePlays: [
+            {
+                name: 'Standard Coffee Shop',
+                role: 'Barista',
+                description: 'Order your morning coffee and a snack.',
+                objectives: ['Order a coffee', 'Ask for a pastry', 'Pay'],
+                context: 'You are a friendly barista at a coffee shop in Madrid. Ask the customer what they would like to drink or eat. Keep responses concise.' 
+            },
+        ]
     },
     { 
         id: 'taxi', 
         name: 'Taxi Driver 🚕', 
         emoji: '🚕',
-        role: 'Driver',
-        description: 'Practice giving directions and making small talk.',
-        objectives: ['Give destination', 'Ask about travel time', 'Pay the fare'],
-        context: 'You are a talkative taxi driver in Mexico City. Ask the passenger where they are going and make small talk about the traffic or weather.' 
+        rolePlays: [
+            {
+                name: 'Standard Taxi Ride',
+                role: 'Driver',
+                description: 'Practice giving directions and making small talk.',
+                objectives: ['Give destination', 'Ask about travel time', 'Pay the fare'],
+                context: 'You are a talkative taxi driver in Mexico City. Ask the passenger where they are going and make small talk about the traffic or weather.' 
+            },
+        ]
     },
     { 
         id: 'friend', 
         name: 'Amigo 👋', 
         emoji: '👋',
-        role: 'Friend',
-        description: 'Catch up with a friend.',
-        objectives: ['Ask about weekend', 'Share news', 'Make plans'],
-        context: 'You are a close friend catching up. Ask how their week has been and what their plans are for the weekend.' 
+        rolePlays: [
+            {
+                name: 'Standard Friend Catch-up',
+                role: 'Friend',
+                description: 'Catch up with a friend.',
+                objectives: ['Ask about weekend', 'Share news', 'Make plans'],
+                context: 'You are a close friend catching up. Ask how their week has been and what their plans are for the weekend.' 
+            },
+        ]
     },
     { 
         id: 'doctor', 
         name: 'Doctor 🩺', 
         emoji: '🩺',
-        role: 'Doctor',
-        description: 'Describe symptoms and get medical advice.',
-        objectives: ['Describe pain', 'Answer questions', 'Get prescription'],
-        context: 'You are a doctor in a clinic. Ask the patient what their symptoms are and how they are feeling.' 
+        rolePlays: [
+            {
+                name: 'Standard Doctor Visit',
+                role: 'Doctor',
+                description: 'Describe symptoms and get medical advice.',
+                objectives: ['Describe pain', 'Answer questions', 'Get prescription'],
+                context: 'You are a doctor in a clinic. Ask the patient what their symptoms are and how they are feeling.' 
+            },
+        ]
     },
 ];
 
@@ -71,6 +113,7 @@ const SpeakCompanion = () => {
     const [userSpeech, setUserSpeech] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
     const [selectedScenario, setSelectedScenario] = useState(null);
+    const [selectedContextAndObjectives, setSelectedContextAndObjectives] = useState(null);
     const [isAiProcessing, setIsAiProcessing] = useState(false);
     const [interactionCount, setInteractionCount] = useState(0);
     const [showLimitModal, setShowLimitModal] = useState(false);
@@ -204,6 +247,15 @@ const SpeakCompanion = () => {
         utterance.lang = listeningPreference || 'es-ES';
         window.speechSynthesis.speak(utterance);
     };
+    const InteractionCounts =() => {
+        return (
+        <div className="mb-6 text-center">
+            <span className="text-sm font-semibold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
+                Free Interactions: {interactionCount}/{MAX_FREE_INTERACTIONS}
+            </span>
+        </div>
+        )
+    }
 
     const handleSend = async () => {
         if (!userSpeech.trim()) return;
@@ -239,8 +291,8 @@ const SpeakCompanion = () => {
             const result = await chatWithGemini({
                 history: newHistory,
                 personaId: selectedScenario.id,
-                context: selectedScenario.context,
-                objectives: selectedScenario.objectives,
+                context: selectedContextAndObjectives.context,
+                objectives: selectedContextAndObjectives.objectives,
                 goals: scenariosGoals,
                 date: today
             });
@@ -267,18 +319,14 @@ const SpeakCompanion = () => {
     if (!selectedScenario) {
         return (
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
-                <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-2 text-center">Choose a Conversation</h1>
+                <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-2 text-center">Choose a Scenario</h1>
                 <p className="text-gray-600 dark:text-gray-300 mb-8 text-center">
                     Select a real-life scenario to practice your Spanish skills.
                 </p>
                 
-                {!isPremium && (
-                    <div className="mb-6 text-center">
-                        <span className="text-sm font-semibold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
-                            Free Interactions: {interactionCount}/{MAX_FREE_INTERACTIONS}
-                        </span>
-                    </div>
-                )}
+                {!isPremium &&
+                    <InteractionCounts />
+                }
 
                 <div className="grid grid-cols-1 gap-6">
                     {SCENARIOS.map(scenario => (
@@ -287,25 +335,13 @@ const SpeakCompanion = () => {
                             onClick={() => setSelectedScenario(scenario)}
                             className="flex flex-col text-left p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-teal-500 dark:hover:border-teal-500 hover:shadow-lg transition-all bg-gray-50 dark:bg-gray-900 group"
                         >
-                            <div className="flex justify-between items-start w-full mb-4">
-                                <span className="text-4xl">{scenario.emoji}</span>
-                                <span className="px-3 py-1 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-xs font-bold rounded-full uppercase tracking-wide">
-                                    {scenario.role}
-                                </span>
-                            </div>
                             <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                                 {scenario.name}
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 flex-grow">
-                                {scenario.description}
-                            </p>
-                            <div className="w-full bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase">You will learn to:</p>
-                                <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                                    {scenario.objectives.map((obj, i) => (
-                                        <li key={i}>{obj}</li>
-                                    ))}
-                                </ul>
+                            <div className="flex justify-between items-start w-full mb-4">
+                                <span className="px-2 py-1 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-xs font-bold rounded-full uppercase tracking-wide">
+                                    {scenario.rolePlays.length} Role-Play Options
+                                </span>
                             </div>
                         </button>
                     ))}
@@ -313,6 +349,67 @@ const SpeakCompanion = () => {
             </div>
         );
     }
+
+    if(!selectedContextAndObjectives) {
+        return (
+            <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300">Speak Companion</h1>
+                    <button 
+                        onClick={() => {
+                            setSelectedScenario(null);
+                            setChatHistory([]);
+                            setUserSpeech('');
+                        }}
+                        className="text-sm text-gray-500 hover:text-teal-600 underline"
+                    >
+                        Change Scenario
+                    </button>
+                </div>
+                <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-4 text-center">Choose a Role Play</h1>
+                <div className="grid grid-cols-1 gap-4">
+                {selectedScenario.rolePlays.map((rolePlay, index) => (
+                        <button 
+                            key={index}
+                            onClick={() => setSelectedContextAndObjectives(rolePlay)}
+                            className="flex flex-col text-left p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-teal-500 dark:hover:border-teal-500 hover:shadow-lg transition-all bg-gray-50 dark:bg-gray-900 group"
+                            >
+                            <div className="w-full">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-2xl">{selectedScenario.emoji}</span>
+                                        <h2 className="font-bold text-teal-900 dark:text-teal-100">{rolePlay.name}</h2>
+                                    </div>
+                                    {rolePlay.difficulty && (
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full uppercase tracking-wide ${
+                                            rolePlay.difficulty === 'Beginner' ? 'bg-green-100 text-green-800' :
+                                            rolePlay.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-red-100 text-red-800'
+                                        }`}>
+                                            {rolePlay.difficulty}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-sm text-teal-800 dark:text-teal-200 mb-2">
+                                    {rolePlay.description}
+                                </p>
+                                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Objectives:</p>
+                                <ul className="list-disc list-inside text-sm text-teal-700 dark:text-teal-300">
+                                    {rolePlay.objectives.map((obj, i) => (
+                                        <li key={i}>{obj}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </button>
+                    )
+                )}
+                </div>
+            </div>
+        );
+    }
+
+
+
 
     return (
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-3xl">
@@ -329,6 +426,7 @@ const SpeakCompanion = () => {
                 <button 
                     onClick={() => {
                         setSelectedScenario(null);
+                        setSelectedContextAndObjectives(null);
                         setChatHistory([]);
                         setUserSpeech('');
                     }}
@@ -341,13 +439,13 @@ const SpeakCompanion = () => {
             <div className="mb-4 p-4 bg-teal-50 dark:bg-teal-900/30 rounded-lg border border-teal-100 dark:border-teal-800/50">
                 <div className="flex items-center gap-2 mb-2">
                     <span className="text-2xl">{selectedScenario.emoji}</span>
-                    <h2 className="font-bold text-teal-900 dark:text-teal-100">{selectedScenario.name}</h2>
+                    <h2 className="font-bold text-teal-900 dark:text-teal-100">{selectedContextAndObjectives.name}</h2>
                 </div>
                 <p className="text-sm text-teal-800 dark:text-teal-200">
-                    {selectedScenario.description}
+                    {selectedContextAndObjectives.description}
                 </p>
                 <ul className="list-disc list-inside text-sm text-teal-700 dark:text-teal-300">
-                    {selectedScenario.objectives.map((obj, i) => (
+                    {selectedContextAndObjectives.objectives.map((obj, i) => (
                         <li key={i}>{obj}</li>
                     ))}
                 </ul>
@@ -356,7 +454,7 @@ const SpeakCompanion = () => {
             {/* Chat History */}
             <div ref={chatContainerRef} className="mb-6 h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 space-y-4">
                 {chatHistory.length === 0 && (
-                    <p className="text-center text-gray-400 mt-20">Start the conversation! Try saying "Hola" to the {selectedScenario.role.toLowerCase()}.</p>
+                    <p className="text-center text-gray-400 mt-20">Start the conversation! Try saying "Hola" to the {selectedContextAndObjectives.role.toLowerCase()}.</p>
                 )}
                 {chatHistory.map((msg, index) => (
                     <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>

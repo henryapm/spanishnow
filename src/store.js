@@ -135,12 +135,14 @@ export const useDecksStore = create((set, get) => ({
                 let userPreference = 'es-ES';
                 let userXp = 0;
                 let subscriptionStatus = false;
+                let isFirestoreAdmin = false;
                 let dailyFreeAccess = null;
 
                 if (userDocSnap.exists()) {
                     userPreference = userDocSnap.data().listeningPreference || 'es-ES';
                     userXp = userDocSnap.data().totalXp || 0;
                     subscriptionStatus = userDocSnap.data().hasActiveSubscription === true;
+                    isFirestoreAdmin = userDocSnap.data().isAdmin === true;
                     
                     // --- FIX: Race Condition Handling ---
                     // If we have a local record for TODAY, but server has nothing (or old date), 
@@ -164,7 +166,7 @@ export const useDecksStore = create((set, get) => ({
 
                 set({ 
                     currentUser: user, 
-                    isAdmin: tokenResult.claims.admin === true,
+                    isAdmin: tokenResult.claims.admin === true || isFirestoreAdmin,
                     hasActiveSubscription: subscriptionStatus,
                     progress: progressData,
                     listeningPreference: userPreference,

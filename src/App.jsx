@@ -51,7 +51,6 @@ const AppLayout = () => {
                         <Route path="/reading/:articleId" element={<ReaderView />} />
                         <Route path="/reading" element={<ReadingLibrary />} />
                         <Route path="/deck/:deckId" element={<SessionManager />} />
-                        <Route path="/speak" element={<SpeakCompanion />} />
                         <Route path="/bookings" element={<Booking />} />
                         {/* --- NEW: Admin Route --- */}
                         <Route path="/admin" element={<TopicManager decks={decks} />} />
