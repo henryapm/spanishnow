@@ -19,12 +19,55 @@ if (admin.apps.length === 0) {
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
-const PERSONAS = {
-    'barista': { context: 'You are a friendly barista at a coffee shop in Madrid. Ask the customer what they would like to drink or eat. Keep responses concise.' },
-    'taxi': { context: 'You are a talkative taxi driver in Mexico City. Ask the passenger where they are going and make small talk about the traffic or weather.' },
-    'friend': { context: 'You are a close friend catching up. Ask how their week has been and what their plans are for the weekend.' },
-    'doctor': { context: 'You are a doctor in a clinic. Ask the patient what their symptoms are and how they are feeling.' },
-};
+const scenariosGoals = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context.";
+const SCENARIOS = [
+    { 
+        id: 'restaurant', 
+        name: 'Restaurant 🍽️', 
+        emoji: '🍽️',
+        role: 'Waiter',
+        description: 'Practice ordering food and drinks in a restaurant setting.',
+        objectives: ['Ask for the menu', 'Order food', 'Ask for the bill'],
+        context: `You are a waiter at a restaurant in Madrid. The user is a customer. 
+        Greet them, ask what they want to eat/drink, and handle the bill. `
+    },
+    { 
+        id: 'cafe', 
+        name: 'Coffee Shop ☕', 
+        emoji: '☕',
+        role: 'Barista',
+        description: 'Order your morning coffee and a snack.',
+        objectives: ['Order a coffee', 'Ask for a pastry', 'Pay'],
+        context: 'You are a friendly barista at a coffee shop in Madrid. Ask the customer what they would like to drink or eat. Keep responses concise.' 
+    },
+    { 
+        id: 'taxi', 
+        name: 'Taxi Driver 🚕', 
+        emoji: '🚕',
+        role: 'Driver',
+        description: 'Practice giving directions and making small talk.',
+        objectives: ['Give destination', 'Ask about travel time', 'Pay the fare'],
+        context: 'You are a talkative taxi driver in Mexico City. Ask the passenger where they are going and make small talk about the traffic or weather.' 
+    },
+    { 
+        id: 'friend', 
+        name: 'Amigo 👋', 
+        emoji: '👋',
+        role: 'Friend',
+        description: 'Catch up with a friend.',
+        objectives: ['Ask about weekend', 'Share news', 'Make plans'],
+        context: 'You are a close friend catching up. Ask how their week has been and what their plans are for the weekend.' 
+    },
+    { 
+        id: 'doctor', 
+        name: 'Doctor 🩺', 
+        emoji: '🩺',
+        role: 'Doctor',
+        description: 'Describe symptoms and get medical advice.',
+        objectives: ['Describe pain', 'Answer questions', 'Get prescription'],
+        context: 'You are a doctor in a clinic. Ask the patient what their symptoms are and how they are feeling.' 
+    },
+];
 
 const MAX_FREE_INTERACTIONS = 3;
 
@@ -41,7 +84,9 @@ exports.chatWithGemini = onCall({
     const uid = request.auth.uid;
     const { history, personaId, date } = request.data;
 
-    if (!history || !personaId || !PERSONAS[personaId]) {
+    const selectedScenario = SCENARIOS.find(s => s.id === personaId);
+
+    if (!history || !personaId || !selectedScenario) {
         throw new HttpsError('invalid-argument', 'Invalid arguments provided.');
     }
 
@@ -80,14 +125,19 @@ exports.chatWithGemini = onCall({
         throw new HttpsError('failed-precondition', 'Gemini API key is missing. Make sure to set it via "firebase functions:secrets:set GEMINI_API_KEY".');
     }
 
-    const personaContext = PERSONAS[personaId].context;
+    const systemInstruction = `${scenariosGoals}
+
+    Scenario: ${selectedScenario.name}
+    Role: ${selectedScenario.role}
+    Context: ${selectedScenario.context}
+    Objectives: ${selectedScenario.objectives.join(', ')}`;
     
     try {
         const response = await axios.post(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
             {
                 system_instruction: {
-                    parts: [{ text: `${personaContext} The user is learning Spanish. Keep responses short (1-2 sentences).` }]
+                    parts: [{ text: systemInstruction }]
                 },
                 contents: history.map(msg => ({
                     role: msg.role === 'user' ? 'user' : 'model',

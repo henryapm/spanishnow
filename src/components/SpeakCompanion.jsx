@@ -6,11 +6,55 @@ import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
 
-const PERSONAS = [
-    { id: 'barista', name: 'Barista ☕', context: 'You are a friendly barista at a coffee shop in Madrid. Ask the customer what they would like to drink or eat. Keep responses concise.' },
-    { id: 'taxi', name: 'Taxi Driver 🚕', context: 'You are a talkative taxi driver in Mexico City. Ask the passenger where they are going and make small talk about the traffic or weather.' },
-    { id: 'friend', name: 'Amigo 👋', context: 'You are a close friend catching up. Ask how their week has been and what their plans are for the weekend.' },
-    { id: 'doctor', name: 'Doctor 🩺', context: 'You are a doctor in a clinic. Ask the patient what their symptoms are and how they are feeling.' },
+
+const scenariosGoals = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context.";
+const SCENARIOS = [
+    { 
+        id: 'restaurant', 
+        name: 'Restaurant 🍽️', 
+        emoji: '🍽️',
+        role: 'Waiter',
+        description: 'Practice ordering food and drinks in a restaurant setting.',
+        objectives: ['Ask for the menu', 'Order food', 'Ask for the bill'],
+        context: `You are a waiter at a restaurant in Madrid. The user is a customer. 
+        Greet them, ask what they want to eat/drink, and handle the bill. `
+    },
+    { 
+        id: 'cafe', 
+        name: 'Coffee Shop ☕', 
+        emoji: '☕',
+        role: 'Barista',
+        description: 'Order your morning coffee and a snack.',
+        objectives: ['Order a coffee', 'Ask for a pastry', 'Pay'],
+        context: 'You are a friendly barista at a coffee shop in Madrid. Ask the customer what they would like to drink or eat. Keep responses concise.' 
+    },
+    { 
+        id: 'taxi', 
+        name: 'Taxi Driver 🚕', 
+        emoji: '🚕',
+        role: 'Driver',
+        description: 'Practice giving directions and making small talk.',
+        objectives: ['Give destination', 'Ask about travel time', 'Pay the fare'],
+        context: 'You are a talkative taxi driver in Mexico City. Ask the passenger where they are going and make small talk about the traffic or weather.' 
+    },
+    { 
+        id: 'friend', 
+        name: 'Amigo 👋', 
+        emoji: '👋',
+        role: 'Friend',
+        description: 'Catch up with a friend.',
+        objectives: ['Ask about weekend', 'Share news', 'Make plans'],
+        context: 'You are a close friend catching up. Ask how their week has been and what their plans are for the weekend.' 
+    },
+    { 
+        id: 'doctor', 
+        name: 'Doctor 🩺', 
+        emoji: '🩺',
+        role: 'Doctor',
+        description: 'Describe symptoms and get medical advice.',
+        objectives: ['Describe pain', 'Answer questions', 'Get prescription'],
+        context: 'You are a doctor in a clinic. Ask the patient what their symptoms are and how they are feeling.' 
+    },
 ];
 
 const MAX_FREE_INTERACTIONS = 3;
@@ -26,14 +70,13 @@ const SpeakCompanion = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [userSpeech, setUserSpeech] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
-    const [selectedPersona, setSelectedPersona] = useState(PERSONAS[0]);
+    const [selectedScenario, setSelectedScenario] = useState(null);
     const [isAiProcessing, setIsAiProcessing] = useState(false);
     const [interactionCount, setInteractionCount] = useState(0);
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [limitMessage, setLimitMessage] = useState('');
     const recognitionRef = useRef(null);
     const chatContainerRef = useRef(null);
-    const silenceTimerRef = useRef(null);
     const finalTranscriptRef = useRef('');
     const shouldListenRef = useRef(false);
 
@@ -77,14 +120,6 @@ const SpeakCompanion = () => {
 
             recognitionRef.current.onstart = () => {
                 setIsRecording(true);
-                // Start a timer in case the user doesn't say anything initially
-                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-                silenceTimerRef.current = setTimeout(() => {
-                    shouldListenRef.current = false;
-                    if (recognitionRef.current) {
-                        recognitionRef.current.stop();
-                    }
-                }, 3000);
             };
 
             recognitionRef.current.onend = () => {
@@ -98,13 +133,10 @@ const SpeakCompanion = () => {
                     }
                 } else {
                     setIsRecording(false);
-                    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
                 }
             };
 
             recognitionRef.current.onresult = (event) => {
-                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-                
                 let interimTranscript = '';
                 let finalChunk = '';
                 
@@ -121,29 +153,17 @@ const SpeakCompanion = () => {
                     finalTranscriptRef.current += finalChunk;
                 }
                 setUserSpeech(finalTranscriptRef.current + interimTranscript);
-
-                // Wait 5 seconds of silence before stopping automatically
-                silenceTimerRef.current = setTimeout(() => {
-                    shouldListenRef.current = false;
-                    if (recognitionRef.current) {
-                        recognitionRef.current.stop();
-                    }
-                }, 3000);
             };
 
             recognitionRef.current.onerror = (event) => {
                 console.error("Speech recognition error", event.error);
                 shouldListenRef.current = false;
                 setIsRecording(false);
-                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
             };
         }
         return () => {
             if (recognitionRef.current) {
                 recognitionRef.current.abort();
-            }
-            if (silenceTimerRef.current) {
-                clearTimeout(silenceTimerRef.current);
             }
         };
     }, [listeningPreference]);
@@ -218,7 +238,10 @@ const SpeakCompanion = () => {
             
             const result = await chatWithGemini({
                 history: newHistory,
-                personaId: selectedPersona.id,
+                personaId: selectedScenario.id,
+                context: selectedScenario.context,
+                objectives: selectedScenario.objectives,
+                goals: scenariosGoals,
                 date: today
             });
 
@@ -241,6 +264,56 @@ const SpeakCompanion = () => {
         }
     };
 
+    if (!selectedScenario) {
+        return (
+            <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
+                <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-2 text-center">Choose a Conversation</h1>
+                <p className="text-gray-600 dark:text-gray-300 mb-8 text-center">
+                    Select a real-life scenario to practice your Spanish skills.
+                </p>
+                
+                {!isPremium && (
+                    <div className="mb-6 text-center">
+                        <span className="text-sm font-semibold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
+                            Free Interactions: {interactionCount}/{MAX_FREE_INTERACTIONS}
+                        </span>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-6">
+                    {SCENARIOS.map(scenario => (
+                        <button 
+                            key={scenario.id}
+                            onClick={() => setSelectedScenario(scenario)}
+                            className="flex flex-col text-left p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-teal-500 dark:hover:border-teal-500 hover:shadow-lg transition-all bg-gray-50 dark:bg-gray-900 group"
+                        >
+                            <div className="flex justify-between items-start w-full mb-4">
+                                <span className="text-4xl">{scenario.emoji}</span>
+                                <span className="px-3 py-1 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-xs font-bold rounded-full uppercase tracking-wide">
+                                    {scenario.role}
+                                </span>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                                {scenario.name}
+                            </h3>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 flex-grow">
+                                {scenario.description}
+                            </p>
+                            <div className="w-full bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase">You will learn to:</p>
+                                <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                                    {scenario.objectives.map((obj, i) => (
+                                        <li key={i}>{obj}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-3xl">
             <Modal 
@@ -250,46 +323,40 @@ const SpeakCompanion = () => {
             >
                 <p>{limitMessage}</p>
             </Modal>
-            <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-4">Speak Companion</h1>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Welcome to the Speak Companion! Interact with an AI persona to practice your Spanish.
-            </p>
             
-            {/* Persona Selector */}
-            <div className="mb-6">
-                <div className="flex justify-between items-center mb-2">
-                    <label className="block text-gray-700 dark:text-gray-300 font-bold">Choose a Persona:</label>
-                    {!isPremium && (
-                        <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
-                            Free: {interactionCount}/{MAX_FREE_INTERACTIONS}
-                        </span>
-                    )}
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300">Speak Companion</h1>
+                <button 
+                    onClick={() => {
+                        setSelectedScenario(null);
+                        setChatHistory([]);
+                        setUserSpeech('');
+                    }}
+                    className="text-sm text-gray-500 hover:text-teal-600 underline"
+                >
+                    Change Scenario
+                </button>
+            </div>
+
+            <div className="mb-4 p-4 bg-teal-50 dark:bg-teal-900/30 rounded-lg border border-teal-100 dark:border-teal-800/50">
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">{selectedScenario.emoji}</span>
+                    <h2 className="font-bold text-teal-900 dark:text-teal-100">{selectedScenario.name}</h2>
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                    {PERSONAS.map(persona => (
-                        <button
-                            key={persona.id}
-                            onClick={() => {
-                                setSelectedPersona(persona);
-                                setChatHistory([]); // Reset chat on persona change
-                            }}
-                            className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-                                selectedPersona.id === persona.id
-                                    ? 'bg-teal-600 text-white'
-                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                            }`}
-                        >
-                            {persona.name}
-                        </button>
+                <p className="text-sm text-teal-800 dark:text-teal-200">
+                    {selectedScenario.description}
+                </p>
+                <ul className="list-disc list-inside text-sm text-teal-700 dark:text-teal-300">
+                    {selectedScenario.objectives.map((obj, i) => (
+                        <li key={i}>{obj}</li>
                     ))}
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">{selectedPersona.context}</p>
+                </ul>
             </div>
 
             {/* Chat History */}
             <div ref={chatContainerRef} className="mb-6 h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 space-y-4">
                 {chatHistory.length === 0 && (
-                    <p className="text-center text-gray-400 mt-20">Start the conversation by saying "Hola"!</p>
+                    <p className="text-center text-gray-400 mt-20">Start the conversation! Try saying "Hola" to the {selectedScenario.role.toLowerCase()}.</p>
                 )}
                 {chatHistory.map((msg, index) => (
                     <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -318,13 +385,17 @@ const SpeakCompanion = () => {
 
             <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700">
                 <button 
-                    onClick={isRecording ? stopListening : startListening}
+                    onMouseDown={startListening}
+                    onMouseUp={stopListening}
+                    onMouseLeave={stopListening}
+                    onTouchStart={startListening}
+                    onTouchEnd={stopListening}
                     className={`p-6 rounded-full shadow-lg transition-all transform hover:scale-105 ${
                         isRecording 
                             ? 'bg-red-500 text-white animate-pulse' 
                             : 'bg-teal-500 text-white hover:bg-teal-600'
                     }`}
-                    aria-label="Start recording"
+                    aria-label="Hold to record"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />

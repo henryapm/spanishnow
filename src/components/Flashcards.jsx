@@ -28,7 +28,8 @@ const Flashcards = ({decks}) => {
     const progress = useDecksStore((state) => state.progress);
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
-    const checkAndRecordDailyAccess = useDecksStore((state) => state.checkAndRecordDailyAccess);    
+    const checkAndRecordDailyAccess = useDecksStore((state) => state.checkAndRecordDailyAccess);
+        
     const topics = useMemo(() => groupDecksByTopic(decks), [decks]);
     const navigate = useNavigate();
     

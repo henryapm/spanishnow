@@ -6,6 +6,7 @@ import { useDecksStore } from './store';
 import FlashcardView from './components/FlashcardView';
 import DeckForm from './components/DeckForm';
 import Header from './components/Header';
+import Navigation from './components/Navigation';
 import LandingPage from './components/LandingPage';
 import AccountPage from './components/AccountPage';
 import ListeningView from './components/ListeningView';
@@ -37,11 +38,11 @@ const AppLayout = () => {
     return (
         <div className="w-full dark:bg-gray-900 text-gray-800 dark:text-gray-200 max-w-2xl">
             {!shouldHideHeader && <Header />}
-            <main className="w-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-inner">
+            <main className="w-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-6 rounded-lg shadow-inner pb-24">
                 <div className="w-full max-w-md mx-auto">
                     <Routes>
-                        <Route path="/" element={<Flashcards decks={decks} />} />
-                        <Route path="/flashcards" element={<Flashcards decks={decks} />} />
+                        <Route path="/" element={<SpeakCompanion/>} />
+                        <Route path="/decks" element={<Flashcards decks={decks} />} />
                         <Route path="/create" element={<DeckForm decks={decks} />} />
                         <Route path="/review/:deckId" element={<FlashcardView />} />
                         <Route path="/spaced-repetition" element={<Review />} />
@@ -62,6 +63,7 @@ const AppLayout = () => {
                     </Routes>
                 </div>
             </main>
+            {!shouldHideHeader && <Navigation />}
         </div>
     );
 };
