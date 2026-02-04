@@ -236,3 +236,40 @@ exports.chatWithGemini = onCall({
         throw new HttpsError('internal', `Gemini Error: ${errorMessage}`);
     }
 });
+
+exports.seedScenarios = onCall({ 
+    cors: true 
+}, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    const db = admin.firestore();
+    const uid = request.auth.uid;
+    
+    // Check if user is admin
+    const userDoc = await db.collection('users').doc(uid).get();
+    const userData = userDoc.data() || {};
+    // Check token claim OR firestore field
+    const isAdmin = userData.isAdmin === true || request.auth.token.admin === true;
+
+    if (!isAdmin) {
+        throw new HttpsError('permission-denied', 'Only admins can seed the database.');
+    }
+
+    const batch = db.batch();
+
+    // 1. Seed Scenarios
+    SCENARIOS.forEach(scenario => {
+        const ref = db.collection('scenarios').doc(scenario.id);
+        batch.set(ref, scenario);
+    });
+
+    // 2. Seed Global Instructions
+    const instructionsRef = db.collection('appInfo').doc('aiPrompts');
+    batch.set(instructionsRef, { scenariosGoals }, { merge: true });
+
+    await batch.commit();
+
+    return { success: true, message: "Scenarios and AI instructions successfully seeded to Firestore from backend!" };
+});

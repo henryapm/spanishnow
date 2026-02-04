@@ -7,7 +7,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
 
 
-const scenariosGoals = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context, if the user doesn't seem to understand what to do, and says things out of the context or doesn't attempt to complete an objective suggest a response that they could use so that the role play makes sense and is completed. If the user deviates from the scenario, gently steer them back on track by reminding them of the context and objectives. If the user completes the objectives, congratulate them and suggest they try another scenario for further practice. ";
+const intructions = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context, if the user doesn't seem to understand what to do, and says things out of the context or doesn't attempt to complete an objective suggest a response that they could use so that the role play makes sense and is completed. If the user deviates from the scenario, gently steer them back on track by reminding them of the context and objectives. If the user completes the objectives, congratulate them and suggest they try another scenario for further practice. ";
 const SCENARIOS = [
     { 
         id: 'restaurant', 
@@ -71,6 +71,7 @@ const SCENARIOS = [
             {
                 name: 'Standard Coffee Shop',
                 role: 'Barista',
+                difficulty: 'Beginner',
                 description: 'Order your morning coffee and a snack.',
                 objectives: ['Order a coffee', 'Ask for a pastry', 'Pay'],
                 context: 'You are a friendly barista at a coffee shop in Madrid. Ask the customer what they would like to drink or eat. Keep responses concise.' 
@@ -78,6 +79,7 @@ const SCENARIOS = [
             {
                 name: 'Custom Coffee Order 🎨', 
                 role: 'Barista',
+                difficulty: 'Intermediate',
                 description: 'Create a custom coffee order.',
                 objectives: ['Ask for preferences', 'ask for ingredients', 'Confirm order'],
                 context: 'You are a barista at a specialty coffee shop. The customer wants a custom order. Ask them about their preferences (hot/iced, milk type, sweetness) and specific ingredients. Confirm the final order.'
@@ -93,6 +95,7 @@ const SCENARIOS = [
             {
                 name: 'Standard Taxi Ride',
                 role: 'Driver',
+                difficulty: 'Beginner',
                 description: 'Practice giving directions and making small talk.',
                 objectives: ['Give destination', 'Ask about travel time', 'Pay the fare'],
                 context: 'You are a talkative taxi driver in Mexico City. Ask the passenger where they are going and make small talk about the traffic or weather.' 
@@ -107,6 +110,7 @@ const SCENARIOS = [
             {
                 name: 'Standard Friend Catch-up',
                 role: 'Friend',
+                difficulty: 'Beginner',
                 description: 'Catch up with a friend.',
                 objectives: ['Ask about weekend', 'Share news', 'Make plans'],
                 context: 'You are a close friend catching up. Ask how their week has been and what their plans are for the weekend.' 
@@ -121,6 +125,7 @@ const SCENARIOS = [
             {
                 name: 'Standard Doctor Visit',
                 role: 'Doctor',
+                difficulty: 'Beginner',
                 description: 'Describe symptoms and get medical advice.',
                 objectives: ['Describe pain', 'Answer questions', 'Get prescription'],
                 context: 'You are a doctor in a clinic. Ask the patient what their symptoms are and how they are feeling.' 
@@ -323,7 +328,7 @@ const SpeakCompanion = () => {
                 personaId: selectedScenario.id,
                 context: selectedContextAndObjectives.context,
                 objectives: selectedContextAndObjectives.objectives,
-                goals: scenariosGoals,
+                goals: intructions,
                 date: today
             });
 
@@ -346,6 +351,23 @@ const SpeakCompanion = () => {
         }
     };
 
+    const seedScenarios = async () => {
+        if (!isAdmin) return;
+        if (!window.confirm("This will overwrite the 'scenarios' collection in Firestore with the server-side data. Continue?")) return;
+
+        try {
+            const functions = getFunctions(getApp());
+            const seedFn = httpsCallable(functions, 'seedScenarios');
+            
+            const result = await seedFn();
+            
+            alert(result.data.message);
+        } catch (error) {
+            console.error("Error seeding scenarios:", error);
+            alert(`Error seeding scenarios: ${error.message}`);
+        }
+    };
+
     if (!selectedScenario) {
         return (
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
@@ -357,6 +379,14 @@ const SpeakCompanion = () => {
                 {!isPremium &&
                     <InteractionCounts />
                 }
+
+                {isAdmin && (
+                    <div className="mb-6 text-center">
+                        <button onClick={seedScenarios} className="text-xs text-gray-500 hover:text-teal-600 underline">
+                            [Admin] Seed Database with Scenarios
+                        </button>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 gap-6">
                     {SCENARIOS.map(scenario => (
@@ -437,9 +467,6 @@ const SpeakCompanion = () => {
             </div>
         );
     }
-
-
-
 
     return (
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-3xl">
