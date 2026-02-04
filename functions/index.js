@@ -19,7 +19,7 @@ if (admin.apps.length === 0) {
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
-const scenariosGoals = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context, if the user doesn't seem to understand what to do, and says things out of the context or doesn't attempt to complete an objective suggest a response that they could use so that the role play makes sense and is completed. If the user deviates from the scenario, gently steer them back on track by reminding them of the context and objectives. If the user completes the objectives, congratulate them and suggest they try another scenario for further practice. ";
+const scenariosInstructions = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context, if the user doesn't seem to understand what to do, and says things out of the context or doesn't attempt to complete an objective suggest a response that they could use so that the role play makes sense and is completed. If the user deviates from the scenario, gently steer them back on track by reminding them of the context and objectives. If the user completes the objectives, congratulate them and suggest they try another scenario for further practice. ";
 
 const SCENARIOS = [
     { 
@@ -156,14 +156,30 @@ exports.chatWithGemini = onCall({
     const uid = request.auth.uid;
     const { history, personaId, date, context, objectives } = request.data;
 
-    const selectedScenario = SCENARIOS.find(s => s.id === personaId);
+    const db = admin.firestore();
 
-    if (!history || !personaId || !selectedScenario) {
-        throw new HttpsError('invalid-argument', 'Invalid arguments provided.');
+    // Fetch scenario and instructions from Firestore
+    let selectedScenario;
+    let fetchedAiInstructions;
+
+    try {
+        const scenarioDoc = await db.collection('scenarios').doc(personaId).get();
+        const promptsDoc = await db.collection('appInfo').doc('aiPrompts').get();
+
+        if (!scenarioDoc.exists) {
+            throw new HttpsError('not-found', 'Scenario not found.');
+        }
+        
+        selectedScenario = { id: scenarioDoc.id, ...scenarioDoc.data() };
+        fetchedAiInstructions = promptsDoc.exists ? promptsDoc.data().scenariosInstructions : scenariosInstructions; // Fallback to hardcoded if missing
+
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        // If it's already an HttpsError, rethrow it, otherwise throw internal
+        throw error.code ? error : new HttpsError('internal', 'Failed to fetch scenario data.');
     }
 
     // 2. Premium/Limit Check
-    const db = admin.firestore();
     const userDoc = await db.collection('users').doc(uid).get();
     const userData = userDoc.data() || {};
     
@@ -200,7 +216,7 @@ exports.chatWithGemini = onCall({
     const rolePlay = selectedScenario.rolePlays ? selectedScenario.rolePlays.find(rp => rp.context === context) : null;
     const role = rolePlay ? rolePlay.role : 'Assistant';
 
-    const systemInstruction = `${scenariosGoals}
+    const systemInstruction = `${fetchedAiInstructions}
 
     Scenario: ${selectedScenario.name}
     Role: ${role}
