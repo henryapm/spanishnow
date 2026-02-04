@@ -18,7 +18,7 @@ const SpeakCompanion = () => {
 
 
     const [scenarios, setScenarios] = useState([]);
-    const [scenariosGoals, setScenariosGoals] = useState('');
+    const [scenariosAiInstructions, setScenariosAiInstructions] = useState('');
     const [isLoadingData, setIsLoadingData] = useState(true);
     const [isRecording, setIsRecording] = useState(false);
     const [userSpeech, setUserSpeech] = useState('');
@@ -48,7 +48,7 @@ const SpeakCompanion = () => {
                 // Fetch Goals/Instructions
                 const promptsDoc = await getDoc(doc(db, 'appInfo', 'aiPrompts'));
                 if (promptsDoc.exists()) {
-                    setScenariosGoals(promptsDoc.data().scenariosGoals || '');
+                    setScenariosAiInstructions(promptsDoc.data().scenariosInstructions || '');
                 }
 
             } catch (error) {
@@ -230,7 +230,7 @@ const SpeakCompanion = () => {
                 personaId: selectedScenario.id,
                 context: selectedContextAndObjectives.context,
                 objectives: selectedContextAndObjectives.objectives,
-                goals: intructions,
+                scenariosAiInstructions: scenariosAiInstructions,
                 date: today
             });
 

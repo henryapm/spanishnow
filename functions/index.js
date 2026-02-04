@@ -171,7 +171,7 @@ exports.chatWithGemini = onCall({
         }
         
         selectedScenario = { id: scenarioDoc.id, ...scenarioDoc.data() };
-        fetchedAiInstructions = promptsDoc.exists ? promptsDoc.data().scenariosInstructions : scenariosInstructions; // Fallback to hardcoded if missing
+        fetchedAiInstructions = promptsDoc.exists ? promptsDoc.data().scenariosAiInstructions : scenariosInstructions; // Fallback to hardcoded if missing
 
     } catch (error) {
         console.error("Error fetching data:", error);
@@ -283,7 +283,7 @@ exports.seedScenarios = onCall({
 
     // 2. Seed Global Instructions
     const instructionsRef = db.collection('appInfo').doc('aiPrompts');
-    batch.set(instructionsRef, { scenariosGoals }, { merge: true });
+    batch.set(instructionsRef, { scenariosInstructions }, { merge: true });
 
     await batch.commit();
 
