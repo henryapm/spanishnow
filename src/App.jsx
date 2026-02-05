@@ -96,7 +96,7 @@ export default function App() {
     }, [theme]);
 
     return (
-        <div className="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col items-center justify-center font-sans p-4">
+        <div className="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col items-center justify-top font-sans p-4">
             <Routes>
                 {currentUser ? (
                     <Route path="/*" element={<AppLayout />} />
