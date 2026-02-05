@@ -2,8 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import FlashCard from './FlashCard';
-// NEW: Import bookmark icons
-import { BsBookmark, BsBookmarkFill } from "react-icons/bs";
 
 // Helper function to shuffle an array
 const shuffleArray = (array) => {
@@ -27,8 +25,9 @@ const FlashcardView = () => {
     // NEW: Get decks, trainingDeck, and save-word functions
     const decks = useDecksStore((state) => state.decks);
     const trainingDeck = useDecksStore((state) => state.trainingDeck);
-    const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
     const savedWordsSet = useDecksStore((state) => state.savedWordsSet);
+    const updateSavedWordProgress = useDecksStore((state) => state.updateSavedWordProgress);
+    const resetSavedWordProgress = useDecksStore((state) => state.resetSavedWordProgress);
 
     // --- MODIFIED: Check for training session ---
     const isReviewSession = location.pathname === '/review';
@@ -74,10 +73,12 @@ const FlashcardView = () => {
             if (isTrainingSession) {
                 // --- TRAINING SESSION LOGIC ---
                 if (knewIt) {
-                    // "I Knew This" - remove it from the active saved words (soft delete)
-                    await toggleSavedWord(currentCard.spanish); 
+                    // User pressed "Next" - advance the SRS stage
+                    await updateSavedWordProgress(currentCard.spanish);
+                } else {
+                    // User pressed "Forgot" - reset SRS stage
+                    await resetSavedWordProgress(currentCard.spanish);
                 }
-                // "Review Again" - do nothing, just cycle the card
                 
             } else {
                 // --- REGULAR DECK / REVIEW SESSION LOGIC ---
@@ -106,13 +107,6 @@ const FlashcardView = () => {
         }
     };
 
-    // NEW: Handler for the save button on the flashcard
-    const handleToggleSaveWord = (e) => {
-        e.stopPropagation(); // Prevent card from flipping
-        if (!currentCard) return;
-        toggleSavedWord(currentCard.spanish);
-    };
-
     const isSessionComplete = sessionCards.length === 0 && deck && deck.cards && deck.cards.length > 0;
     
     useEffect(() => {
@@ -135,26 +129,33 @@ const FlashcardView = () => {
     
     return (
         <div className="w-full animate-fade-in">
-            <h1 className="text-xl font-bold text-teal-800 mb-6 text-center">{deck?.title || 'Loading...'}</h1>
+            <h1 className="text-2xl font-bold text-teal-500 mb-6 text-center">{deck?.title || 'Loading...'}</h1>
             
             {/* --- MODIFIED: Wrapped card in a div to add the save button --- */}
             <div className="relative">
                 <FlashCard cardData={currentCard} isFlipped={isFlipped} onFlip={() => setIsFlipped(!isFlipped)} />
-                
-                {/* --- NEW: Save Word Button --- */}
-                {/* Show only if it's a regular deck card */}
-                {!isTrainingSession && !isReviewSession && currentCard && (
-                    <button
-                        onClick={handleToggleSaveWord}
-                        className={`absolute top-2 right-2 text-3xl z-10 ${isSaved ? 'text-yellow-400' : 'text-gray-300'} hover:text-yellow-300 transition-colors`}
-                        title={isSaved ? "Remove from saved words" : "Save word for training"}
-                    >
-                        {isSaved ? <BsBookmarkFill /> : <BsBookmark />}
-                    </button>
-                )}
             </div>
 
             <div className="mt-8 flex justify-around items-center">
+                {isTrainingSession ? (
+                    <div className="flex flex-col items-center gap-4">
+                         <button 
+                            onClick={() => handleAnswer(true)} 
+                            disabled={isProcessing}
+                            className="px-12 py-4 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none"
+                         >
+                            Next
+                         </button>
+                         <button 
+                            onClick={() => handleAnswer(false)} 
+                            disabled={isProcessing}
+                            className="text-sm text-gray-500 hover:text-red-500 underline transition-colors disabled:text-gray-300 disabled:cursor-not-allowed"
+                         >
+                            Forgot / Reset Progress
+                         </button>
+                    </div>
+                ) : (
+                 <>
                  <button 
                     onClick={() => handleAnswer(false)} 
                     disabled={isProcessing}
@@ -169,8 +170,10 @@ const FlashcardView = () => {
                  >
                     I Knew This
                  </button>
+                 </>
+                )}
             </div>
-            <button onClick={() => navigate('/review')} className="mt-6 text-gray-500 hover:text-gray-700 transition-colors w-full text-center">← Back to review</button>
+            <button onClick={() => navigate('/spaced-repetition')} className="mt-6 text-gray-500 hover:text-gray-700 transition-colors w-full text-center">← Back to review</button>
         </div>
     );
 };

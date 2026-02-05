@@ -42,6 +42,13 @@ const Header = () => {
         setIsMenuOpen(false); // Close menu after navigation
     };
 
+    // Filter words that are due for review
+    const dueWords = savedWordsList.filter(w => {
+        if (w.stage >= 4) return false; // Mastered words are done
+        if (!w.nextReviewDate) return true; // Legacy/New words are due
+        return w.nextReviewDate <= Date.now();
+    });
+
     return (
         <header className="w-full p-4 mb-4 flex justify-between items-center bg-white dark:bg-gray-800 shadow-md rounded-lg">
             <h1 
@@ -115,7 +122,7 @@ const Header = () => {
                                 >
                                     <RiBrain2Fill />
                                     <span className="ml-2">Spaced Repetition</span>
-                                    <span className="ml-2 text-xs bg-teal-500 text-white px-2 py-1 rounded-full">{savedWordsList.length}</span>
+                                    <span className="ml-2 text-xs bg-teal-500 text-white px-2 py-1 rounded-full">{dueWords.length}</span>
                                 </button>
                                 <button
                                     onClick={() => handleNavigate('/bookings')}

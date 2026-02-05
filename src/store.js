@@ -277,7 +277,9 @@ export const useDecksStore = create((set, get) => ({
                     id: wordId, // This is the Spanish word
                     translation: translations.get(wordId) || "No translation",
                     addedAt: data.addedAt,
-                    active: data.active
+                    active: data.active,
+                    stage: data.stage || 0,
+                    nextReviewDate: data.nextReviewDate || 0
                 };
             });
 
@@ -309,7 +311,9 @@ export const useDecksStore = create((set, get) => ({
                 // Word is not in the active set, so add it or re-activate it
                 await setDoc(wordRef, { 
                     addedAt: serverTimestamp(), 
-                    active: true 
+                    active: true,
+                    stage: 0,
+                    nextReviewDate: Date.now() 
                 }, { merge: true });
                 newSavedWordsSet.add(spanishWord);
             }
@@ -320,6 +324,58 @@ export const useDecksStore = create((set, get) => ({
         } catch (error) {
             console.error("Error toggling saved word: ", error);
             alert("Could not save word. Please try again.");
+        }
+    },
+
+    // --- NEW: Advance the SRS stage for a saved word ---
+    updateSavedWordProgress: async (wordId) => {
+        const { currentUser } = get();
+        if (!currentUser) return;
+        
+        const wordRef = doc(db, 'users', currentUser.uid, 'savedWords', wordId);
+        
+        try {
+            const docSnap = await getDoc(wordRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                let stage = data.stage || 0;
+                let nextDate = new Date();
+                
+                // SRS Logic: 3 days -> 1 week -> 2 weeks -> Mastered (Stage 4)
+                if (stage === 0) {
+                    nextDate.setDate(nextDate.getDate() + 3);
+                    stage = 1;
+                } else if (stage === 1) {
+                    nextDate.setDate(nextDate.getDate() + 7);
+                    stage = 2;
+                } else if (stage === 2) {
+                    nextDate.setDate(nextDate.getDate() + 14);
+                    stage = 3;
+                } else if (stage === 3) {
+                    stage = 4; // Mastered
+                }
+
+                await updateDoc(wordRef, { stage, nextReviewDate: nextDate.getTime() });
+                get().fetchSavedWords(true); // Refresh list
+            }
+        } catch (error) {
+            console.error("Error updating word progress:", error);
+        }
+    },
+
+    // --- NEW: Reset the SRS stage if forgot ---
+    resetSavedWordProgress: async (wordId) => {
+        const { currentUser } = get();
+        if (!currentUser) return;
+        
+        const wordRef = doc(db, 'users', currentUser.uid, 'savedWords', wordId);
+        
+        try {
+            // Reset to stage 0, due immediately
+            await updateDoc(wordRef, { stage: 0, nextReviewDate: Date.now() });
+            get().fetchSavedWords(true);
+        } catch (error) {
+            console.error("Error resetting word progress:", error);
         }
     },
 
@@ -355,7 +411,7 @@ export const useDecksStore = create((set, get) => ({
         }));
 
         const virtualDeck = {
-            title: "My Saved Words",
+            title: "Spaced Repetition Training",
             description: "Practice all the words you've saved.",
             cards: trainingCards
         };
