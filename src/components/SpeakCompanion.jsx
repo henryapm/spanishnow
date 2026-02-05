@@ -1,13 +1,54 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDecksStore } from '../store';
 import Modal from './Modal';
-import { getFirestore, doc, onSnapshot, getDocs, collection, getDoc} from 'firebase/firestore';
+import { getFirestore, doc, onSnapshot, getDocs, collection, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
+import { BsCheckCircleFill } from "react-icons/bs";
 
 const MAX_FREE_INTERACTIONS = 3;
 const MAX_FREE_CHARS = 100;
+
+// --- NEW: Custom Circular Progress Component ---
+const CircularProgress = ({ percentage, size = 50, strokeWidth = 4 }) => {
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const offset = circumference - (percentage / 100) * circumference;
+
+    return (
+        <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+            {/* Background Circle */}
+            <svg className="transform -rotate-90 w-full h-full">
+                <circle
+                    className="text-gray-200 dark:text-gray-700"
+                    strokeWidth={strokeWidth}
+                    stroke="currentColor"
+                    fill="transparent"
+                    r={radius}
+                    cx={size / 2}
+                    cy={size / 2}
+                />
+                {/* Progress Circle */}
+                <circle
+                    className="text-teal-500 transition-all duration-1000 ease-out"
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r={radius}
+                    cx={size / 2}
+                    cy={size / 2}
+                />
+            </svg>
+            <span className="absolute text-xs font-bold text-gray-700 dark:text-gray-200">
+                {Math.round(percentage)}%
+            </span>
+        </div>
+    );
+};
 
 const SpeakCompanion = () => {
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
@@ -29,6 +70,9 @@ const SpeakCompanion = () => {
     const [interactionCount, setInteractionCount] = useState(0);
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [limitMessage, setLimitMessage] = useState('');
+    // --- NEW: State for user progress ---
+    const [userProgress, setUserProgress] = useState({}); // { [scenarioId]: [completedRolePlayName1, ...] }
+    
     const recognitionRef = useRef(null);
     const chatContainerRef = useRef(null);
     const finalTranscriptRef = useRef('');
@@ -60,6 +104,26 @@ const SpeakCompanion = () => {
 
         fetchData();
     }, []);
+
+    // --- NEW: Fetch User Progress ---
+    useEffect(() => {
+        if (currentUser) {
+            const db = getFirestore(getApp());
+            const progressRef = collection(db, 'users', currentUser.uid, 'speakProgress');
+            
+            const unsubscribe = onSnapshot(progressRef, (snapshot) => {
+                const progressMap = {};
+                snapshot.forEach(doc => {
+                    progressMap[doc.id] = doc.data().completedRolePlays || [];
+                });
+                setUserProgress(progressMap);
+            }, (error) => {
+                console.error("Error fetching user progress:", error);
+            });
+
+            return () => unsubscribe();
+        }
+    }, [currentUser]);
 
     // Listen for interaction count changes from Firebase
     useEffect(() => {
@@ -253,20 +317,31 @@ const SpeakCompanion = () => {
         }
     };
 
-    const seedScenarios = async () => {
-        if (!isAdmin) return;
-        if (!window.confirm("This will overwrite the 'scenarios' collection in Firestore with the server-side data. Continue?")) return;
+    // --- NEW: Handle marking a roleplay as complete ---
+    const handleCompleteRolePlay = async () => {
+        if (!currentUser || !selectedScenario || !selectedContextAndObjectives) return;
+
+        const isAlreadyCompleted = userProgress[selectedScenario.id]?.includes(selectedContextAndObjectives.name);
 
         try {
-            const functions = getFunctions(getApp());
-            const seedFn = httpsCallable(functions, 'seedScenarios');
-            
-            const result = await seedFn();
-            
-            alert(result.data.message);
+            if (!isAlreadyCompleted) {
+                const db = getFirestore(getApp());
+                const progressDocRef = doc(db, 'users', currentUser.uid, 'speakProgress', selectedScenario.id);
+                
+                await setDoc(progressDocRef, {
+                    completedRolePlays: arrayUnion(selectedContextAndObjectives.name)
+                }, { merge: true });
+                alert("Great job! Progress saved.");
+            }
+
+            // Optional: Provide feedback or navigate back
+            setSelectedContextAndObjectives(null);
+            setSelectedScenario(null);
+            setChatHistory([]);
+            setUserSpeech('');
         } catch (error) {
-            console.error("Error seeding scenarios:", error);
-            alert(`Error seeding scenarios: ${error.message}`);
+            console.error("Error saving progress:", error);
+            alert("Failed to save progress. Please try again.");
         }
     };
 
@@ -290,31 +365,36 @@ const SpeakCompanion = () => {
                     <InteractionCounts />
                 }
 
-                {isAdmin && (
-                    <div className="mb-6 text-center">
-                        <button onClick={seedScenarios} className="text-xs text-gray-500 hover:text-teal-600 underline">
-                            [Admin] Seed Database with Scenarios
-                        </button>
-                    </div>
-                )}
-
                 <div className="grid grid-cols-1 gap-6">
-                    {scenarios.map(scenario => (
+                    {scenarios.map(scenario => {
+                        // --- NEW: Calculate progress for this scenario ---
+                        const completedCount = userProgress[scenario.id]?.length || 0;
+                        const totalCount = scenario.rolePlays ? scenario.rolePlays.length : 0;
+                        const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+                        return (
                         <button 
                             key={scenario.id}
                             onClick={() => setSelectedScenario(scenario)}
-                            className="flex flex-col text-left p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-teal-500 dark:hover:border-teal-500 hover:shadow-lg transition-all bg-gray-50 dark:bg-gray-900 group"
+                            className="flex flex-row justify-between items-center text-left p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-teal-500 dark:hover:border-teal-500 hover:shadow-lg transition-all bg-gray-50 dark:bg-gray-900 group"
                         >
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
-                                {scenario.name}
-                            </h3>
-                            <div className="flex justify-between items-start w-full mb-4">
-                                <span className="px-2 py-1 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-xs font-bold rounded-full uppercase tracking-wide">
-                                    {scenario.rolePlays ? scenario.rolePlays.length : 0} Role-Play Options
-                                </span>
+                            <div className="flex flex-col gap-2 flex-1">
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                                    {scenario.name}
+                                </h3>
+                                <div className="flex justify-between items-start w-full">
+                                    <span className="px-2 py-1 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-xs font-bold rounded-full uppercase tracking-wide">
+                                        {totalCount} Role-Play Options
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {/* --- NEW: Display Progress Gauge --- */}
+                            <div className="ml-4 flex flex-col items-center">
+                                <CircularProgress percentage={progressPercent} />
                             </div>
                         </button>
-                    ))}
+                    )})}
                 </div>
             </div>
         );
@@ -338,7 +418,11 @@ const SpeakCompanion = () => {
                 </div>
                 <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-4 text-center">Choose a Role Play</h1>
                 <div className="grid grid-cols-1 gap-4">
-                {selectedScenario.rolePlays.map((rolePlay, index) => (
+                {selectedScenario.rolePlays.map((rolePlay, index) => {
+                        // --- NEW: Check if this specific roleplay is completed ---
+                        const isCompleted = userProgress[selectedScenario.id]?.includes(rolePlay.name);
+
+                        return (
                         <button 
                             key={index}
                             onClick={() => setSelectedContextAndObjectives(rolePlay)}
@@ -349,6 +433,7 @@ const SpeakCompanion = () => {
                                     <div className="flex items-center gap-2">
                                         <span className="text-2xl">{selectedScenario.emoji}</span>
                                         <h2 className="font-bold text-teal-900 dark:text-teal-100">{rolePlay.name}</h2>
+                                        {/* --- NEW: Completed Checkmark --- */}
                                     </div>
                                     {rolePlay.difficulty && (
                                         <span className={`px-2 py-1 text-xs font-bold rounded-full uppercase tracking-wide ${
@@ -360,18 +445,23 @@ const SpeakCompanion = () => {
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-sm text-teal-800 dark:text-teal-200 mb-2">
-                                    {rolePlay.description}
-                                </p>
-                                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Objectives:</p>
-                                <ul className="list-disc list-inside text-sm text-teal-700 dark:text-teal-300">
-                                    {rolePlay.objectives.map((obj, i) => (
-                                        <li key={i}>{obj}</li>
-                                    ))}
-                                </ul>
+                                <div className="flex flex-col-2 justify-between items-end">
+                                    <div>
+                                        <p className="text-sm text-teal-800 dark:text-teal-200 mb-2">
+                                            {rolePlay.description}
+                                        </p>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Objectives:</p>
+                                        <ul className="list-disc list-inside text-sm text-teal-700 dark:text-teal-300">
+                                            {rolePlay.objectives.map((obj, i) => (
+                                                <li key={i}>{obj}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    {isCompleted && <BsCheckCircleFill className="flex text-green-500 ml-2" title="Completed" />}
+                                </div>
                             </div>
                         </button>
-                    )
+                    )}
                 )}
                 </div>
             </div>
@@ -493,6 +583,22 @@ const SpeakCompanion = () => {
                         <p className="text-gray-500 dark:text-gray-400">Tap the microphone to start speaking</p>
                     )}
                 </div>
+            </div>
+            {/* --- NEW: Complete Button --- */}
+            <div className="mt-8 text-center">
+                <button 
+                    onClick={handleCompleteRolePlay}
+                    className={`px-8 py-3 font-bold rounded-lg shadow-md transition-colors flex items-center justify-center mx-auto gap-2 ${
+                        userProgress[selectedScenario.id]?.includes(selectedContextAndObjectives.name)
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                >
+                    <BsCheckCircleFill />
+                    {userProgress[selectedScenario.id]?.includes(selectedContextAndObjectives.name) 
+                        ? 'Completed - Finish' 
+                        : 'Finish & Mark Complete'}
+                </button>
             </div>
         </div>
     );
