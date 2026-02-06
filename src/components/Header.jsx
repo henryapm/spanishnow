@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store.js';
-import { MdCalendarToday, MdCreditCard } from 'react-icons/md';
+import { MdCalendarToday } from 'react-icons/md';
 import { FaBookOpen } from 'react-icons/fa';
 import { IoPersonSharp } from 'react-icons/io5';
 import { RiBrain2Fill } from 'react-icons/ri';
+import { PiCardsFill } from 'react-icons/pi';
 
 const Header = () => {
     const navigate = useNavigate();
@@ -99,7 +100,7 @@ const Header = () => {
                                     onClick={() => handleNavigate('/flashcards')}
                                     className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                    <MdCreditCard />
+                                    <PiCardsFill />
                                     <span className="ml-2">Flashcards</span>
                                 </button>
                                 <button

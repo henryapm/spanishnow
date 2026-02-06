@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import { useState, useEffect } from 'react';
+import Modal from './Modal';
 
 const ReviewItem = ({ word }) => {
     const [isRevealed, setIsRevealed] = useState(false);
@@ -67,6 +68,8 @@ const Review = () => {
     const savedWordsList = useDecksStore((state) => state.savedWordsList);
     const prepareTrainingDeck = useDecksStore((state) => state.prepareTrainingDeck);
     const fetchSavedWords = useDecksStore((state) => state.fetchSavedWords);
+    const saveWord = useDecksStore((state) => state.saveWord);
+    const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
 
     const [openSections, setOpenSections] = useState({
         stageZero: true,
@@ -75,6 +78,12 @@ const Review = () => {
         twoWeeks: false,
         mastered: false
     });
+
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [showPremiumModal, setShowPremiumModal] = useState(false);
+    const [newWord, setNewWord] = useState("");
+    const [newTranslation, setNewTranslation] = useState("");
+    const [isAdding, setIsAdding] = useState(false);
 
     const toggleSection = (key) => {
         setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -121,24 +130,106 @@ const Review = () => {
         await prepareTrainingDeck(words);
         navigate('/review/training');
     };
+
+    const handleAddWord = async () => {
+        const spanish = String(newWord).trim();
+        const english = String(newTranslation).trim();
+
+        if (!spanish || !english) {
+            alert("Please fill in both fields.");
+            return;
+        }
+
+        if (spanish.split(/\s+/).length > 1) {
+            alert("Spanish word must be a single word.");
+            return;
+        }
+
+        if (english.split(/\s+/).length > 2) {
+            alert("English translation must be at most 2 words.");
+            return;
+        }
+
+        if (savedWordsList.some(w => w.id.toLowerCase() === spanish.toLowerCase())) {
+            alert("Word already in your list.");
+            return;
+        }
+
+        setIsAdding(true);
+        try {
+            await saveWord({ spanish: spanish.toLowerCase(), translation: english });
+            await toggleSavedWord(spanish.toLowerCase());
+            setIsAddModalOpen(false);
+            setNewWord("");
+            setNewTranslation("");
+        } catch (error) {
+            console.error("Error adding word:", error);
+            alert("Failed to add word. Please try again.");
+        } finally {
+            setIsAdding(false);
+        }
+    };
     return (
         <div className="w-full max-w-4xl mx-auto p-6">
             <h2 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-6 text-center">Spaced Repetition</h2>
             
-            {!isPremium ? (
-                <div className="flex flex-col items-center justify-center p-12 text-center">
-                    <span className="text-6xl mb-4">🔒</span>
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Premium Feature</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md">
-                        The Review feature is available for Premium users only. Subscribe to unlock this feature and practice your saved words!
-                    </p>
-                </div>
-            ) : !currentUser ? (
+            {!currentUser ? (
                 <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
                     <p className="text-gray-600 dark:text-gray-300 mb-4">Please log in to save and review words.</p>
                 </div>
             ) : (
                 <>
+                    <div className="flex justify-center mb-4">
+                        <button 
+                            onClick={() => isPremium ? setIsAddModalOpen(true) : setShowPremiumModal(true)} 
+                            className="px-4 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 transition-colors flex items-center gap-2"
+                        >
+                            <span>+</span> Add Word {!isPremium && <span className="text-xs ml-1">🔒</span>}
+                        </button>
+                    </div>
+
+                    <Modal 
+                        isOpen={showPremiumModal} 
+                        onClose={() => setShowPremiumModal(false)} 
+                        title="Premium Feature 🔒"
+                    >
+                        <p>Adding custom words manually is a Premium feature. Upgrade to unlock this functionality!</p>
+                    </Modal>
+
+                    <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Word">
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold mb-1 text-gray-700 dark:text-gray-300">Spanish Word</label>
+                                <input 
+                                    type="text" 
+                                    value={newWord} 
+                                    onChange={(e) => setNewWord(e.target.value)} 
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none"
+                                    placeholder="e.g. contar"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Must be a single word.</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold mb-1 text-gray-700 dark:text-gray-300">English Translation</label>
+                                <input 
+                                    type="text" 
+                                    value={newTranslation} 
+                                    onChange={(e) => setNewTranslation(e.target.value)} 
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none"
+                                    placeholder="e.g. to count"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Max 2 words.</p>
+                            </div>
+                            <button 
+                                onClick={handleAddWord}
+                                disabled={isAdding}
+                                className="w-full py-2 bg-teal-600 text-white font-bold rounded hover:bg-teal-700 transition-colors disabled:opacity-50"
+                            >
+                                {isAdding ? "Adding..." : "Add Word"}
+                            </button>
+                        </div>
+                    </Modal>
+
                     {dueWords.length === 0 ? (
                         <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md mb-8">
                             <p className="text-gray-600 dark:text-gray-300 mb-4">You don't have any words due for review right now.</p>

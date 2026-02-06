@@ -26,6 +26,7 @@ const ReaderView = () => {
     const saveWordTranslation = useDecksStore((state) => state.saveWordTranslation);
     const fetchTranslationForWord = useDecksStore((state) => state.fetchTranslationForWord);
     const fetchArticleTranslationsForAdmin = useDecksStore((state) => state.fetchArticleTranslationsForAdmin);
+    const markArticleAsFinished = useDecksStore((state) => state.markArticleAsFinished);
     
     // --- UI State ---
     const [lookupResult, setLookupResult] = useState(null);
@@ -311,6 +312,18 @@ const ReaderView = () => {
             
             <div className="text-lg text-gray-700 dark:text-gray-300 space-y-6">
                 {isDictionaryLoading ? <p>Loading translations...</p> : renderedContent}
+            </div>
+
+            <div className="mt-12 flex justify-center">
+                <button
+                    onClick={async () => {
+                        await markArticleAsFinished(articleId);
+                        navigate('/reading');
+                    }}
+                    className="px-8 py-3 bg-green-600 text-white font-bold rounded-full shadow-lg hover:bg-green-700 transition-transform transform hover:scale-105 flex items-center gap-2"
+                >
+                    <span>✓</span> Finish Story
+                </button>
             </div>
         </div>
     );

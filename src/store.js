@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { db } from './firebase';
 // --- FIX: Added query, where, and documentId to the import list ---
-import { collection, getDocs, addDoc, doc, updateDoc, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp } from "firebase/firestore"; 
+import { collection, getDocs, addDoc, doc, updateDoc, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion } from "firebase/firestore"; 
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
 
 const auth = getAuth();
@@ -116,6 +116,7 @@ export const useDecksStore = create((set, get) => ({
     savedWordsList: [],
     savedWordsLoaded: false,
     dailyFreeAccess: null, // { date: "YYYY-MM-DD", deckId: "..." }
+    finishedArticles: [],
 
 
     // --- ACTIONS ---
@@ -137,6 +138,7 @@ export const useDecksStore = create((set, get) => ({
                 let subscriptionStatus = false;
                 let isFirestoreAdmin = false;
                 let dailyFreeAccess = null;
+                let finishedArticles = [];
 
                 if (userDocSnap.exists()) {
                     userPreference = userDocSnap.data().listeningPreference || 'es-ES';
@@ -158,6 +160,7 @@ export const useDecksStore = create((set, get) => ({
                     } else {
                         dailyFreeAccess = serverAccess;
                     }
+                    finishedArticles = userDocSnap.data().finishedArticles || [];
                 }
 
                 const progressSnapshot = await getDocs(collection(db, 'users', user.uid, 'progress'));
@@ -173,10 +176,11 @@ export const useDecksStore = create((set, get) => ({
                     totalXp: userXp,
                     streak: 0,
                     dailyFreeAccess: dailyFreeAccess,
+                    finishedArticles: finishedArticles,
                     savedWordsLoaded: false // Reset so we fetch fresh for the new user
                 });
             } else {
-                set({ currentUser: null, isAdmin: false, progress: {}, listeningPreference: 'es-ES', totalXp: 0, streak: 0, dailyFreeAccess: null, savedWordsLoaded: false, savedWordsSet: new Set(), savedWordsList: [] });
+                set({ currentUser: null, isAdmin: false, progress: {}, listeningPreference: 'es-ES', totalXp: 0, streak: 0, dailyFreeAccess: null, finishedArticles: [], savedWordsLoaded: false, savedWordsSet: new Set(), savedWordsList: [] });
             }
         });
     },
@@ -218,6 +222,19 @@ export const useDecksStore = create((set, get) => ({
         }
         
         return true;
+    },
+
+    markArticleAsFinished: async (articleId) => {
+        const { currentUser, finishedArticles } = get();
+        if (!currentUser) return;
+
+        if (!finishedArticles.includes(articleId)) {
+            const newFinishedArticles = [...finishedArticles, articleId];
+            set({ finishedArticles: newFinishedArticles });
+            
+            const userDocRef = doc(db, 'users', currentUser.uid);
+            await setDoc(userDocRef, { finishedArticles: arrayUnion(articleId) }, { merge: true });
+        }
     },
 
     // --- MODIFIED: Now fetches translations along with saved words ---
