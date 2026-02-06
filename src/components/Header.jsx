@@ -45,7 +45,7 @@ const Header = () => {
 
     // Filter words that are due for review
     const dueWords = savedWordsList.filter(w => {
-        if (w.stage >= 4) return false; // Mastered words are done
+        if (w.stage >= 5) return false; // Mastered words are done
         if (!w.nextReviewDate) return true; // Legacy/New words are due
         return w.nextReviewDate <= Date.now();
     });

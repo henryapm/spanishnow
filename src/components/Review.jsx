@@ -74,6 +74,7 @@ const Review = () => {
     const [openSections, setOpenSections] = useState({
         stageZero: true,
         soon: true,
+        three: false,
         week: false,
         twoWeeks: false,
         mastered: false
@@ -97,7 +98,7 @@ const Review = () => {
     
     // Filter words that are due for review
     const dueWords = savedWordsList.filter(w => {
-        if (w.stage >= 4) return false; // Mastered words are done
+        if (w.stage >= 5) return false; // Mastered words are done
         if (!w.nextReviewDate) return true; // Legacy/New words are due
         return w.nextReviewDate <= Date.now();
     });
@@ -108,12 +109,15 @@ const Review = () => {
     const threeDays = 3 * oneDay;
     const sevenDays = 7 * oneDay;
 
-    const activeWords = savedWordsList.filter(w => w.stage < 4);
-    const masteredWords = savedWordsList.filter(w => w.stage >= 4);
+    const activeWords = savedWordsList.filter(w => w.stage < 5);
+    const masteredWords = savedWordsList.filter(w => w.stage >= 5);
 
     const stageZeroWords = activeWords.filter(w => w.stage === 0);
 
-    const dueSoon = activeWords.filter(w => w.stage !== 0 && (w.nextReviewDate - now) < threeDays)
+    const due24Hours = activeWords.filter(w => w.stage !== 0 && (w.nextReviewDate - now) < oneDay)
+        .sort((a, b) => a.nextReviewDate - b.nextReviewDate);
+
+    const dueSoon = activeWords.filter(w => w.stage !== 0 && (w.nextReviewDate - now) >= oneDay && (w.nextReviewDate - now) < threeDays)
         .sort((a, b) => a.nextReviewDate - b.nextReviewDate);
     
     const dueWeek = activeWords.filter(w => {
@@ -252,7 +256,8 @@ const Review = () => {
 
                     <div className="space-y-4">
                         <StageSection title="New / Due Now" words={stageZeroWords} isOpen={openSections.stageZero} onToggle={() => toggleSection('stageZero')} />
-                        <StageSection title="Due in less than 3 days" words={dueSoon} isOpen={openSections.soon} onToggle={() => toggleSection('soon')} />
+                        <StageSection title="Due in less than 24 hours" words={due24Hours} isOpen={openSections.soon} onToggle={() => toggleSection('soon')} />
+                        <StageSection title="Due in less than 3 days" words={dueSoon} isOpen={openSections.three} onToggle={() => toggleSection('three')} />
                         <StageSection title="Due in less than a week" words={dueWeek} isOpen={openSections.week} onToggle={() => toggleSection('week')} />
                         <StageSection title="Due in less than 2 weeks" words={dueTwoWeeks} isOpen={openSections.twoWeeks} onToggle={() => toggleSection('twoWeeks')} />
                         <StageSection title="Mastered Words 🎓" words={masteredWords} isOpen={openSections.mastered} onToggle={() => toggleSection('mastered')} />

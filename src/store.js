@@ -358,18 +358,21 @@ export const useDecksStore = create((set, get) => ({
                 let stage = data.stage || 0;
                 let nextDate = new Date();
                 
-                // SRS Logic: 3 days -> 1 week -> 2 weeks -> Mastered (Stage 4)
+                // SRS Logic: 1 day -> 3 days -> 1 week -> 2 weeks -> Mastered (Stage 5)
                 if (stage === 0) {
-                    nextDate.setDate(nextDate.getDate() + 3);
+                    nextDate.setDate(nextDate.getDate() + 1);
                     stage = 1;
                 } else if (stage === 1) {
-                    nextDate.setDate(nextDate.getDate() + 7);
+                    nextDate.setDate(nextDate.getDate() + 3);
                     stage = 2;
                 } else if (stage === 2) {
-                    nextDate.setDate(nextDate.getDate() + 14);
+                    nextDate.setDate(nextDate.getDate() + 7);
                     stage = 3;
                 } else if (stage === 3) {
-                    stage = 4; // Mastered
+                    nextDate.setDate(nextDate.getDate() + 14);
+                    stage = 4;
+                } else if (stage >= 4) {
+                    stage = 5; // Mastered
                 }
 
                 await updateDoc(wordRef, { stage, nextReviewDate: nextDate.getTime() });
