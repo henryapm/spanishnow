@@ -17,10 +17,17 @@ const ReadingLibrary = () => {
     const [showLimitModal, setShowLimitModal] = useState(false);
     const finishedArticles = useDecksStore((state) => state.finishedArticles);
 
-    const [sortBy, setSortBy] = useState('title');
-    const [filterLevel, setFilterLevel] = useState('All');
-    const [filterStatus, setFilterStatus] = useState('All');
-
+    
+    const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('reading_sortBy') || 'title');
+    const [filterLevel, setFilterLevel] = useState(() => sessionStorage.getItem('reading_filterLevel') || 'All');
+    const [filterStatus, setFilterStatus] = useState(() => sessionStorage.getItem('reading_filterStatus') || 'All');
+     
+    useEffect(() => {
+        sessionStorage.setItem('reading_sortBy', sortBy);
+        sessionStorage.setItem('reading_filterLevel', filterLevel);
+        sessionStorage.setItem('reading_filterStatus', filterStatus);
+    }, [sortBy, filterLevel, filterStatus]);
+    
     useEffect(() => {
         // Fetch articles when the component mounts
         fetchArticles();
@@ -83,7 +90,7 @@ const ReadingLibrary = () => {
             </Modal>
             <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-6 text-center">Reading Library</h1>
             
-            <div className="flex flex-wrap justify-center gap-4 mb-6">
+            <div className="flex flex-wrap justify-end gap-4 mb-6">
                 <div className="flex items-center gap-2">
                     <label htmlFor="sort-select" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Sort by:</label>
                     <select 
@@ -95,24 +102,6 @@ const ReadingLibrary = () => {
                         <option value="title">Title</option>
                         <option value="level">Level</option>
                         <option value="premium">Free/Premium</option>
-                    </select>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <label htmlFor="filter-select" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Filter Level:</label>
-                    <select 
-                        id="filter-select"
-                        value={filterLevel} 
-                        onChange={(e) => setFilterLevel(e.target.value)}
-                        className="p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-teal-500 outline-none"
-                    >
-                        <option value="All">All</option>
-                        <option value="A1">A1</option>
-                        <option value="A2">A2</option>
-                        <option value="B1">B1</option>
-                        <option value="B2">B2</option>
-                        <option value="C1">C1</option>
-                        <option value="C2">C2</option>
                     </select>
                 </div>
 
@@ -129,6 +118,20 @@ const ReadingLibrary = () => {
                         <option value="Premium">Premium</option>
                     </select>
                 </div>
+            </div>
+
+            <div className="flex items-end justify-end mb-6">
+                <ul 
+                    id="filter-select"
+                    value={filterLevel} 
+                    onChange={(e) => setFilterLevel(e.target.value)}
+                    className="flex flex-row gap-2 align-end p-2 rounded-lg dark:text-white shadow-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                >
+                    <li className={`cursor-pointer p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white ${filterLevel === 'All' ? 'ring-2 ring-teal-500' : ''}`} onClick={() => setFilterLevel('All')} value="All">All</li>
+                    {levelOrder && Object.keys(levelOrder).map(level => (
+                        <li className={`cursor-pointer p-2 rounded-lg ${getLevelColor(level)} ${filterLevel === level ? 'ring-2 ring-teal-500' : ''}`} key={level} onClick={() => setFilterLevel(level)} value={level}>{level}</li>
+                    ))}
+                </ul>
             </div>
 
             {articlesArray.length > 0 ? (
