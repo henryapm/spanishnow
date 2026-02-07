@@ -344,7 +344,7 @@ const SpeakCompanion = () => {
                     <InteractionCounts />
                 }
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                     {scenarios.map(scenario => {
                         // --- NEW: Calculate progress for this scenario ---
                         const completedCount = userProgress[scenario.id]?.length || 0;
