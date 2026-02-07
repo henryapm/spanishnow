@@ -142,7 +142,7 @@ const ReadingLibrary = () => {
                         <button
                             key={article.id}
                             onClick={() => handleArticleClick(article)}
-                            className={`w-full text-left p-6 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-transform ${!isLocked ? 'hover:-translate-y-1' : 'opacity-75'}`}
+                            className={`w-full text-left p-6 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-transform cursor-pointer ${!isLocked ? 'hover:-translate-y-1' : 'opacity-75'}`}
                         >
                             <div className="flex justify-between items-center">
                                 <div>

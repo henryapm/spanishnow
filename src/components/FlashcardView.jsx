@@ -121,7 +121,9 @@ const FlashcardView = () => {
                 <h2 className="text-4xl font-bold text-teal-800 mb-4">🏆 Session Complete!</h2>
                 <p className="text-lg text-gray-600 mb-8">You've finished this session. Great job!</p>
                 <div className="flex justify-center">
-                    <button onClick={() => navigate('/decks')} className="px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">Back to All Decks</button>
+                    <button onClick={() => navigate(`${isTrainingSession ? '/spaced-repetition' : '/decks'}`)} className="px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">
+                        {isTrainingSession ? 'Back to Spaced Repetition' : 'Back to Decks'}
+                    </button>
                 </div>
             </div>
         );
