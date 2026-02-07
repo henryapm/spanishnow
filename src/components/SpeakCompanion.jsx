@@ -363,7 +363,7 @@ const SpeakCompanion = () => {
                                 </h3>
                                 <div className="flex justify-between items-start w-full">
                                     <span className="px-2 py-1 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-xs font-bold rounded-full uppercase tracking-wide">
-                                        {totalCount} Role-Play Options
+                                        {totalCount > 1 ? `${totalCount} Roles` : `${totalCount} Role`}
                                     </span>
                                 </div>
                             </div>
