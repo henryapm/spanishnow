@@ -44,10 +44,14 @@ const Header = () => {
     };
 
     // Filter words that are due for review
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+    const endOfToday = today.getTime();
+
     const dueWords = savedWordsList.filter(w => {
         if (w.stage >= 5) return false; // Mastered words are done
         if (!w.nextReviewDate) return true; // Legacy/New words are due
-        return w.nextReviewDate <= Date.now();
+        return w.nextReviewDate <= endOfToday;
     });
 
     return (

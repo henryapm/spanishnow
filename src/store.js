@@ -374,6 +374,9 @@ export const useDecksStore = create((set, get) => ({
                 } else if (stage >= 4) {
                     stage = 5; // Mastered
                 }
+                
+                // Normalize to midnight so words are due at the start of the day
+                nextDate.setHours(0, 0, 0, 0);
 
                 await updateDoc(wordRef, { stage, nextReviewDate: nextDate.getTime() });
                 get().fetchSavedWords(true); // Refresh list

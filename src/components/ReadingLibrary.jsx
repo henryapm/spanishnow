@@ -90,7 +90,7 @@ const ReadingLibrary = () => {
                         id="sort-select"
                         value={sortBy} 
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="p-2 border rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                        className="p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-teal-500 outline-none"
                     >
                         <option value="title">Title</option>
                         <option value="level">Level</option>
@@ -104,7 +104,7 @@ const ReadingLibrary = () => {
                         id="filter-select"
                         value={filterLevel} 
                         onChange={(e) => setFilterLevel(e.target.value)}
-                        className="p-2 border rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                        className="p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-teal-500 outline-none"
                     >
                         <option value="All">All</option>
                         <option value="A1">A1</option>
@@ -122,7 +122,7 @@ const ReadingLibrary = () => {
                         id="filter-status-select"
                         value={filterStatus} 
                         onChange={(e) => setFilterStatus(e.target.value)}
-                        className="p-2 border rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                        className="p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-teal-500 outline-none"
                     >
                         <option value="All">All</option>
                         <option value="Free">Free</option>

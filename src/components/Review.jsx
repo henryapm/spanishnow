@@ -86,6 +86,13 @@ const Review = () => {
     const [newTranslation, setNewTranslation] = useState("");
     const [isAdding, setIsAdding] = useState(false);
 
+    const [now, setNow] = useState(Date.now());
+
+    useEffect(() => {
+        const interval = setInterval(() => setNow(Date.now()), 600000); // Update every hour to keep the "due soon" sections accurate
+        return () => clearInterval(interval);
+    }, []);
+
     const toggleSection = (key) => {
         setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
     };
@@ -97,14 +104,17 @@ const Review = () => {
     }, [currentUser, fetchSavedWords]);
     
     // Filter words that are due for review
+    const today = new Date(now);
+    today.setHours(23, 59, 59, 999); // End of today
+    const endOfToday = today.getTime();
+
     const dueWords = savedWordsList.filter(w => {
         if (w.stage >= 5) return false; // Mastered words are done
         if (!w.nextReviewDate) return true; // Legacy/New words are due
-        return w.nextReviewDate <= Date.now();
+        return w.nextReviewDate <= endOfToday;
     });
 
     // Categorize words for display
-    const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
     const threeDays = 3 * oneDay;
     const sevenDays = 7 * oneDay;
@@ -112,13 +122,20 @@ const Review = () => {
     const activeWords = savedWordsList.filter(w => w.stage < 5);
     const masteredWords = savedWordsList.filter(w => w.stage >= 5);
 
-    const stageZeroWords = activeWords.filter(w => w.stage === 0);
+    // Sort due words for display in the first section
+    const dueWordsSorted = [...dueWords].sort((a, b) => (a.nextReviewDate || 0) - (b.nextReviewDate || 0));
 
-    const due24Hours = activeWords.filter(w => w.stage !== 0 && (w.nextReviewDate - now) < oneDay)
-        .sort((a, b) => a.nextReviewDate - b.nextReviewDate);
+    const due24Hours = activeWords.filter(w => {
+        // Exclude words already in dueWords (due today or earlier)
+        if (!w.nextReviewDate || w.nextReviewDate <= endOfToday) return false;
+        return (w.nextReviewDate - now) < oneDay;
+    }).sort((a, b) => a.nextReviewDate - b.nextReviewDate);
 
-    const dueSoon = activeWords.filter(w => w.stage !== 0 && (w.nextReviewDate - now) >= oneDay && (w.nextReviewDate - now) < threeDays)
-        .sort((a, b) => a.nextReviewDate - b.nextReviewDate);
+    const dueSoon = activeWords.filter(w => {
+        if (!w.nextReviewDate) return false;
+        const diff = w.nextReviewDate - now;
+        return diff >= oneDay && diff < threeDays;
+    }).sort((a, b) => a.nextReviewDate - b.nextReviewDate);
     
     const dueWeek = activeWords.filter(w => {
         const diff = w.nextReviewDate - now;
@@ -255,7 +272,7 @@ const Review = () => {
                     )}
 
                     <div className="space-y-4">
-                        <StageSection title="New / Due Now" words={stageZeroWords} isOpen={openSections.stageZero} onToggle={() => toggleSection('stageZero')} />
+                        <StageSection title="New / Due Now" words={dueWordsSorted} isOpen={openSections.stageZero} onToggle={() => toggleSection('stageZero')} />
                         <StageSection title="Due in less than 24 hours" words={due24Hours} isOpen={openSections.soon} onToggle={() => toggleSection('soon')} />
                         <StageSection title="Due in less than 3 days" words={dueSoon} isOpen={openSections.three} onToggle={() => toggleSection('three')} />
                         <StageSection title="Due in less than a week" words={dueWeek} isOpen={openSections.week} onToggle={() => toggleSection('week')} />
