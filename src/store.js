@@ -117,6 +117,9 @@ export const useDecksStore = create((set, get) => ({
     savedWordsLoaded: false,
     dailyFreeAccess: null, // { date: "YYYY-MM-DD", deckId: "..." }
     finishedArticles: [],
+    scenarios: [],
+    scenariosAiInstructions: '',
+    isScenariosLoading: false,
 
 
     // --- ACTIONS ---
@@ -585,6 +588,30 @@ export const useDecksStore = create((set, get) => ({
             }
         }
     },
+
+    fetchScenarios: async () => {
+        // Cache check: if we already have scenarios, don't re-fetch
+        if (get().scenarios.length > 0) return;
+
+        set({ isScenariosLoading: true });
+        try {
+            const scenariosSnapshot = await getDocs(collection(db, 'scenarios'));
+            const fetchedScenarios = scenariosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            let instructions = '';
+            const promptsDoc = await getDoc(doc(db, 'appInfo', 'aiPrompts'));
+            if (promptsDoc.exists()) {
+                instructions = promptsDoc.data().scenariosAiInstructions || '';
+                instructions === '' ? alert("AI instructions are missing! Please add them in Firestore to use the Scenarios feature.") : null;
+            }
+
+            set({ scenarios: fetchedScenarios, scenariosAiInstructions: instructions, isScenariosLoading: false });
+        } catch (error) {
+            console.error("Error fetching scenarios:", error);
+            set({ isScenariosLoading: false });
+        }
+    },
+
 
     // --- NEW: Fetch translation for a single word on demand ---
     fetchTranslationForWord: async (word) => {

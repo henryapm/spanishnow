@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDecksStore } from '../store';
 import Modal from './Modal';
-import { getFirestore, doc, onSnapshot, getDocs, collection, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
+import { getFirestore, doc, onSnapshot, collection, setDoc, arrayUnion } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
@@ -58,9 +58,10 @@ const SpeakCompanion = () => {
     const isPremium = isAdmin || hasActiveSubscription;
 
 
-    const [scenarios, setScenarios] = useState([]);
-    const [scenariosAiInstructions, setScenariosAiInstructions] = useState('');
-    const [isLoadingData, setIsLoadingData] = useState(true);
+    const scenarios = useDecksStore((state) => state.scenarios);
+    const scenariosAiInstructions = useDecksStore((state) => state.scenariosAiInstructions);
+    const fetchScenarios = useDecksStore((state) => state.fetchScenarios);
+    const isScenariosLoading = useDecksStore((state) => state.isScenariosLoading);
     const [isRecording, setIsRecording] = useState(false);
     const [userSpeech, setUserSpeech] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
@@ -80,30 +81,8 @@ const SpeakCompanion = () => {
 
     // Fetch Scenarios and Goals from Firestore
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const db = getFirestore(getApp());
-                
-                // Fetch Scenarios
-                const scenariosSnapshot = await getDocs(collection(db, 'scenarios'));
-                const fetchedScenarios = scenariosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                setScenarios(fetchedScenarios);
-
-                // Fetch Goals/Instructions
-                const promptsDoc = await getDoc(doc(db, 'appInfo', 'aiPrompts'));
-                if (promptsDoc.exists()) {
-                    setScenariosAiInstructions(promptsDoc.data().scenariosInstructions || '');
-                }
-
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            } finally {
-                setIsLoadingData(false);
-            }
-        };
-
-        fetchData();
-    }, []);
+        fetchScenarios();
+    }, [fetchScenarios]);
 
     // --- NEW: Fetch User Progress ---
     useEffect(() => {
@@ -345,7 +324,7 @@ const SpeakCompanion = () => {
         }
     };
 
-    if (isLoadingData) {
+    if (isScenariosLoading && scenarios.length === 0) {
         return (
             <div className="p-6 flex justify-center items-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-700"></div>
@@ -365,7 +344,7 @@ const SpeakCompanion = () => {
                     <InteractionCounts />
                 }
 
-                <div className="grid grid-cols-1 gap-6">
+                <div className="grid grid-cols-2 gap-6">
                     {scenarios.map(scenario => {
                         // --- NEW: Calculate progress for this scenario ---
                         const completedCount = userProgress[scenario.id]?.length || 0;
