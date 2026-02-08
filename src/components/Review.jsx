@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import { useState, useEffect } from 'react';
 import Modal from './Modal';
-import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
+import { BsBookmarkFill } from 'react-icons/bs';
 
 const ReviewItem = ({ word }) => {
     const [isRevealed, setIsRevealed] = useState(false);
@@ -25,8 +25,11 @@ const ReviewItem = ({ word }) => {
             </div>
             <button 
                     onClick={(e) => { 
-                            e.stopPropagation(); 
-                            toggleSavedWord(word.id)}}
+                            e.stopPropagation();
+                            if (confirm("You are about to remove this word from your list, hit OK to confirm.")) {
+                                toggleSavedWord(word.id);
+                            }
+                        }}
                     className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors`}
                     title={isSaved ? "Remove from saved words" : "Save word for training"}
                 >

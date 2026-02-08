@@ -4,6 +4,7 @@ import { FaBookOpen } from 'react-icons/fa';
 import { IoPersonSharp } from 'react-icons/io5';
 import { PiCardsFill } from 'react-icons/pi';
 import { RiBrain2Fill } from 'react-icons/ri';
+import { useDecksStore } from '../store';
 
 const Navigation = () => {
     return (
