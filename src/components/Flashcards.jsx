@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDecksStore } from "../store";
 import Modal from "./Modal";
+import { BsBookmarkFill } from "react-icons/bs";
 
 const Flashcards = ({decks}) => {
     // Helper function to group decks by topic
@@ -29,6 +30,7 @@ const Flashcards = ({decks}) => {
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
     const checkAndRecordDailyAccess = useDecksStore((state) => state.checkAndRecordDailyAccess);
+    const addCardToSRS = useDecksStore((state) => state.addCardToSRS);
         
     const topics = useMemo(() => groupDecksByTopic(decks), [decks]);
     const navigate = useNavigate();
@@ -61,6 +63,16 @@ const Flashcards = ({decks}) => {
                 }
         }
     };
+
+    const handleAddDeckToSRS = async (deck) => {
+        if (!deck.cards || deck.cards.length === 0) return;
+        if (window.confirm(`Add all ${deck.cards.length} cards from "${deck.title}" to Spaced Repetition?`)) {
+            for (const card of deck.cards) {
+                await addCardToSRS(card, deck.title);
+            }
+        }
+    };
+
     // Calculate score: (Correctly Answered Cards / Total Cards) * 100
     const calculateScore = (lessonCards, deckId) => {
         const totalCards = lessonCards.length;
@@ -132,6 +144,15 @@ const Flashcards = ({decks}) => {
                                                                     Score: {score}/100
                                                                 </span>
                                                             )}
+
+                                                            {/* Add Whole Deck to SRS Button */}
+                                                            <button
+                                                                onClick={() => handleAddDeckToSRS(deck)}
+                                                                className="ml-2 p-1 text-gray-400 hover:text-yellow-500 transition-colors"
+                                                                title="Add entire deck to Spaced Repetition"
+                                                            >
+                                                                <BsBookmarkFill />
+                                                            </button>
                                                         </div>
                                                     </div>
 

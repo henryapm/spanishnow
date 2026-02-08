@@ -135,16 +135,7 @@ const ReaderView = () => {
         setIsEditing(false);
     };
 
-    // --- NEW: Handler for the save/unsave word button ---
-    const handleToggleSaveWord = (e) => {
-        e.stopPropagation(); // Stop click from bubbling to the main div
-        if (!lookupResult) return;
-        toggleSavedWord(lookupResult.word);
-    };
-
     // --- Component Renders ---
-
-    // This renders the main article content
     const renderedContent = (article.sentences || []).map((sentenceObj, sIndex) => (
         <div key={sIndex}>
             <div className="flex gap-4 items-start">
@@ -235,7 +226,12 @@ const ReaderView = () => {
                     
                     {/* --- NEW: Save Word Button --- */}
                     <button 
-                        onClick={handleToggleSaveWord}
+                        onClick={(e) => { 
+                                e.stopPropagation(); 
+                                toggleSavedWord(lookupResult.word, {
+                                    translation: liveTranslation,
+                                    source: `Library (${article.title})`
+                                })}}
                         className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors`}
                         title={isSaved ? "Remove from saved words" : "Save word for training"}
                     >

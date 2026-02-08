@@ -1,9 +1,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { MdCreditCard } from 'react-icons/md';
-import { FaBookOpen, FaCalendarAlt } from 'react-icons/fa';
+import { FaBookOpen } from 'react-icons/fa';
 import { IoPersonSharp } from 'react-icons/io5';
 import { PiCardsFill } from 'react-icons/pi';
+import { RiBrain2Fill } from 'react-icons/ri';
 
 const Navigation = () => {
     return (
@@ -35,7 +35,7 @@ const Navigation = () => {
                 </NavLink>
 
                 <NavLink 
-                    to="/decks" 
+                    to="/flashcards" 
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-teal-600 dark:text-teal-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-teal-500 dark:hover:text-teal-300'}`}
                 >
                     <PiCardsFill className="text-2xl mb-1" />
@@ -43,11 +43,11 @@ const Navigation = () => {
                 </NavLink>
                 
                 <NavLink 
-                    to="/bookings" 
+                    to="/spaced-repetition" 
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-teal-600 dark:text-teal-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-teal-500 dark:hover:text-teal-300'}`}
                 >
-                    <FaCalendarAlt className="text-2xl mb-1" />
-                    <span className="text-xs font-medium">Bookings</span>
+                    <RiBrain2Fill className="text-2xl mb-1" />
+                    <span className="text-xs font-medium">Spaced Repetition</span>
                 </NavLink>
             </div>
         </nav>

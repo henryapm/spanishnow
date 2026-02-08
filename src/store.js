@@ -295,7 +295,10 @@ export const useDecksStore = create((set, get) => ({
                 const data = savedWordDataMap.get(wordId);
                 return {
                     id: wordId, // This is the Spanish word
-                    translation: translations.get(wordId) || "No translation",
+                    // Prefer translation in savedWord doc, fallback to dictionary
+                    translation: data.translation || translations.get(wordId) || "No translation",
+                    vocab: data.vocab || null,
+                    source: data.source || null,
                     addedAt: data.addedAt,
                     active: data.active,
                     stage: data.stage || 0,
@@ -311,7 +314,7 @@ export const useDecksStore = create((set, get) => ({
     },
 
     // --- MODIFIED: Implements "soft delete" by toggling the 'active' flag ---
-    toggleSavedWord: async (spanishWord) => {
+    toggleSavedWord: async (spanishWord, data = {}) => {
         const { currentUser, savedWordsSet } = get();
 // ... (existing code) ...
         if (!currentUser) {
@@ -333,7 +336,10 @@ export const useDecksStore = create((set, get) => ({
                     addedAt: serverTimestamp(), 
                     active: true,
                     stage: 0,
-                    nextReviewDate: Date.now() 
+                    nextReviewDate: Date.now(),
+                    translation: data.translation || '',
+                    vocab: data.vocab || '',
+                    source: data.source || null
                 }, { merge: true });
                 newSavedWordsSet.add(spanishWord);
             }
@@ -344,6 +350,35 @@ export const useDecksStore = create((set, get) => ({
         } catch (error) {
             console.error("Error toggling saved word: ", error);
             alert("Could not save word. Please try again.");
+        }
+    },
+
+    // --- NEW: Add a specific card/sentence to SRS with metadata ---
+    addCardToSRS: async (card, deckTitle) => {
+        const { currentUser, savedWordsSet } = get();
+        if (!currentUser) return;
+        
+        const spanish = card.spanish;
+        if (!spanish) return;
+
+        const wordRef = doc(db, 'users', currentUser.uid, 'savedWords', spanish);
+        
+        try {
+            await setDoc(wordRef, { 
+                addedAt: serverTimestamp(), 
+                active: true,
+                stage: 0,
+                nextReviewDate: Date.now(),
+                translation: card.english || '',
+                vocab: card.vocab || '',
+                source: deckTitle || 'Flashcards'
+            }, { merge: true });
+            
+            const newSet = new Set(savedWordsSet);
+            newSet.add(spanish);
+            set({ savedWordsSet: newSet });
+        } catch (error) {
+            console.error("Error adding card to SRS:", error);
         }
     },
 
@@ -408,6 +443,8 @@ export const useDecksStore = create((set, get) => ({
     // --- NEW: Action to build the virtual deck for flashcards ---
     prepareTrainingDeck: async (wordsToStudy) => {
         set({ isLoading: true });
+        const { savedWordsList } = get();
+        const savedMap = new Map(savedWordsList.map(w => [w.id, w]));
         const translations = new Map();
         const chunks = [];
         
@@ -430,11 +467,16 @@ export const useDecksStore = create((set, get) => ({
         }
         
         // Build the deck object in the format your LessonsView expects
-        const trainingCards = wordsToStudy.map(word => ({
-            spanish: word,
-            english: translations.get(word) || "No translation found"
-            // You can add other properties here if your flashcard needs them
-        }));
+        const trainingCards = wordsToStudy.map(word => {
+            const savedData = savedMap.get(word);
+            return {
+                spanish: word,
+                english: savedData?.translation || translations.get(word) || "No translation found",
+                vocab: savedData?.vocab,
+                source: savedData?.source,
+                id: word
+            };
+        });
 
         const virtualDeck = {
             title: "Spaced Repetition Training",

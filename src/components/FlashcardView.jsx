@@ -28,6 +28,7 @@ const FlashcardView = () => {
     const savedWordsSet = useDecksStore((state) => state.savedWordsSet);
     const updateSavedWordProgress = useDecksStore((state) => state.updateSavedWordProgress);
     const resetSavedWordProgress = useDecksStore((state) => state.resetSavedWordProgress);
+    const addCardToSRS = useDecksStore((state) => state.addCardToSRS);
 
     // --- MODIFIED: Check for training session ---
     const isReviewSession = location.pathname === '/review';
@@ -136,6 +137,18 @@ const FlashcardView = () => {
             {/* --- MODIFIED: Wrapped card in a div to add the save button --- */}
             <div className="relative">
                 <FlashCard cardData={currentCard} isFlipped={isFlipped} onFlip={() => setIsFlipped(!isFlipped)} />
+                {/* --- NEW: Add to SRS Button for regular decks --- */}
+                {!isTrainingSession && currentCard && (
+                    <div className="absolute top-4 right-4 z-10">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); addCardToSRS(currentCard, deck?.title); }}
+                            className={`p-2 rounded-full shadow-md transition-colors ${isSaved ? 'bg-yellow-100 text-yellow-600' : 'bg-white text-gray-400 hover:text-teal-500'}`}
+                            title={isSaved ? "Already in Spaced Repetition" : "Add to Spaced Repetition"}
+                        >
+                            <span className="text-xl">{isSaved ? '★' : '☆'}</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className="mt-8 flex justify-around items-center">

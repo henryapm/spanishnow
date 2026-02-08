@@ -2,13 +2,17 @@ import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import { useState, useEffect } from 'react';
 import Modal from './Modal';
+import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
 
 const ReviewItem = ({ word }) => {
     const [isRevealed, setIsRevealed] = useState(false);
+    const savedWords = useDecksStore((state) => state.savedWordsSet);
+    const isSaved = savedWords.has(word.id);
+    const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-4 border-teal-500 flex justify-between items-center">
-            <div>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-4 border-teal-500 flex flex-row items-start justify-between gap-4">
+            <div className="flex flex-col">
                 <p className="font-bold text-lg text-gray-800 dark:text-gray-200 capitalize">{word.id}</p>
                 <button type="button" onClick={() => setIsRevealed(!isRevealed)}>
                     <p className={`text-gray-600 dark:text-gray-400 text-sm text-left transition-all duration-300 ${isRevealed ? '' : 'blur-sm select-none'}`}>
@@ -19,6 +23,15 @@ const ReviewItem = ({ word }) => {
                 <br />
                 {word.translation === 'No translation' && <a href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(word.id)}&op=translate`} className="text-teal-200 hover:underline" target="_blank" rel="noopener noreferrer">Open in Google Translate</a>}
             </div>
+            <button 
+                    onClick={(e) => { 
+                            e.stopPropagation(); 
+                            toggleSavedWord(word.id)}}
+                    className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors`}
+                    title={isSaved ? "Remove from saved words" : "Save word for training"}
+                >
+                    {isSaved ? <BsBookmarkFill /> : ''}
+            </button>
         </div>
     );
 };

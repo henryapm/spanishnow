@@ -5,6 +5,7 @@ import Flashcard from './FlashCard.jsx';
 import ListeningView from './ListeningView.jsx';
 import MultipleChoiceQuiz from './MultipleChoiceQuiz.jsx';
 import FillInTheBlankQuiz from './FillInTheBlankQuiz.jsx';
+import { BsBookmark, BsBookmarkFill } from 'react-icons/bs';
 
 const shuffleArray = (array) => {
     const newArray = [...array];
@@ -22,6 +23,9 @@ const SessionManager = () => {
     // Default to 'flashcards' mode if not specified
     const { lessonCards, deckId, mode = 'flashcards' } = location.state || { lessonCards: [], deckId: null };
     const updateCardProgress = useDecksStore((state) => state.updateCardProgress);
+    const decks = useDecksStore((state) => state.decks);
+    const savedWordsSet = useDecksStore((state) => state.savedWordsSet);
+    const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
 
     const [phase, setPhase] = useState('loading'); // loading, learn, practice, complete
     const [practiceQueue, setPracticeQueue] = useState([]);
@@ -114,6 +118,9 @@ const SessionManager = () => {
     // --- Learn Phase (Flashcards Mode) ---
     if (phase === 'learn') {
         const currentCard = lessonCards[currentLearnIndex];
+        const deck = decks[deckId];
+        const isSaved = currentCard ? savedWordsSet.has(currentCard.spanish) : false;
+
         return (
             <div className="w-full animate-fade-in">
                 <h1 className="text-2xl font-bold text-center text-teal-800 dark:text-teal-300 mb-4">
@@ -122,7 +129,27 @@ const SessionManager = () => {
                 <p className="text-center text-gray-500 dark:text-gray-400 mb-2">
                     Card {currentLearnIndex + 1} of {lessonCards.length}
                 </p>
-                <Flashcard cardData={currentCard} isFlipped={isCardFlipped} onFlip={() => setIsCardFlipped(!isCardFlipped)} />
+                
+                <div className="relative">
+                    <Flashcard cardData={currentCard} isFlipped={isCardFlipped} onFlip={() => setIsCardFlipped(!isCardFlipped)} />
+                    <div className="absolute top-4 right-4 z-10">
+                        <button 
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                toggleSavedWord(currentCard.spanish, {
+                                    translation: currentCard.english,
+                                    vocab: currentCard.vocab,
+                                    source: deck?.title
+                                }); 
+                            }}
+                            className={`p-2 rounded-full shadow-md transition-colors ${isSaved ? 'bg-yellow-100 text-yellow-600' : 'bg-white text-gray-400 hover:text-teal-500'}`}
+                            title={isSaved ? "Remove from Spaced Repetition" : "Add to Spaced Repetition"}
+                        >
+                            <span className="text-xl">{isSaved ? <BsBookmarkFill/> : <BsBookmark/>}</span>
+                        </button>
+                    </div>
+                </div>
+
                 <p className="text-center text-gray-400 dark:text-gray-500 text-sm mt-2">(Tap card to flip)</p>
                 <div className="mt-6 text-center">
                     <button onClick={handleNextLearnCard} className="w-full px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition-colors">
@@ -130,8 +157,8 @@ const SessionManager = () => {
                     </button>
                 </div>
                 <div className="mt-4 text-center">
-                    <button onClick={() => navigate('/decks')} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
-                        Back to Decks
+                    <button onClick={() => navigate('/flashcards')} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                        Back to Flashcards Decks
                     </button>
                 </div>
             </div>
@@ -163,8 +190,8 @@ const SessionManager = () => {
                 {type === 'fill' && <FillInTheBlankQuiz lessonCards={lessonCards} currentCard={card} onCorrect={() => handleAnswer(true)} onIncorrect={() => handleAnswer(false)} />}
                 
                 <div className="mt-8 text-center">
-                    <button onClick={() => navigate('/decks')} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
-                        Back to Decks
+                    <button onClick={() => navigate('/flashcards')} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                        Back to Flashcards Decks
                     </button>
                 </div>
             </div>
@@ -200,7 +227,7 @@ const SessionManager = () => {
             )}
 
             <div className="flex justify-center">
-                <button onClick={() => navigate('/decks')} className="px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">Back to Decks</button>
+                <button onClick={() => navigate('/flashcards')} className="px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">Back to Flashcards decks</button>
             </div>
         </div>
     );

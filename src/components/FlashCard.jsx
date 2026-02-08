@@ -103,7 +103,11 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
                             <><p className="text-lg"><strong>Key Vocab:</strong> {cardData.vocab}</p>
                             <hr className="w-4/5 my-4 border-teal-300" />
                             </>
-                        )}
+                        )
+                    }
+                    {cardData.source && (
+                        <p className="text-xs text-teal-100 mt-auto absolute bottom-4">Source: {cardData.source}</p>
+                    )}
                 </div>
             </div>
         </div>
