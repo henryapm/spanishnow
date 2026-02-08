@@ -461,14 +461,22 @@ const SpeakCompanion = () => {
                 <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300">Speak Companion</h1>
                 <button 
                     onClick={() => {
-                        setSelectedScenario(null);
-                        setSelectedContextAndObjectives(null);
-                        setChatHistory([]);
-                        setUserSpeech('');
+                        if (!selectedContextAndObjectives) {
+                            console.log('Resetting scenario');                            
+                            setSelectedScenario(null) 
+                            setSelectedContextAndObjectives(null);
+                            setChatHistory([]);
+                            setUserSpeech('');
+                        } else if (selectedScenario && selectedContextAndObjectives) {
+                            console.log('Resetting context and objectives');                            
+                            setSelectedContextAndObjectives(null);
+                            setChatHistory([]);
+                            setUserSpeech('');
+                        }
                     }}
                     className="text-sm text-gray-500 hover:text-teal-600 underline"
                 >
-                    Change Scenario
+                    {selectedContextAndObjectives ? 'Change Role Play' : 'Change Scenario'}
                 </button>
             </div>
 
