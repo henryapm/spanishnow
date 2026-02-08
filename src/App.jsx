@@ -42,7 +42,7 @@ const AppLayout = () => {
                 <div className="w-full max-w-lg mx-auto">
                     <Routes>
                         <Route path="/" element={<SpeakCompanion/>} />
-                        <Route path="/decks" element={<Flashcards decks={decks} />} />
+                        <Route path="/flashcards" element={<Flashcards decks={decks} />} />
                         <Route path="/create" element={<DeckForm decks={decks} />} />
                         <Route path="/review/:deckId" element={<FlashcardView />} />
                         <Route path="/spaced-repetition" element={<Review />} />
