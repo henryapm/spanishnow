@@ -129,13 +129,24 @@ const Flashcards = ({decks}) => {
                                             return (
                                                 <div 
                                                     key={deck.id}
-                                                    className="border-2 rounded-xl p-4 transition-all border-gray-200 dark:border-gray-600 hover:border-teal-300 dark:hover:border-teal-700"
+                                                    className={`border-2 rounded-xl p-4 transition-all ${score === 100 ? 'border-green-500 dark:border-green-700 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-600'} hover:border-teal-300 dark:hover:border-teal-700`}
                                                 >
                                                     {/* Header: Title & Score */}
                                                     <div className="flex justify-between items-center mb-4">
-                                                        <span className="font-bold text-lg text-gray-800 dark:text-gray-200">
-                                                            {deck.title}
-                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-lg text-gray-800 dark:text-gray-200">
+                                                                {deck.title}
+                                                            </span>
+                                                            {score === 100 ? (
+                                                                <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full dark:bg-green-900 dark:text-green-300">
+                                                                    Completed
+                                                                </span>
+                                                            ) : score > 0 ? (
+                                                                <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-full dark:bg-yellow-900 dark:text-yellow-300">
+                                                                    {score}%
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
                                                         <div className="flex items-center gap-2">
                                                             {/* Add Whole Deck to SRS Button */}
                                                             <button

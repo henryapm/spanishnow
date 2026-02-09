@@ -111,6 +111,18 @@ const SessionManager = () => {
         }
     };
     
+    const renderProgressBar = (current, total) => {
+        const percentage = Math.round(((current + 1) / total) * 100);
+        return (
+            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mb-4">
+                <div 
+                    className="bg-teal-600 h-2.5 rounded-full transition-all duration-300 ease-out" 
+                    style={{ width: `${percentage}%` }}
+                ></div>
+            </div>
+        );
+    };
+
     if (phase === 'loading' || lessonCards.length === 0) {
         return <div className="text-center dark:text-gray-300">Loading...</div>;
     }
@@ -126,10 +138,8 @@ const SessionManager = () => {
                 <h1 className="text-2xl font-bold text-center text-teal-800 dark:text-teal-300 mb-4">
                     Learn
                 </h1>
-                <p className="text-center text-gray-500 dark:text-gray-400 mb-2">
-                    Card {currentLearnIndex + 1} of {lessonCards.length}
-                </p>
-                
+                {renderProgressBar(currentLearnIndex, lessonCards.length)}
+                                
                 <div className="relative">
                     <Flashcard cardData={currentCard} isFlipped={isCardFlipped} onFlip={() => setIsCardFlipped(!isCardFlipped)} />
                     <div className="absolute top-4 right-4 z-10">
@@ -180,10 +190,8 @@ const SessionManager = () => {
                 <h1 className="text-2xl font-bold text-center text-teal-800 dark:text-teal-300 mb-4">
                     {headerText}
                 </h1>
-                <p className="text-center text-gray-500 dark:text-gray-400 mb-4">
-                    Question {currentPracticeIndex + 1} of {practiceQueue.length}
-                </p>
-                
+                {renderProgressBar(currentPracticeIndex, practiceQueue.length)}
+                                
                 {/* We pass handleAnswer to both onCorrect and onIncorrect to ensure linear progression */}
                 {type === 'listen' && <ListeningView currentCard={card} onCorrect={() => handleAnswer(true)} onIncorrect={() => handleAnswer(false)} />}
                 {type === 'mcq' && <MultipleChoiceQuiz lessonCards={lessonCards} currentCard={card} onCorrect={() => handleAnswer(true)} onIncorrect={() => handleAnswer(false)} />}

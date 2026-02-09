@@ -27,17 +27,14 @@ const AppLayout = () => {
     const { decks, isLoading } = useDecksStore();
     const location = useLocation(); // Hook to get the current URL path
 
-    // --- FIX: Add '/lesson' to the list of paths where the header should be hidden ---
-    const hideHeaderOnPaths = ['/decks/', '/listen/', '/review', '/lesson'];
-    const shouldHideHeader = hideHeaderOnPaths.some(path => location.pathname.startsWith(path));
-
+    
     if (isLoading && Object.keys(decks).length === 0) {
         return <h1 className="text-4xl font-bold text-teal-800 mb-8 text-center">Loading...</h1>;
     }
 
     return (
         <div className="w-full dark:bg-gray-900 text-gray-800 dark:text-gray-200 max-w-2xl">
-            {!shouldHideHeader && <Header />}
+            <Header />
             <main className="w-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner pb-24">
                 <div className="w-full max-w-xl mx-auto">
                     <Routes>
@@ -62,7 +59,7 @@ const AppLayout = () => {
                     </Routes>
                 </div>
             </main>
-            {!shouldHideHeader && <Navigation />}
+            <Navigation />
         </div>
     );
 };
