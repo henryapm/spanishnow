@@ -207,7 +207,7 @@ const Review = () => {
         }
     };
     return (
-        <div className="w-full max-w-4xl mx-auto">
+        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
             <h2 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-6 text-center">Spaced Repetition</h2>
             
             {!currentUser ? (

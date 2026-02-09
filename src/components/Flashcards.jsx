@@ -137,14 +137,6 @@ const Flashcards = ({decks}) => {
                                                             {deck.title}
                                                         </span>
                                                         <div className="flex items-center gap-2">
-                                                            {isContentLocked ? (
-                                                                 <span role="img" aria-label="premium" title="Premium Deck">💎</span>
-                                                            ) : (
-                                                                <span className={`text-sm font-bold px-2 py-1 rounded ${score === 100 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                                    Score: {score}/100
-                                                                </span>
-                                                            )}
-
                                                             {/* Add Whole Deck to SRS Button */}
                                                             <button
                                                                 onClick={() => handleAddDeckToSRS(deck)}
