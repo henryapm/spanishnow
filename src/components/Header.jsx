@@ -13,6 +13,7 @@ const Header = () => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef(null); // Ref to detect clicks outside the menu
+    const [errorMessage, setErrorMessage] = useState('');
 
     const currentUser = useDecksStore((state) => state.currentUser);
     const isAdmin = useDecksStore((state) => state.isAdmin);
@@ -56,12 +57,21 @@ const Header = () => {
     });
 
     const handleGoogleSignIn = async () => {
+        setErrorMessage('');
         const auth = getAuth(getApp());
         const provider = new GoogleAuthProvider();
         try {
             await signInWithPopup(auth, provider);
         } catch (error) {
             console.error("Error signing in with Google", error);
+            if (error.code === 'auth/popup-closed-by-user') {
+                setErrorMessage('Sign-in cancelled.');
+            } else if (error.code === 'auth/popup-blocked') {
+                setErrorMessage('Popup blocked.');
+            } else {
+                setErrorMessage('Sign-in failed.');
+            }
+            setTimeout(() => setErrorMessage(''), 5000);
         }
     };
 
@@ -157,12 +167,15 @@ const Header = () => {
                         )}
                     </div>
                 ) : (
-                    <button 
-                        onClick={handleGoogleSignIn}
-                        className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-600 transition-colors"
-                    >
-                        Sign in with Google
-                    </button>
+                    <div className="flex flex-col items-end">
+                        <button 
+                            onClick={handleGoogleSignIn}
+                            className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-600 transition-colors"
+                        >
+                            Sign in with Google
+                        </button>
+                        {errorMessage && <span className="text-red-500 text-xs mt-1">{errorMessage}</span>}
+                    </div>
                 )}
             </div>
         </header>

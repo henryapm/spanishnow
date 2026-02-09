@@ -1,15 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { getApp } from 'firebase/app';
 
 const LandingPage = () => {
+    const [errorMessage, setErrorMessage] = useState('');
+
     const handleGoogleSignIn = async () => {
+        setErrorMessage('');
         const auth = getAuth(getApp());
         const provider = new GoogleAuthProvider();
         try {
             await signInWithPopup(auth, provider);
         } catch (error) {
             console.error("Error signing in with Google", error);
+            if (error.code === 'auth/popup-closed-by-user') {
+                setErrorMessage('Sign-in was cancelled.');
+            } else if (error.code === 'auth/popup-blocked') {
+                setErrorMessage('Popup blocked. Please allow popups for this site.');
+            } else {
+                setErrorMessage('Failed to sign in. Please try again.');
+            }
         }
     };
 
@@ -28,6 +38,7 @@ const LandingPage = () => {
                 >
                     Sign Up with Google & Start Learning
                 </button>
+                {errorMessage && <p className="text-red-500 mt-2 font-semibold">{errorMessage}</p>}
             </div>
             <div className="mt-12">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Find me on TikTok!</h2>

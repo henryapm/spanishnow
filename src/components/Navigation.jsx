@@ -24,7 +24,6 @@ const Navigation = () => {
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-teal-600 dark:text-teal-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-teal-500 dark:hover:text-teal-300'}`}
                 >
                     <IoPersonSharp className="text-2xl mb-1" />
-                    <span className="text-xs font-medium">Speak</span>
                 </NavLink>
 
                 <NavLink 
@@ -32,7 +31,6 @@ const Navigation = () => {
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-teal-600 dark:text-teal-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-teal-500 dark:hover:text-teal-300'}`}
                 >
                     <FaBookOpen className="text-2xl mb-1" />
-                    <span className="text-xs font-medium">Library</span>
                 </NavLink>
 
                 <NavLink 
@@ -40,7 +38,6 @@ const Navigation = () => {
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-teal-600 dark:text-teal-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-teal-500 dark:hover:text-teal-300'}`}
                 >
                     <PiCardsFill className="text-2xl mb-1" />
-                    <span className="text-xs font-medium">Flashcards</span>
                 </NavLink>
                 
                 <NavLink 
@@ -48,7 +45,6 @@ const Navigation = () => {
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-teal-600 dark:text-teal-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-teal-500 dark:hover:text-teal-300'}`}
                 >
                     <RiBrain2Fill className="text-2xl mb-1" />
-                    <span className="text-xs font-medium">Spaced Repetition</span>
                 </NavLink>
             </div>
         </nav>
