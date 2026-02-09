@@ -116,7 +116,7 @@ const SessionManager = () => {
         return (
             <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mb-4">
                 <div 
-                    className="bg-teal-600 h-2.5 rounded-full transition-all duration-300 ease-out" 
+                    className={`w-full h-2.5 rounded-full transition-all duration-300 ease-out ${percentage < 33 ? 'bg-red-500' : percentage < 66 ? 'bg-yellow-500' : 'bg-teal-600'}`}
                     style={{ width: `${percentage}%` }}
                 ></div>
             </div>

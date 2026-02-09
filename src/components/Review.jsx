@@ -281,7 +281,7 @@ const Review = () => {
                                 onClick={handleStartReview}
                                 className="px-8 py-3 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 flex items-center gap-2"
                             >
-                                <span>Start Training Session</span>
+                                <span>Start Flashcards review</span>
                                 <span className="bg-white text-blue-600 text-xs font-bold px-2 py-1 rounded-full">{dueWords.length}</span>
                             </button>
                         </div>

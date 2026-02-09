@@ -383,7 +383,6 @@ const SpeakCompanion = () => {
         return (
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
                 <div className="flex justify-between items-center mb-4">
-                    <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300">Speak Companion</h1>
                     <button 
                         onClick={() => {
                             setSelectedScenario(null);
@@ -458,7 +457,6 @@ const SpeakCompanion = () => {
             </Modal>
             
             <div className="flex justify-between items-center mb-4">
-                <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300">Speak Companion</h1>
                 <button 
                     onClick={() => {
                         if (!selectedContextAndObjectives) {
