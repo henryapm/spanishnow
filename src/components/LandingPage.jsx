@@ -1,8 +1,17 @@
 import React from 'react';
-import { useDecksStore } from '../store';
+import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { getApp } from 'firebase/app';
 
 const LandingPage = () => {
-    const { signInWithGoogle } = useDecksStore();
+    const handleGoogleSignIn = async () => {
+        const auth = getAuth(getApp());
+        const provider = new GoogleAuthProvider();
+        try {
+            await signInWithPopup(auth, provider);
+        } catch (error) {
+            console.error("Error signing in with Google", error);
+        }
+    };
 
     return (
         <div className="text-center animate-fade-in">
@@ -14,7 +23,7 @@ const LandingPage = () => {
             </p>
             <div className="mb-8">
                 <button 
-                    onClick={signInWithGoogle}
+                    onClick={handleGoogleSignIn}
                     className="px-10 py-4 bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105"
                 >
                     Sign Up with Google & Start Learning

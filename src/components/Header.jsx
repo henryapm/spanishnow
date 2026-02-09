@@ -6,6 +6,8 @@ import { FaBookOpen } from 'react-icons/fa';
 import { IoPersonSharp } from 'react-icons/io5';
 import { RiBrain2Fill } from 'react-icons/ri';
 import { PiCardsFill } from 'react-icons/pi';
+import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { getApp } from 'firebase/app';
 
 const Header = () => {
     const navigate = useNavigate();
@@ -15,7 +17,6 @@ const Header = () => {
     const currentUser = useDecksStore((state) => state.currentUser);
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const signOutUser = useDecksStore((state) => state.signOutUser);
-    const signInWithGoogle = useDecksStore((state) => state.signInWithGoogle);
     const savedWordsList = useDecksStore((state) => state.savedWordsList);
     const fetchSavedWords = useDecksStore((state) => state.fetchSavedWords);
 
@@ -53,6 +54,16 @@ const Header = () => {
         if (!w.nextReviewDate) return true; // Legacy/New words are due
         return w.nextReviewDate <= endOfToday;
     });
+
+    const handleGoogleSignIn = async () => {
+        const auth = getAuth(getApp());
+        const provider = new GoogleAuthProvider();
+        try {
+            await signInWithPopup(auth, provider);
+        } catch (error) {
+            console.error("Error signing in with Google", error);
+        }
+    };
 
     return (
         <header className="w-full p-4 mb-4 flex justify-between items-center bg-white dark:bg-gray-800 shadow-md rounded-lg">
@@ -147,7 +158,7 @@ const Header = () => {
                     </div>
                 ) : (
                     <button 
-                        onClick={signInWithGoogle}
+                        onClick={handleGoogleSignIn}
                         className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-600 transition-colors"
                     >
                         Sign in with Google
