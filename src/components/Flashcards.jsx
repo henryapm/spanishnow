@@ -149,23 +149,14 @@ const Flashcards = ({decks}) => {
                                                     </div>
 
                                                     {/* Action Buttons Row */}
-                                                    <div className="grid grid-cols-3 gap-2">
+                                                    <div className="grid grid-cols-2 gap-2">
                                                         {/* 1. Flashcards (Learn) */}
                                                         <button
                                                             onClick={() => handleDeckClick(lessonCards, deck, 'flashcards')}
                                                             className="flex flex-col items-center justify-center p-2 rounded-lg bg-teal-50 dark:bg-gray-600 hover:bg-teal-100 dark:hover:bg-gray-500 transition-colors"
                                                         >
                                                             <span className="text-xl mb-1">📖</span>
-                                                            <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">Learn</span>
-                                                        </button>
-
-                                                        {/* 2. Practice (Quizzes) */}
-                                                        <button
-                                                            onClick={() => handleDeckClick(lessonCards, deck, 'practice')}
-                                                            className="flex flex-col items-center justify-center p-2 rounded-lg bg-indigo-50 dark:bg-gray-600 hover:bg-indigo-100 dark:hover:bg-gray-500 transition-colors"
-                                                        >
-                                                            <span className="text-xl mb-1">🏋️</span>
-                                                            <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">Practice</span>
+                                                            <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">Flashcards</span>
                                                         </button>
 
                                                         {/* 3. Test (Scored) */}
@@ -174,7 +165,7 @@ const Flashcards = ({decks}) => {
                                                             className="flex flex-col items-center justify-center p-2 rounded-lg bg-orange-50 dark:bg-gray-600 hover:bg-orange-100 dark:hover:bg-gray-500 transition-colors"
                                                         >
                                                             <span className="text-xl mb-1">📝</span>
-                                                            <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">Test</span>
+                                                            <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">Quiz</span>
                                                         </button>
                                                     </div>
                                                 </div>
