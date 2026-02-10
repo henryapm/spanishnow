@@ -11,7 +11,7 @@ const ReviewItem = ({ word }) => {
     const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-4 border-teal-500 flex flex-row items-start justify-between gap-4">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-4 border-custom-500 flex flex-row items-start justify-between gap-4">
             <div className="flex flex-col">
                 <p className="font-bold text-lg text-gray-800 dark:text-gray-200 capitalize">{word.id}</p>
                 <button type="button" onClick={() => setIsRevealed(!isRevealed)}>
@@ -21,7 +21,7 @@ const ReviewItem = ({ word }) => {
                     <span className="flex align-left text-xs text-gray-500 dark:text-gray-400">{`tap to ${isRevealed ? 'Hide' : 'Show'}`}</span>
                 </button>
                 <br />
-                {word.translation === 'No translation' && <a href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(word.id)}&op=translate`} className="text-teal-200 hover:underline" target="_blank" rel="noopener noreferrer">Open in Google Translate</a>}
+                {word.translation === 'No translation' && <a href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(word.id)}&op=translate`} className="text-custom-200 hover:underline" target="_blank" rel="noopener noreferrer">Open in Google Translate</a>}
             </div>
             <button 
                     onClick={(e) => { 
@@ -48,11 +48,11 @@ const StageSection = ({ title, words, isOpen, onToggle }) => {
                 onClick={onToggle}
                 className="w-full flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
             >
-                <h2 className="text-lg font-bold text-teal-800 dark:text-teal-300">
+                <h2 className="text-lg font-bold text-custom-800 dark:text-custom-300">
                     {title}
                 </h2>
                 <div className="flex items-center gap-3">
-                    <span className="bg-teal-100 text-teal-800 text-xs font-bold px-3 py-1 rounded-full dark:bg-teal-900 dark:text-teal-200">
+                    <span className="bg-custom-100 text-custom-800 text-xs font-bold px-3 py-1 rounded-full dark:bg-custom-900 dark:text-custom-200">
                         {words.length}
                     </span>
                     <svg 
@@ -208,7 +208,7 @@ const Review = () => {
     };
     return (
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
-            <h2 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-6 text-center">Spaced Repetition</h2>
+            <h2 className="text-3xl font-bold text-custom-800 dark:text-custom-500 mb-6 text-center">Spaced Repetition</h2>
             
             {!currentUser ? (
                 <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -219,7 +219,7 @@ const Review = () => {
                     <div className="flex justify-center mb-4">
                         <button 
                             onClick={() => isPremium ? setIsAddModalOpen(true) : setShowPremiumModal(true)} 
-                            className="px-4 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 transition-colors flex items-center gap-2"
+                            className="px-4 py-2 bg-custom-600 text-white font-semibold rounded-lg shadow-md hover:bg-custom-700 transition-colors flex items-center gap-2"
                         >
                             <span>+</span> Add Word {!isPremium && <span className="text-xs ml-1">🔒</span>}
                         </button>
@@ -241,7 +241,7 @@ const Review = () => {
                                     type="text" 
                                     value={newWord} 
                                     onChange={(e) => setNewWord(e.target.value)} 
-                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-custom-500 outline-none"
                                     placeholder="e.g. contar"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Must be a single word.</p>
@@ -252,7 +252,7 @@ const Review = () => {
                                     type="text" 
                                     value={newTranslation} 
                                     onChange={(e) => setNewTranslation(e.target.value)} 
-                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-custom-500 outline-none"
                                     placeholder="e.g. to count"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Max 2 words.</p>
@@ -260,7 +260,7 @@ const Review = () => {
                             <button 
                                 onClick={handleAddWord}
                                 disabled={isAdding}
-                                className="w-full py-2 bg-teal-600 text-white font-bold rounded hover:bg-teal-700 transition-colors disabled:opacity-50"
+                                className="w-full py-2 bg-custom-600 text-white font-bold rounded hover:bg-custom-700 transition-colors disabled:opacity-50"
                             >
                                 {isAdding ? "Adding..." : "Add Word"}
                             </button>
@@ -271,7 +271,7 @@ const Review = () => {
                         <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md mb-8">
                             <p className="text-gray-600 dark:text-gray-300 mb-4">You don't have any words due for review right now.</p>
                             <p className="text-gray-500 dark:text-gray-400">Read articles and click on words to save them!</p>
-                            <button onClick={() => navigate('/reading')} className="mt-4 px-6 py-2 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-colors">
+                            <button onClick={() => navigate('/reading')} className="mt-4 px-6 py-2 bg-custom-600 text-white rounded-full hover:bg-custom-700 transition-colors">
                                 Go to Reading Library
                             </button>
                         </div>

@@ -112,6 +112,7 @@ export const useDecksStore = create((set, get) => ({
     listeningPreference: 'es-ES',
     totalXp: 0,
     streak: 0,
+    theme: 'dark',
     savedWordsSet: new Set(),
     savedWordsList: [],
     savedWordsLoaded: false,

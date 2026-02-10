@@ -10,6 +10,8 @@ const AccountPage = ({ decks }) => {
     const progress = useDecksStore((state) => state.progress);
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
     const updateListeningPreference = useDecksStore((state) => state.updateListeningPreference);
+    const theme = useDecksStore((state) => state.theme);
+    const toggleTheme = useDecksStore((state) => state.toggleTheme);
 
     const handlePreferenceChange = (e) => {
         const newPreference = e.target.value;
@@ -72,6 +74,16 @@ const AccountPage = ({ decks }) => {
             {/* --- Settings Section --- */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Settings</h2>
+                <div className="flex items-center justify-between mb-4">
+                    <span className="font-bold text-gray-700 dark:text-gray-300">Appearance</span>
+                    <button
+                        onClick={toggleTheme}
+                        className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    >
+                        {theme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+                    </button>
+                </div>
+
                 <div className="flex items-center justify-between">
                     <label htmlFor="listening-preference" className="font-bold text-gray-700 dark:text-gray-300">Listening Accent</label>
                     <select 
@@ -90,11 +102,11 @@ const AccountPage = ({ decks }) => {
             {/* --- Overall Stats Section --- */}
             <div className="grid grid-cols-2 gap-4 text-center mb-8">
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                    <p className="text-3xl font-bold text-teal-600 dark:text-teal-400">{stats.totalCardsMastered}</p>
+                    <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">{stats.totalCardsMastered}</p>
                     <p className="text-gray-500 dark:text-gray-400">Cards Mastered</p>
                 </div>
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                    <p className="text-3xl font-bold text-teal-600 dark:text-teal-400">{stats.decksCompleted}</p>
+                    <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">{stats.decksCompleted}</p>
                     <p className="text-gray-500 dark:text-gray-400">Decks Completed</p>
                 </div>
             </div>

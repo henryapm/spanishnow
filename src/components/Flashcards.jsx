@@ -99,7 +99,7 @@ const Flashcards = ({decks}) => {
                     >
                         <p>{limitModalMessage}</p>
                     </Modal>
-                    <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-6 text-center">Flashcards</h1>
+                    <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-500 mb-6 text-center">Flashcards</h1>
                     <div className="space-y-8">
                         {Object.keys(topics).map(topicName => {
                             const topicDecks = topics[topicName];
@@ -109,7 +109,7 @@ const Flashcards = ({decks}) => {
                             
                             return (
                                 <div key={topicName} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                                    <h2 className="text-2xl font-bold text-teal-700 dark:text-teal-400 capitalize mb-6 flex justify-between items-center">
+                                    <h2 className="text-2xl font-bold text-custom-700 dark:text-custom-400 capitalize mb-6 flex justify-between items-center">
                                         {topicName}
                                         {isTopicPremium && (
                                             <span className="text-xs font-bold bg-purple-600 text-white px-2 py-1 rounded-full">PREMIUM</span>
@@ -129,7 +129,7 @@ const Flashcards = ({decks}) => {
                                             return (
                                                 <div 
                                                     key={deck.id}
-                                                    className={`border-2 rounded-xl p-4 transition-all ${score === 100 ? 'border-green-500 dark:border-green-700 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-600'} hover:border-teal-300 dark:hover:border-teal-700`}
+                                                    className={`border-2 rounded-xl p-4 transition-all ${score === 100 ? 'border-green-500 dark:border-green-700 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-600'} hover:border-custom-300 dark:hover:border-custom-700`}
                                                 >
                                                     {/* Header: Title & Score */}
                                                     <div className="flex justify-between items-center mb-4">
@@ -164,10 +164,10 @@ const Flashcards = ({decks}) => {
                                                         {/* 1. Flashcards (Learn) */}
                                                         <button
                                                             onClick={() => handleDeckClick(lessonCards, deck, 'flashcards')}
-                                                            className="flex flex-col items-center justify-center p-2 rounded-lg bg-teal-50 dark:bg-gray-600 hover:bg-teal-100 dark:hover:bg-gray-500 transition-colors"
+                                                            className="flex flex-col items-center justify-center p-2 rounded-lg bg-custom-50 dark:bg-gray-600 hover:bg-custom-100 dark:hover:bg-gray-500 transition-colors"
                                                         >
                                                             <span className="text-xl mb-1">📖</span>
-                                                            <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">Flashcards</span>
+                                                            <span className="text-xs font-semibold text-custom-700 dark:text-custom-300">Flashcards</span>
                                                         </button>
 
                                                         {/* 3. Test (Scored) */}

@@ -63,7 +63,7 @@ const ReadingLibrary = () => {
     const getLevelColor = (level) => {
         switch (level?.toUpperCase()) {
             case 'A1': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-            case 'A2': return 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300';
+            case 'A2': return 'bg-custom-100 text-custom-800 dark:bg-custom-900 dark:text-custom-300';
             case 'B1': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
             case 'B2': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
             case 'C1': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
@@ -88,7 +88,7 @@ const ReadingLibrary = () => {
             >
                 <p>This article is only available to Premium users. Upgrade to Premium to unlock the full library!</p>
             </Modal>
-            <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-6 text-center">Reading Library</h1>
+            <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-500 mb-6 text-center">Reading Library</h1>
             
             <div className="flex flex-wrap justify-end gap-4 mb-6">
                 <div className="flex items-center gap-2">
@@ -97,7 +97,7 @@ const ReadingLibrary = () => {
                         id="sort-select"
                         value={sortBy} 
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                        className="p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-custom-500 outline-none"
                     >
                         <option value="title">Title</option>
                         <option value="level">Level</option>
@@ -111,7 +111,7 @@ const ReadingLibrary = () => {
                         id="filter-status-select"
                         value={filterStatus} 
                         onChange={(e) => setFilterStatus(e.target.value)}
-                        className="p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                        className="p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-custom-500 outline-none"
                     >
                         <option value="All">All</option>
                         <option value="Free">Free</option>
@@ -125,11 +125,11 @@ const ReadingLibrary = () => {
                     id="filter-select"
                     value={filterLevel} 
                     onChange={(e) => setFilterLevel(e.target.value)}
-                    className="flex flex-row gap-2 align-end p-2 rounded-lg dark:text-white shadow-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                    className="flex flex-row gap-2 align-end p-2 rounded-lg dark:text-white shadow-sm focus:ring-2 focus:ring-custom-500 outline-none"
                 >
-                    <li className={`cursor-pointer p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white ${filterLevel === 'All' ? 'ring-2 ring-teal-500' : ''}`} onClick={() => setFilterLevel('All')} value="All">All</li>
+                    <li className={`cursor-pointer p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white ${filterLevel === 'All' ? 'ring-2 ring-custom-500' : ''}`} onClick={() => setFilterLevel('All')} value="All">All</li>
                     {levelOrder && Object.keys(levelOrder).map(level => (
-                        <li className={`cursor-pointer p-2 rounded-lg ${getLevelColor(level)} ${filterLevel === level ? 'ring-2 ring-teal-500' : ''}`} key={level} onClick={() => setFilterLevel(level)} value={level}>{level}</li>
+                        <li className={`cursor-pointer p-2 rounded-lg ${getLevelColor(level)} ${filterLevel === level ? 'ring-2 ring-custom-500' : ''}`} key={level} onClick={() => setFilterLevel(level)} value={level}>{level}</li>
                     ))}
                 </ul>
             </div>
@@ -146,7 +146,7 @@ const ReadingLibrary = () => {
                         >
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <p className="text-xs font-semibold uppercase text-teal-500 dark:text-teal-400">{article.topic}</p>
+                                    <p className="text-xs font-semibold uppercase text-custom-500 dark:text-custom-400">{article.topic}</p>
                                     <h2 className="flex flex-col-2 items-center gap-2 text-xl font-bold text-gray-800 dark:text-gray-200">
                                         {article.title}
                                         {finishedArticles?.includes(article.id) && <span className="ml-2 text-green-500 text-lg" title="Finished"><BsCheckCircleFill /></span>}

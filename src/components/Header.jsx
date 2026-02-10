@@ -20,6 +20,10 @@ const Header = () => {
     const signOutUser = useDecksStore((state) => state.signOutUser);
     const savedWordsList = useDecksStore((state) => state.savedWordsList);
     const fetchSavedWords = useDecksStore((state) => state.fetchSavedWords);
+    const theme = useDecksStore((state) => state.theme);
+    const toggleTheme = useDecksStore((state) => state.toggleTheme);
+    const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
+    const isPremium = isAdmin || hasActiveSubscription;
 
     useEffect(() => {
         if (currentUser) {
@@ -78,10 +82,10 @@ const Header = () => {
     return (
         <header className="w-full p-4 mb-4 flex justify-between items-center bg-white dark:bg-gray-800 shadow-md rounded-lg">
             <h1 
-                className="text-xl font-bold text-teal-700 dark:text-teal-400 cursor-pointer"
+                className="text-xl font-bold cursor-pointer text-custom-800 dark:text-custom-200"
                 onClick={() => navigate('/')}
             >
-                Spanish Today With Henry <span className="text-xs font-normal text-gray-500 ml-1">v1.1</span>
+                <span className='underline decoration-amber-500'>Spanish Now</span> <span className="underline decoration-sky-500">With</span> <span className='underline decoration-red-500'>Henry</span> <span className="text-xs font-normal text-gray-500 ml-1">v1.1</span>
             </h1>
             <div>
                 {currentUser ? (
@@ -156,6 +160,13 @@ const Header = () => {
                                 >
                                     <MdCalendarToday />
                                     <span className="ml-2">Book a session</span>
+                                </button>
+                                <button
+                                    onClick={() => { toggleTheme(); setIsMenuOpen(false); }}
+                                    className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                    <span className="text-lg">{theme === 'dark' ? '🌙' : '☀️'}</span>
+                                    <span className="ml-2">Switch to {theme === 'dark' ? 'Light' : 'Dark'} Mode</span>
                                 </button>
                                 <button 
                                     onClick={signOutUser}

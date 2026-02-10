@@ -142,7 +142,7 @@ const ReaderView = () => {
                 <div className="flex flex-col items-center">
                     <button 
                         onClick={() => handleSpeak(sentenceObj.spanish)}
-                        className="mt-1 text-gray-400 hover:text-teal-500 transition-colors"
+                        className="mt-1 text-gray-400 hover:text-custom-500 transition-colors"
                         title="Read paragraph aloud"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
@@ -217,7 +217,7 @@ const ReaderView = () => {
                         <p className="font-bold capitalize text-base">{lookupResult.word}</p>
                         <button 
                             onClick={() => handleSpeak(lookupResult.word)}
-                            className="text-gray-400 hover:text-teal-400 transition-colors"
+                            className="text-gray-400 hover:text-custom-400 transition-colors"
                             title="Listen"
                         >
                             <BsFillVolumeUpFill size={16} />
@@ -262,7 +262,7 @@ const ReaderView = () => {
                         {liveTranslation === "No translation found" && (
                             <a 
                                 href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(lookupResult.word)}&op=translate`}
-                                className="text-teal-300 hover:underline text-xs"
+                                className="text-custom-300 hover:underline text-xs"
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
@@ -297,14 +297,14 @@ const ReaderView = () => {
                 </button>
                 <button 
                     onClick={() => setShowTranslations(!showTranslations)}
-                    className="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-sm hover:bg-teal-600 transition-colors"
+                    className="px-4 py-2 bg-custom-500 text-white font-semibold rounded-lg shadow-sm hover:bg-custom-600 transition-colors"
                 >
                     {showTranslations ? 'Hide' : 'Show'} Translations
                 </button>
             </div>
             
-            <h1 className="text-4xl font-bold text-teal-800 dark:text-teal-300 mb-2">{article.title}</h1>
-            <p className="text-sm font-semibold uppercase text-teal-500 dark:text-teal-400 mb-8">{article.topic}</p>
+            <h1 className="text-4xl font-bold text-custom-800 dark:text-custom-300 mb-2">{article.title}</h1>
+            <p className="text-sm font-semibold uppercase text-custom-500 dark:text-custom-400 mb-8">{article.topic}</p>
             
             <div className="text-lg text-gray-700 dark:text-gray-300 space-y-6">
                 {isDictionaryLoading ? <p>Loading translations...</p> : renderedContent}

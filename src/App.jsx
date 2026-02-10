@@ -27,15 +27,14 @@ const AppLayout = () => {
     const { decks, isLoading } = useDecksStore();
     const location = useLocation(); // Hook to get the current URL path
 
-    
     if (isLoading && Object.keys(decks).length === 0) {
-        return <h1 className="text-4xl font-bold text-teal-800 mb-8 text-center">Loading...</h1>;
+        return <h1 className="text-4xl font-bold text-sky-800 mb-8 text-center">Loading...</h1>;
     }
 
     return (
-        <div className="w-full dark:bg-gray-900 text-gray-800 dark:text-gray-200 max-w-2xl">
+        <div className="w-full dark:text-gray-200 max-w-2xl">
             <Header />
-            <main className="w-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner pb-24">
+            <main className="w-full text-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner pb-24">
                 <div className="w-full max-w-xl mx-auto">
                     <Routes>
                         <Route path="/" element={<SpeakCompanion/>} />
@@ -87,13 +86,15 @@ export default function App() {
     useEffect(() => {
         if (theme === 'dark') {
             document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
         } else {
+            document.documentElement.classList.add('light');
             document.documentElement.classList.remove('dark');
         }
     }, [theme]);
 
     return (
-        <div className="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col items-center justify-top font-sans p-4">
+        <div className="dark:bg-gray-900 dark:text-white text-gray-800 dark:text-gray-200 min-h-screen flex flex-col items-center justify-top font-sans p-4">
             <Routes>
                 {currentUser ? (
                     <Route path="/*" element={<AppLayout />} />

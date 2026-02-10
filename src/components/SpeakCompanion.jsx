@@ -31,7 +31,7 @@ const CircularProgress = ({ percentage, size = 50, strokeWidth = 4 }) => {
                 />
                 {/* Progress Circle */}
                 <circle
-                    className="text-teal-500 transition-all duration-1000 ease-out"
+                    className="text-custom-500 transition-all duration-1000 ease-out"
                     strokeWidth={strokeWidth}
                     strokeDasharray={circumference}
                     strokeDashoffset={offset}
@@ -327,7 +327,7 @@ const SpeakCompanion = () => {
     if (isScenariosLoading && scenarios.length === 0) {
         return (
             <div className="p-6 flex justify-center items-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-700"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-custom-700"></div>
             </div>
         );
     }
@@ -335,7 +335,7 @@ const SpeakCompanion = () => {
     if (!selectedScenario) {
         return (
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
-                <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-2 text-center">Choose a Scenario</h1>
+                <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-500 mb-2 text-center">Choose a Scenario</h1>
                 <p className="text-gray-600 dark:text-gray-300 mb-8 text-center">
                     Select a real-life scenario to practice your Spanish skills.
                 </p>
@@ -355,14 +355,14 @@ const SpeakCompanion = () => {
                         <button 
                             key={scenario.id}
                             onClick={() => setSelectedScenario(scenario)}
-                            className="flex flex-row justify-between items-center text-left p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-teal-500 dark:hover:border-teal-500 hover:shadow-lg transition-all bg-gray-50 dark:bg-gray-900 group"
+                            className="flex flex-row justify-between items-center text-left p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-custom-500 dark:hover:border-custom-500 hover:shadow-lg transition-all bg-gray-50 dark:bg-gray-900 group"
                         >
                             <div className="flex flex-col gap-2 flex-1">
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 group-hover:text-custom-600 dark:group-hover:text-custom-400 transition-colors">
                                     {scenario.name}
                                 </h3>
                                 <div className="flex justify-between items-start w-full">
-                                    <span className="px-2 py-1 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-xs font-bold rounded-full uppercase tracking-wide">
+                                    <span className="px-2 py-1 bg-custom-100 dark:bg-custom-900 text-custom-800 dark:text-custom-200 text-xs font-bold rounded-full uppercase tracking-wide">
                                         {totalCount > 1 ? `${totalCount} Roles` : `${totalCount} Role`}
                                     </span>
                                 </div>
@@ -383,18 +383,18 @@ const SpeakCompanion = () => {
         return (
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
                 <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-300 mb-4 text-center">Choose a Role Play</h1>
                     <button 
                         onClick={() => {
                             setSelectedScenario(null);
                             setChatHistory([]);
                             setUserSpeech('');
                         }}
-                        className="text-sm text-gray-500 hover:text-teal-600 underline"
+                        className="text-sm text-gray-500 hover:text-custom-600 underline"
                     >
                         Change Scenario
                     </button>
                 </div>
-                <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-4 text-center">Choose a Role Play</h1>
                 <div className="grid grid-cols-1 gap-4">
                 {selectedScenario.rolePlays.map((rolePlay, index) => {
                         // --- NEW: Check if this specific roleplay is completed ---
@@ -404,13 +404,13 @@ const SpeakCompanion = () => {
                         <button 
                             key={index}
                             onClick={() => setSelectedContextAndObjectives(rolePlay)}
-                            className="flex flex-col text-left p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-teal-500 dark:hover:border-teal-500 hover:shadow-lg transition-all bg-gray-50 dark:bg-gray-900 group"
+                            className="flex flex-col text-left p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-custom-500 dark:hover:border-custom-500 hover:shadow-lg transition-all bg-gray-50 dark:bg-gray-900 group"
                             >
                             <div className="w-full">
                                 <div className="flex justify-between items-center mb-2">
                                     <div className="flex items-center gap-2">
                                         <span className="text-2xl">{selectedScenario.emoji}</span>
-                                        <h2 className="font-bold text-teal-900 dark:text-teal-100">{rolePlay.name}</h2>
+                                        <h2 className="font-bold text-custom-900 dark:text-custom-100">{rolePlay.name}</h2>
                                         {/* --- NEW: Completed Checkmark --- */}
                                     </div>
                                     {rolePlay.difficulty && (
@@ -425,11 +425,11 @@ const SpeakCompanion = () => {
                                 </div>
                                 <div className="flex flex-col-2 justify-between items-end">
                                     <div>
-                                        <p className="text-sm text-teal-800 dark:text-teal-200 mb-2">
+                                        <p className="text-sm text-custom-800 dark:text-custom-200 mb-2">
                                             {rolePlay.description}
                                         </p>
                                         <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Objectives:</p>
-                                        <ul className="list-disc list-inside text-sm text-teal-700 dark:text-teal-300">
+                                        <ul className="list-disc list-inside text-sm text-custom-700 dark:text-custom-300">
                                             {rolePlay.objectives.map((obj, i) => (
                                                 <li key={i}>{obj}</li>
                                             ))}
@@ -457,6 +457,7 @@ const SpeakCompanion = () => {
             </Modal>
             
             <div className="flex justify-between items-center mb-4">
+                <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-300">Speak Companion</h1>
                 <button 
                     onClick={() => {
                         if (!selectedContextAndObjectives) {
@@ -472,21 +473,21 @@ const SpeakCompanion = () => {
                             setUserSpeech('');
                         }
                     }}
-                    className="text-sm text-gray-500 hover:text-teal-600 underline"
+                    className="text-sm text-gray-500 hover:text-custom-600 underline"
                 >
                     {selectedContextAndObjectives ? 'Change Role Play' : 'Change Scenario'}
                 </button>
             </div>
 
-            <div className="mb-4 p-4 bg-teal-50 dark:bg-teal-900/30 rounded-lg border border-teal-100 dark:border-teal-800/50">
+            <div className="mb-4 p-4 bg-custom-50 dark:bg-custom-900/30 rounded-lg border border-custom-100 dark:border-custom-800/50">
                 <div className="flex items-center gap-2 mb-2">
                     <span className="text-2xl">{selectedScenario.emoji}</span>
-                    <h2 className="font-bold text-teal-900 dark:text-teal-100">{selectedContextAndObjectives.name}</h2>
+                    <h2 className="font-bold text-custom-900 dark:text-custom-100">{selectedContextAndObjectives.name}</h2>
                 </div>
-                <p className="text-sm text-teal-800 dark:text-teal-200">
+                <p className="text-sm text-custom-800 dark:text-custom-200">
                     {selectedContextAndObjectives.description}
                 </p>
-                <ul className="list-disc list-inside text-sm text-teal-700 dark:text-teal-300">
+                <ul className="list-disc list-inside text-sm text-custom-700 dark:text-custom-300">
                     {selectedContextAndObjectives.objectives.map((obj, i) => (
                         <li key={i}>{obj}</li>
                     ))}
@@ -502,13 +503,13 @@ const SpeakCompanion = () => {
                     <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[80%] p-3 rounded-lg ${
                             msg.role === 'user' 
-                                ? 'bg-teal-500 text-white rounded-br-none' 
+                                ? 'bg-custom-500 text-white rounded-br-none' 
                                 : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-bl-none'
                         }`}>
                             {msg.text}
                         </div>
                         {msg.role !== 'user' && (
-                            <div className="ml-2 cursor-pointer hover:text-teal-500 transition-colors flex flex-col justify-center flex-start w-10 h-10" onClick={() => speakText(msg.text)}>
+                            <div className="ml-2 cursor-pointer hover:text-custom-500 transition-colors flex flex-col justify-center flex-start w-10 h-10" onClick={() => speakText(msg.text)}>
                                 <CgPlayButtonR className="inline mr-1 w-10 h-10" />
                             </div>
                         )}
@@ -533,7 +534,7 @@ const SpeakCompanion = () => {
                     className={`p-6 rounded-full shadow-lg transition-all transform hover:scale-105 ${
                         isRecording 
                             ? 'bg-red-500 text-white animate-pulse' 
-                            : 'bg-teal-500 text-white hover:bg-teal-600'
+                            : 'bg-custom-500 text-white hover:bg-custom-600'
                     }`}
                     aria-label="Hold to record"
                 >

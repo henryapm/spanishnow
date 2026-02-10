@@ -1,1 +1,56 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-custom-title: linear-gradient(to-right, #4f46e5, #7c3aed, #ec4899);
+    --color-custom-50: #e9f7fb;
+    --color-custom-100: #d4eef7;
+    --color-custom-200: #a8def0;
+    --color-custom-300: #7dcde8;
+    --color-custom-400: #52bde0;
+    --color-custom-500: #26acd9;
+    --color-custom-600: #1f8aad;
+    --color-custom-700: #176782;
+    --color-custom-800: #0f4557;
+    --color-custom-900: #08222b;
+    --color-custom-950: #05181e;
+}
+:root {
+    --bg-light: #ffffff;
+    --bg-dark: #18181b;
+    --primary-color: #f3a712;
+    --secondary-color: #29335c;
+    --third-color: #DB2B39;
+}
+
+body {
+    background-color: var(--bg-light);
+    transition: background-color 0.3s ease;
+}
+html.dark body {
+    background-color: var(--bg-dark);
+}
+.text-gradient {
+    background: var(--title-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+}
+.primary-color {
+    color: var(--primary-color);
+}
+.secondary-color {
+    color: var(--secondary-color);
+}
+.third-color {
+    color: var(--third-color);
+}
+
+.app-background {
+    background-color: var(--bg-light);
+    transition: background-color 0.3s ease;
+}
+.dark .app-background {
+    background-color: var(--bg-dark);
+}
