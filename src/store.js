@@ -59,43 +59,6 @@ function deserializeMap(jsonString) {
   return new Map(JSON.parse(jsonString));
 }
 
-// --- HELPER: SuperMemo-2 Algorithm ---
-const calculateSRS = (currentData, wasCorrect) => {
-    // 1. Get current values (or defaults)
-    let interval = currentData.interval || 0;
-    let repetition = currentData.repetition || 0;
-    let easeFactor = currentData.easeFactor || 2.5;
-
-    if (!wasCorrect) {
-        // --- WRONG ANSWER ---
-        // Reset progress. Show it again essentially immediately (or tomorrow).
-        repetition = 0;
-        interval = 1; 
-    } else {
-        // --- CORRECT ANSWER ---
-        if (repetition === 0) {
-            interval = 1;
-        } else if (repetition === 1) {
-            interval = 6;
-        } else {
-            interval = Math.round(interval * easeFactor);
-        }
-        repetition += 1;
-    }
-
-    // 2. Calculate Next Review Date
-    const nextReviewDate = new Date();
-    nextReviewDate.setDate(nextReviewDate.getDate() + interval);
-    
-    return {
-        interval,
-        repetition,
-        easeFactor,
-        nextReviewDate: nextReviewDate.getTime(), // Save as timestamp
-        mastery: repetition // We keep 'mastery' synced with repetition for UI compatibility
-    };
-};
-
 export const useDecksStore = create((set, get) => ({
     // --- STATE ---
     decks: {},
@@ -109,6 +72,7 @@ export const useDecksStore = create((set, get) => ({
     activeArticleTranslations: new Map(),
     isDictionaryLoading: false, // To show a loading state for translations
     progress: {},
+    deckProgress: {},
     listeningPreference: 'es-ES',
     totalXp: 0,
     streak: 0,
@@ -169,13 +133,15 @@ export const useDecksStore = create((set, get) => ({
 
                 const progressSnapshot = await getDocs(collection(db, 'users', user.uid, 'progress'));
                 const progressData = {};
-                progressSnapshot.forEach(d => { progressData[d.id] = d.data().mastery; });
+                progressSnapshot.forEach(d => { progressData[d.id] = d.data(); console.log(d.id);
+                });
 
                 set({ 
                     currentUser: user, 
                     isAdmin: tokenResult.claims.admin === true || isFirestoreAdmin,
                     hasActiveSubscription: subscriptionStatus,
                     progress: progressData,
+                    deckProgress: progressData,
                     listeningPreference: userPreference,
                     totalXp: userXp,
                     streak: 0,
@@ -184,7 +150,7 @@ export const useDecksStore = create((set, get) => ({
                     savedWordsLoaded: false // Reset so we fetch fresh for the new user
                 });
             } else {
-                set({ currentUser: null, isAdmin: false, progress: {}, listeningPreference: 'es-ES', totalXp: 0, streak: 0, dailyFreeAccess: null, finishedArticles: [], savedWordsLoaded: false, savedWordsSet: new Set(), savedWordsList: [] });
+                set({ currentUser: null, isAdmin: false, progress: {}, deckProgress: {},listeningPreference: 'es-ES', totalXp: 0, streak: 0, dailyFreeAccess: null, finishedArticles: [], savedWordsLoaded: false, savedWordsSet: new Set(), savedWordsList: [] });
             }
         });
     },
@@ -317,7 +283,7 @@ export const useDecksStore = create((set, get) => ({
     // --- MODIFIED: Implements "soft delete" by toggling the 'active' flag ---
     toggleSavedWord: async (spanishWord, data = {}) => {
         const { currentUser, savedWordsSet } = get();
-// ... (existing code) ...
+        // ... (existing code) ...
         if (!currentUser) {
             alert("Please log in to save words.");
             return;
@@ -510,46 +476,40 @@ export const useDecksStore = create((set, get) => ({
      setDoc(userDocRef, { totalXp: increment(totalAmount) }, { merge: true });
     },
 
-    resetStreak: () => {
-        set({ streak: 0 });
-    },
-    
-
-    // --- UPDATED: SRS Progress Logic ---
-    updateCardProgress: async (deckId, cardId, wasCorrect) => {
-        const { currentUser, progress } = get();
+    saveDeckProgress: async (deckId, score, total) => {
+        const { currentUser } = get();
+        const percentage = Math.round((score / total) * 100)
         if (!currentUser) return;
-
-        // 1. Get existing card data (or empty object)
-        const deckProgress = progress[deckId] || {};
-        const currentCardData = deckProgress[cardId] || {};
         
-        // 2. Calculate new SRS values
-        const newSRSData = calculateSRS(currentCardData, wasCorrect);
-        
-        const progressDocRef = doc(db, `users/${currentUser.uid}/progress`, deckId);
-
         try {
-            // Use dot notation to update specific card field in the cardData map
-            await setDoc(progressDocRef, { 
-                cardData: { [cardId]: newSRSData } 
+            await setDoc(doc(db, 'users', currentUser.uid, 'progress', deckId), {
+                deckId,
+                score,
+                total,
+                timestamp: serverTimestamp(),
+                percentage: percentage
             }, { merge: true });
-
             // Update local state
             set(state => ({
-                progress: {
-                    ...state.progress,
+                deckProgress: {
+                    ...state.deckProgress,
                     [deckId]: {
-                        ...state.progress[deckId],
-                        [cardId]: newSRSData
+                        ...state.deckProgress[deckId],
+                        score,
+                        total,
+                        percentage: percentage
                     }
                 }
             }));
         } catch (error) {
-            console.error("Error updating progress: ", error);
+            console.error("Error saving test result:", error);
         }
     },
 
+    resetStreak: () => {
+        set({ streak: 0 });
+    },
+    
     updateListeningPreference: async (pref) => {
         // ... (function is correct, no changes)
         const { currentUser } = get();

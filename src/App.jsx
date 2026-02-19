@@ -34,7 +34,7 @@ const AppLayout = () => {
     return (
         <div className="w-full dark:text-gray-200 max-w-2xl">
             <Header />
-            <main className="w-full text-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner pb-24">
+            <main className="w-full text-gray-800 dark:bg-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner pb-24">
                 <div className="w-full max-w-xl mx-auto">
                     <Routes>
                         <Route path="/" element={<SpeakCompanion/>} />

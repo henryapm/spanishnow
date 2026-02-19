@@ -82,7 +82,7 @@ const Header = () => {
     return (
         <header className="w-full p-4 mb-4 flex justify-between items-center bg-white dark:bg-gray-800 shadow-md rounded-lg">
             <h1 
-                className="text-xl font-bold cursor-pointer text-custom-800 dark:text-custom-200"
+                className="p-3 text-xl font-bold cursor-pointer text-custom-800 dark:text-custom-200"
                 onClick={() => navigate('/')}
             >
                 <span className='underline decoration-amber-500'>Spanish Now</span> <span className="underline decoration-sky-500">With</span> <span className='underline decoration-red-500'>Henry</span> <span className="text-xs font-normal text-gray-500 ml-1">v1.1</span>

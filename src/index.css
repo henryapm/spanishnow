@@ -2,7 +2,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --color-custom-title: linear-gradient(to-right, #4f46e5, #7c3aed, #ec4899);
+    --color-custom-gradient: linear-gradient(to-right, #4f46e5, #7c3aed, #ec4899);
     --color-custom-50: #e9f7fb;
     --color-custom-100: #d4eef7;
     --color-custom-200: #a8def0;

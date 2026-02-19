@@ -26,7 +26,7 @@ const Flashcards = ({decks}) => {
     };
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [limitModalMessage, setLimitModalMessage] = useState('')
-    const progress = useDecksStore((state) => state.progress);
+    const deckProgress = useDecksStore((state) => state.deckProgress);
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
     const checkAndRecordDailyAccess = useDecksStore((state) => state.checkAndRecordDailyAccess);
@@ -121,7 +121,7 @@ const Flashcards = ({decks}) => {
                                             
                                             // Use the full deck cards (No chunks)
                                             const lessonCards = deck.cards || [];
-                                            const score = calculateScore(lessonCards, deck.id);
+                                            const score = deckProgress[deck.id]?.percentage || 0;
                                             
                                             // Determine if content is premium (for visual indicator only)
                                             const isContentLocked = !hasAccess; 

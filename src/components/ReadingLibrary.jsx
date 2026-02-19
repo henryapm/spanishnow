@@ -18,7 +18,7 @@ const ReadingLibrary = () => {
     const finishedArticles = useDecksStore((state) => state.finishedArticles);
 
     
-    const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('reading_sortBy') || 'title');
+    const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('reading_sortBy') || 'Free/Premium');
     const [filterLevel, setFilterLevel] = useState(() => sessionStorage.getItem('reading_filterLevel') || 'All');
     const [filterStatus, setFilterStatus] = useState(() => sessionStorage.getItem('reading_filterStatus') || 'All');
      
@@ -153,12 +153,12 @@ const ReadingLibrary = () => {
                                     </h2>
                                 </div>
                                 <div className="flex items-center gap-3">
+                                    {isLocked && <span className="text-2xl" role="img" aria-label="locked">🔒</span>}
                                     {article.level && (
                                         <span className={`text-md font-bold px-2 py-1 rounded-full ${getLevelColor(article.level)}`}>
                                             {article.level}
                                         </span>
                                     )}
-                                    {isLocked && <span className="text-2xl" role="img" aria-label="locked">🔒</span>}
                                 </div>
                             </div>
                         </button>

@@ -20,7 +20,6 @@ const FlashcardView = () => {
     const location = useLocation();
     
     // --- Get all necessary data and actions from the store ---
-    const updateCardProgress = useDecksStore((state) => state.updateCardProgress);
     const addXp = useDecksStore((state) => state.addXp);
     // NEW: Get decks, trainingDeck, and save-word functions
     const decks = useDecksStore((state) => state.decks);
@@ -90,8 +89,6 @@ const FlashcardView = () => {
                     if (!knewIt) {
                         setWasIncorrect(true);
                     }
-                    const originalDeckId = isReviewSession ? currentCard.deckId : deckId;
-                    await updateCardProgress(originalDeckId, currentCard.id, knewIt);
                 }
             }
 

@@ -22,7 +22,7 @@ const SessionManager = () => {
     
     // Default to 'flashcards' mode if not specified
     const { lessonCards, deckId, mode = 'flashcards' } = location.state || { lessonCards: [], deckId: null };
-    const updateCardProgress = useDecksStore((state) => state.updateCardProgress);
+    const saveDeckProgress = useDecksStore((state) => state.saveDeckProgress);
     const decks = useDecksStore((state) => state.decks);
     const savedWordsSet = useDecksStore((state) => state.savedWordsSet);
     const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
@@ -90,23 +90,20 @@ const SessionManager = () => {
     };
 
     const handleAnswer = (wasCorrect) => {
-        const currentPracticeItem = practiceQueue[currentPracticeIndex];
+        const newScore = wasCorrect ? sessionScore + 1 : sessionScore;
         
         if (wasCorrect) {
             setSessionScore(prev => prev + 1);
         }
 
         // --- DB Update Logic ---
-        // Only save progress if we are in 'test' mode.
-        // 'practice' mode is just for practice, no permanent record.
-        if (mode === 'test') {
-            updateCardProgress(deckId, currentPracticeItem.card.id, wasCorrect);
-        }
-
         // Move to next card or finish (Linear flow, no review loop)
         if (currentPracticeIndex < practiceQueue.length - 1) {
             setCurrentPracticeIndex(prev => prev + 1);
         } else {
+            if (mode === 'test') {
+                saveDeckProgress(deckId, newScore, practiceQueue.length);
+            }
             setPhase('complete');
         }
     };
