@@ -63,6 +63,7 @@ export const useDecksStore = create((set, get) => ({
     // --- STATE ---
     decks: {},
     isLoading: true,
+    isDecksLoading: false, // New flag to prevent double fetching
     currentUser: null,
     isAdmin: false,
     tab: 'lessons',
@@ -351,16 +352,17 @@ export const useDecksStore = create((set, get) => ({
 
     // --- NEW: Advance the SRS stage for a saved word ---
     updateSavedWordProgress: async (wordId) => {
-        const { currentUser } = get();
+        const { currentUser, savedWordsList } = get();
         if (!currentUser) return;
         
         const wordRef = doc(db, 'users', currentUser.uid, 'savedWords', wordId);
         
         try {
-            const docSnap = await getDoc(wordRef);
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                let stage = data.stage || 0;
+            // Optimization: Use local state instead of fetching the doc again
+            const wordData = savedWordsList.find(w => w.id === wordId);
+            
+            if (wordData) {
+                let stage = wordData.stage || 0;
                 let nextDate = new Date();
                 
                 // SRS Logic: 1 day -> 3 days -> 1 week -> 2 weeks -> Mastered (Stage 5)
@@ -384,7 +386,12 @@ export const useDecksStore = create((set, get) => ({
                 nextDate.setHours(0, 0, 0, 0);
 
                 await updateDoc(wordRef, { stage, nextReviewDate: nextDate.getTime() });
-                get().fetchSavedWords(true); // Refresh list
+                
+                // Optimistic Update: Update local state directly without re-fetching everything
+                const newList = savedWordsList.map(w => 
+                    w.id === wordId ? { ...w, stage, nextReviewDate: nextDate.getTime() } : w
+                );
+                set({ savedWordsList: newList });
             }
         } catch (error) {
             console.error("Error updating word progress:", error);
@@ -393,15 +400,20 @@ export const useDecksStore = create((set, get) => ({
 
     // --- NEW: Reset the SRS stage if forgot ---
     resetSavedWordProgress: async (wordId) => {
-        const { currentUser } = get();
+        const { currentUser, savedWordsList } = get();
         if (!currentUser) return;
         
         const wordRef = doc(db, 'users', currentUser.uid, 'savedWords', wordId);
         
         try {
             // Reset to stage 0, due immediately
-            await updateDoc(wordRef, { stage: 0, nextReviewDate: Date.now() });
-            get().fetchSavedWords(true);
+            const now = Date.now();
+            await updateDoc(wordRef, { stage: 0, nextReviewDate: now });
+            
+            const newList = savedWordsList.map(w => 
+                w.id === wordId ? { ...w, stage: 0, nextReviewDate: now } : w
+            );
+            set({ savedWordsList: newList });
         } catch (error) {
             console.error("Error resetting word progress:", error);
         }
@@ -530,16 +542,20 @@ export const useDecksStore = create((set, get) => ({
 
     fetchDecks: async () => {
         // ... (function is correct, no changes)
-        set({ isLoading: true });
+        const { isDecksLoading, decks } = get();
+        // Prevent double fetch if already loading or if we already have decks (optional)
+        if (isDecksLoading || Object.keys(decks).length > 0) return;
+
+        set({ isLoading: true, isDecksLoading: true });
         try {
             const decksCollection = collection(db, 'decks');
             const deckSnapshot = await getDocs(decksCollection);
             const decksData = {};
             deckSnapshot.forEach(doc => { decksData[doc.id] = doc.data(); });
-            set({ decks: decksData, isLoading: false });
+            set({ decks: decksData, isLoading: false, isDecksLoading: false });
         } catch (error) {
             console.error("Error fetching decks: ", error);
-            set({ isLoading: false });
+            set({ isLoading: false, isDecksLoading: false });
         }
     },
 
@@ -594,7 +610,8 @@ export const useDecksStore = create((set, get) => ({
 
     fetchScenarios: async () => {
         // Cache check: if we already have scenarios, don't re-fetch
-        if (get().scenarios.length > 0) return;
+        // Also check isScenariosLoading to prevent double-fetch in Strict Mode
+        if (get().scenarios.length > 0 || get().isScenariosLoading) return;
 
         set({ isScenariosLoading: true });
         try {
