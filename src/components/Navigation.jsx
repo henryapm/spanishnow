@@ -22,6 +22,7 @@ const Navigation = () => {
                 <NavLink 
                     to="/" 
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
+                    aria-label="Speak with AI to learn spanish"
                 >
                     <IoPersonSharp className="text-2xl mb-1" />
                 </NavLink>
@@ -29,6 +30,7 @@ const Navigation = () => {
                 <NavLink 
                     to="/reading" 
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
+                    aria-label="Reading practice"
                 >
                     <FaBookOpen className="text-2xl mb-1" />
                 </NavLink>
@@ -36,6 +38,7 @@ const Navigation = () => {
                 <NavLink 
                     to="/flashcards" 
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
+                    aria-label="Flashcards and spaced repetition"
                 >
                     <PiCardsFill className="text-2xl mb-1" />
                 </NavLink>
@@ -43,6 +46,7 @@ const Navigation = () => {
                 <NavLink 
                     to="/spaced-repetition" 
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
+                    aria-label="Spaced repetition review"
                 >
                     <RiBrain2Fill className="text-2xl mb-1" />
                 </NavLink>
