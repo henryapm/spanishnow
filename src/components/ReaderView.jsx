@@ -209,7 +209,7 @@ const ReaderView = () => {
             <div 
                 style={{ top: `${popupPosition.y}px`, left: `${popupPosition.x}px` }}
                 // --- MODIFIED: Changed 'fixed' to 'absolute' to scroll with the page ---
-                className={`absolute w-[220px] bg-gray-800 text-white text-sm font-semibold px-4 py-3 rounded-lg shadow-lg z-50`}
+                className={`absolute w-55 bg-gray-800 text-white text-sm font-semibold px-4 py-3 rounded-lg shadow-lg z-50`}
                 onClick={(e) => e.stopPropagation()} // Prevents popup from closing when clicking inside it
             >
                 <div className="flex justify-between items-center mb-2">

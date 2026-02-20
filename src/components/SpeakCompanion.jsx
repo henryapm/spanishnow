@@ -327,6 +327,7 @@ const SpeakCompanion = () => {
     if (isScenariosLoading && scenarios.length === 0) {
         return (
             <div className="p-6 flex justify-center items-center">
+                <title>Speak Companion | Spanish Now</title>
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-custom-700"></div>
             </div>
         );
@@ -335,6 +336,8 @@ const SpeakCompanion = () => {
     if (!selectedScenario) {
         return (
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
+                <title>Speak Companion | Spanish Now</title>
+                <meta name="description" content="Practice Spanish conversation with AI scenarios and roleplays." />
                 <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-500 mb-2 text-center">Choose a Scenario</h1>
                 <p className="text-gray-600 dark:text-gray-300 mb-8 text-center">
                     Select a real-life scenario to practice your Spanish skills.
@@ -382,6 +385,8 @@ const SpeakCompanion = () => {
     if(!selectedContextAndObjectives) {
         return (
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
+                <title>{selectedScenario.name} | Speak Companion</title>
+                <meta name="description" content={`Select a roleplay scenario for ${selectedScenario.name} to practice Spanish.`} />
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-300 mb-4 text-center">Choose a Role Play</h1>
                     <button 
@@ -448,6 +453,8 @@ const SpeakCompanion = () => {
 
     return (
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-3xl">
+            <title>{selectedContextAndObjectives.name} | Speak Companion</title>
+            <meta name="description" content={`Interactive Spanish roleplay: ${selectedContextAndObjectives.description}`} />
             <Modal 
                 isOpen={showLimitModal} 
                 onClose={() => setShowLimitModal(false)} 

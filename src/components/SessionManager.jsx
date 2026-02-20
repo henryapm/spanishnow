@@ -132,6 +132,8 @@ const SessionManager = () => {
 
         return (
             <div className="w-full animate-fade-in">
+                <title>Learn: {deck?.title || 'Flashcards'} | Spanish Now</title>
+                <meta name="description" content={`Learning flashcards for ${deck?.title || 'Spanish vocabulary'}.`} />
                 <h1 className="text-2xl font-bold text-center text-teal-800 dark:text-teal-300 mb-4">
                     Learn
                 </h1>
@@ -184,6 +186,8 @@ const SessionManager = () => {
 
         return (
              <div className="w-full animate-fade-in">
+                <title>{headerText} | Spanish Now</title>
+                <meta name="description" content={`Taking a ${mode} session on Spanish Now.`} />
                 <h1 className="text-2xl font-bold text-center text-teal-800 dark:text-teal-300 mb-4">
                     {headerText}
                 </h1>
@@ -208,6 +212,7 @@ const SessionManager = () => {
     
     return (
         <div className="text-center animate-fade-in">
+            <title>{mode === 'test' ? 'Test Results' : 'Session Complete'} | Spanish Now</title>
             <h2 className="text-4xl font-bold text-teal-800 dark:text-teal-300 mb-4">
                 {mode === 'test' ? 'Test Complete!' : 'Session Complete!'}
             </h2>
