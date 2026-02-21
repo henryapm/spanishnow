@@ -24,10 +24,20 @@ import Flashcards from './components/Flashcards';
 
 // This component is the main layout for authenticated (logged-in) users.
 const AppLayout = () => {
-    const { decks, isLoading } = useDecksStore();
+    const { decks, isLoading, fetchDecks } = useDecksStore();
     const location = useLocation(); // Hook to get the current URL path
 
-    if (isLoading && Object.keys(decks).length === 0) {
+    // Define routes that require decks to be loaded
+    const deckRoutes = ['/flashcards', '/create', '/review', '/account', '/listen', '/deck', '/edit', '/admin'];
+    const shouldLoadDecks = deckRoutes.some(route => location.pathname.startsWith(route));
+
+    useEffect(() => {
+        if (shouldLoadDecks) {
+            fetchDecks();
+        }
+    }, [shouldLoadDecks, fetchDecks]);
+
+    if (shouldLoadDecks && (isLoading || Object.keys(decks).length === 0)) {
         return <h1 className="text-4xl font-bold text-sky-800 mb-8 text-center">Loading...</h1>;
     }
 
@@ -65,7 +75,7 @@ const AppLayout = () => {
 
 // The main App component that controls everything
 export default function App() {
-    const { currentUser, listenForAuthChanges, fetchDecks } = useDecksStore();
+    const { currentUser, listenForAuthChanges } = useDecksStore();
     const navigate = useNavigate();
     const prevUserRef = useRef(currentUser);
     const theme = useDecksStore((state) => state.theme);
@@ -73,7 +83,6 @@ export default function App() {
     
     useEffect(() => {
         listenForAuthChanges(); 
-        fetchDecks();
     }, []);
 
     useEffect(() => {

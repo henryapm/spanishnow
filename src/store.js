@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { db } from './firebase';
 // --- FIX: Added query, where, and documentId to the import list ---
-import { collection, getDocs, addDoc, doc, updateDoc, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion } from "firebase/firestore"; 
+import { collection, getDocs, addDoc, doc, updateDoc, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion, onSnapshot } from "firebase/firestore"; 
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
 
 const auth = getAuth();
@@ -62,13 +62,15 @@ function deserializeMap(jsonString) {
 export const useDecksStore = create((set, get) => ({
     // --- STATE ---
     decks: {},
-    isLoading: true,
+    isLoading: false,
     isDecksLoading: false, // New flag to prevent double fetching
     currentUser: null,
     isAdmin: false,
     tab: 'lessons',
     hasActiveSubscription: false,
     articles: {},
+    isArticlesLoading: false,
+    loadingArticleId: null,
     // --- MODIFIED: This will now hold translations for ONLY the active article ---
     activeArticleTranslations: new Map(),
     isDictionaryLoading: false, // To show a loading state for translations
@@ -86,6 +88,10 @@ export const useDecksStore = create((set, get) => ({
     scenarios: [],
     scenariosAiInstructions: '',
     isScenariosLoading: false,
+    speakProgress: {},
+    interactionCount: 0,
+    _speakProgressUnsub: null,
+    _dailyLimitUnsub: null,
 
 
     // --- ACTIONS ---
@@ -97,6 +103,11 @@ export const useDecksStore = create((set, get) => ({
 
     listenForAuthChanges: () => {
         onAuthStateChanged(auth, async (user) => {
+            // Cleanup previous listeners
+            const { _speakProgressUnsub, _dailyLimitUnsub } = get();
+            if (_speakProgressUnsub) _speakProgressUnsub();
+            if (_dailyLimitUnsub) _dailyLimitUnsub();
+
             if (user) {
                 const tokenResult = await user.getIdTokenResult();
                 const userDocRef = doc(db, 'users', user.uid);
@@ -137,9 +148,34 @@ export const useDecksStore = create((set, get) => ({
                 progressSnapshot.forEach(d => { progressData[d.id] = d.data(); console.log(d.id);
                 });
 
+                // --- Setup Realtime Listeners ---
+                const speakProgressRef = collection(db, 'users', user.uid, 'speakProgress');
+                const speakUnsub = onSnapshot(speakProgressRef, (snapshot) => {
+                    const progressMap = {};
+                    snapshot.forEach(doc => {
+                        progressMap[doc.id] = doc.data().completedRolePlays || [];
+                    });
+                    set({ speakProgress: progressMap });
+                });
+
+                let limitUnsub = null;
+                const isPremium = tokenResult.claims.admin === true || isFirestoreAdmin || subscriptionStatus;
+                
+                if (!isPremium) {
+                    const today = new Date().toLocaleDateString('en-CA');
+                    const limitRef = doc(db, 'users', user.uid, 'daily_limits', 'speak');
+                    limitUnsub = onSnapshot(limitRef, (docSnap) => {
+                        if (docSnap.exists() && docSnap.data().date === today) {
+                            set({ interactionCount: docSnap.data().count || 0 });
+                        } else {
+                            set({ interactionCount: 0 });
+                        }
+                    });
+                }
+
                 set({ 
                     currentUser: user, 
-                    isAdmin: tokenResult.claims.admin === true || isFirestoreAdmin,
+                    isAdmin: isPremium, // Simplified logic since isPremium covers admin check
                     hasActiveSubscription: subscriptionStatus,
                     progress: progressData,
                     deckProgress: progressData,
@@ -148,10 +184,29 @@ export const useDecksStore = create((set, get) => ({
                     streak: 0,
                     dailyFreeAccess: dailyFreeAccess,
                     finishedArticles: finishedArticles,
-                    savedWordsLoaded: false // Reset so we fetch fresh for the new user
+                    savedWordsLoaded: false, // Reset so we fetch fresh for the new user
+                    _speakProgressUnsub: speakUnsub,
+                    _dailyLimitUnsub: limitUnsub
                 });
             } else {
-                set({ currentUser: null, isAdmin: false, progress: {}, deckProgress: {},listeningPreference: 'es-ES', totalXp: 0, streak: 0, dailyFreeAccess: null, finishedArticles: [], savedWordsLoaded: false, savedWordsSet: new Set(), savedWordsList: [] });
+                set({ 
+                    currentUser: null, 
+                    isAdmin: false, 
+                    progress: {}, 
+                    deckProgress: {},
+                    listeningPreference: 'es-ES', 
+                    totalXp: 0, 
+                    streak: 0, 
+                    dailyFreeAccess: null, 
+                    finishedArticles: [], 
+                    savedWordsLoaded: false, 
+                    savedWordsSet: new Set(), 
+                    savedWordsList: [],
+                    speakProgress: {},
+                    interactionCount: 0,
+                    _speakProgressUnsub: null,
+                    _dailyLimitUnsub: null
+                });
             }
         });
     },
@@ -283,7 +338,7 @@ export const useDecksStore = create((set, get) => ({
 
     // --- MODIFIED: Implements "soft delete" by toggling the 'active' flag ---
     toggleSavedWord: async (spanishWord, data = {}) => {
-        const { currentUser, savedWordsSet } = get();
+        const { currentUser, savedWordsSet, savedWordsList } = get();
         // ... (existing code) ...
         if (!currentUser) {
             alert("Please log in to save words.");
@@ -298,9 +353,13 @@ export const useDecksStore = create((set, get) => ({
                 // Word is in the active set, so "remove" it by setting active: false
                 await updateDoc(wordRef, { active: false });
                 newSavedWordsSet.delete(spanishWord);
+                
+                // Optimistic Update: Remove from local list
+                const newList = savedWordsList.filter(w => w.id !== spanishWord);
+                set({ savedWordsSet: newSavedWordsSet, savedWordsList: newList });
             } else {
                 // Word is not in the active set, so add it or re-activate it
-                await setDoc(wordRef, { 
+                const newWordData = { 
                     addedAt: serverTimestamp(), 
                     active: true,
                     stage: 0,
@@ -308,13 +367,19 @@ export const useDecksStore = create((set, get) => ({
                     translation: data.translation || '',
                     vocab: data.vocab || '',
                     source: data.source || null
-                }, { merge: true });
+                };
+                
+                await setDoc(wordRef, newWordData, { merge: true });
                 newSavedWordsSet.add(spanishWord);
+                
+                // Optimistic Update: Add to local list
+                const newItem = {
+                    id: spanishWord,
+                    ...newWordData,
+                    addedAt: { seconds: Date.now() / 1000 } // Mock timestamp for local display
+                };
+                set({ savedWordsSet: newSavedWordsSet, savedWordsList: [newItem, ...savedWordsList] });
             }
-            // Update the local state
-            set({ savedWordsSet: newSavedWordsSet });
-            // Refresh the list to reflect changes (optional, but good for consistency)
-            get().fetchSavedWords(true); 
         } catch (error) {
             console.error("Error toggling saved word: ", error);
             alert("Could not save word. Please try again.");
@@ -561,7 +626,10 @@ export const useDecksStore = create((set, get) => ({
 
     // --- MODIFIED: fetchArticles now checks version numbers ---
     fetchArticles: async () => {
-        set({ isLoading: true });
+        const { isArticlesLoading, articles } = get();
+        if (isArticlesLoading || (articles && Object.keys(articles).length > 0)) return;
+
+        set({ isLoading: true, isArticlesLoading: true });
         const cache = getCache();
         
         try {
@@ -575,7 +643,7 @@ export const useDecksStore = create((set, get) => ({
 
             if (cache.articles && localArticlesVersion === remoteArticlesVersion && isCacheValid(cache.articles.timestamp)) {
                 // Cache is valid and version matches, use cache
-                set({ articles: cache.articles.data, isLoading: false });
+                set({ articles: cache.articles.data, isLoading: false, isArticlesLoading: false });
                 return; 
             }
 
@@ -595,15 +663,15 @@ export const useDecksStore = create((set, get) => ({
             cache.articlesVersion = remoteArticlesVersion; // Save the new version
             setCache(cache);
 
-            set({ articles: articlesData, isLoading: false });
+            set({ articles: articlesData, isLoading: false, isArticlesLoading: false });
 
         } catch (error) {
             console.error("Error fetching articles: ", error);
             // Fallback to cache if network fails but cache exists
             if (cache.articles) {
-                set({ articles: cache.articles.data, isLoading: false });
+                set({ articles: cache.articles.data, isLoading: false, isArticlesLoading: false });
             } else {
-                set({ isLoading: false });
+                set({ isLoading: false, isArticlesLoading: false });
             }
         }
     },
@@ -699,7 +767,10 @@ export const useDecksStore = create((set, get) => ({
     },
 
     fetchArticleById: async (articleId) => {
-        set({ isLoading: true, activeArticleTranslations: new Map() });
+        const { loadingArticleId } = get();
+        if (loadingArticleId === articleId) return;
+
+        set({ isLoading: true, loadingArticleId: articleId, activeArticleTranslations: new Map() });
         const cache = getCache();
 
         try {
@@ -716,11 +787,17 @@ export const useDecksStore = create((set, get) => ({
                 const articleData = cachedDetail.data;
                 const translations = deserializeMap(cachedDetail.translations);
                 
-                set((state) => ({ 
-                    articles: { ...state.articles, [articleId]: articleData },
-                    activeArticleTranslations: translations,
-                    isLoading: false
-                }));
+                set((state) => {
+                    const updates = { 
+                        articles: { ...state.articles, [articleId]: articleData },
+                        activeArticleTranslations: translations,
+                    };
+                    if (state.loadingArticleId === articleId) {
+                        updates.isLoading = false;
+                        updates.loadingArticleId = null;
+                    }
+                    return updates;
+                });
                 return; 
             }
 
@@ -745,18 +822,24 @@ export const useDecksStore = create((set, get) => ({
                 cache.articlesVersion = remoteArticlesVersion;
                 setCache(cache);
                 
-                set((state) => ({ 
-                    articles: { ...state.articles, [articleId]: articleData },
-                    isLoading: false 
-                }));
+                set((state) => {
+                    const updates = { 
+                        articles: { ...state.articles, [articleId]: articleData },
+                    };
+                    if (state.loadingArticleId === articleId) {
+                        updates.isLoading = false;
+                        updates.loadingArticleId = null;
+                    }
+                    return updates;
+                });
 
             } else {
                 console.error("No such article found!");
-                set({ isLoading: false });
+                set((state) => state.loadingArticleId === articleId ? { isLoading: false, loadingArticleId: null } : {});
             }
         } catch (error) {
             console.error("Error fetching single article: ", error);
-            set({ isLoading: false });
+            set((state) => state.loadingArticleId === articleId ? { isLoading: false, loadingArticleId: null } : {});
         }
     },
 
