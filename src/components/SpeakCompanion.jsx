@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDecksStore } from '../store';
 import Modal from './Modal';
-import { getFirestore, doc, onSnapshot, collection, setDoc, arrayUnion } from 'firebase/firestore';
+import { doc, setDoc, arrayUnion } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
@@ -83,52 +83,6 @@ const SpeakCompanion = () => {
     useEffect(() => {
         fetchScenarios();
     }, [fetchScenarios]);
-
-    // --- NEW: Fetch User Progress ---
-    useEffect(() => {
-        if (currentUser) {
-            const db = getFirestore(getApp());
-            const progressRef = collection(db, 'users', currentUser.uid, 'speakProgress');
-            
-            const unsubscribe = onSnapshot(progressRef, (snapshot) => {
-                const progressMap = {};
-                snapshot.forEach(doc => {
-                    progressMap[doc.id] = doc.data().completedRolePlays || [];
-                });
-                setUserProgress(progressMap);
-            }, (error) => {
-                console.error("Error fetching user progress:", error);
-            });
-
-            return () => unsubscribe();
-        }
-    }, [currentUser]);
-
-    // Listen for interaction count changes from Firebase
-    useEffect(() => {
-        if (currentUser && !isPremium) {
-            const db = getFirestore(getApp());
-            const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in Local Time
-            const userRef = doc(db, 'users', currentUser.uid, 'daily_limits', 'speak');
-            
-            const unsubscribe = onSnapshot(userRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.date === today) {
-                        setInteractionCount(data.count || 0);
-                    } else {
-                        setInteractionCount(0);
-                    }
-                } else {
-                    setInteractionCount(0);
-                }
-            }, (error) => {
-                console.error("Error fetching speak usage:", error);
-            });
-
-            return () => unsubscribe();
-        }
-    }, [currentUser, isPremium]);
 
     useEffect(() => {
         // Check for browser support
@@ -281,6 +235,7 @@ const SpeakCompanion = () => {
 
             setChatHistory(prev => [...prev, { role: 'model', text: aiResponseText }]);
             speakText(aiResponseText);
+            if (!isPremium) setInteractionCount(interactionCount + 1);
 
         } catch (error) {
             console.error("Error calling Gemini:", error);
@@ -304,12 +259,13 @@ const SpeakCompanion = () => {
 
         try {
             if (!isAlreadyCompleted) {
-                const db = getFirestore(getApp());
+                const db = getFirestore(getApp()); // Ensure db is available if not imported globally
                 const progressDocRef = doc(db, 'users', currentUser.uid, 'speakProgress', selectedScenario.id);
                 
                 await setDoc(progressDocRef, {
                     completedRolePlays: arrayUnion(selectedContextAndObjectives.name)
                 }, { merge: true });
+                updateSpeakProgressLocal(selectedScenario.id, selectedContextAndObjectives.name);
                 alert("Great job! Progress saved.");
             }
 
@@ -327,7 +283,6 @@ const SpeakCompanion = () => {
     if (isScenariosLoading && scenarios.length === 0) {
         return (
             <div className="p-6 flex justify-center items-center">
-                <title>Speak Companion | Spanish Now</title>
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-custom-700"></div>
             </div>
         );
@@ -336,8 +291,6 @@ const SpeakCompanion = () => {
     if (!selectedScenario) {
         return (
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
-                <title>Speak Companion | Spanish Now</title>
-                <meta name="description" content="Practice Spanish conversation with AI scenarios and roleplays." />
                 <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-500 mb-2 text-center">Choose a Scenario</h1>
                 <p className="text-gray-600 dark:text-gray-300 mb-8 text-center">
                     Select a real-life scenario to practice your Spanish skills.
@@ -385,8 +338,6 @@ const SpeakCompanion = () => {
     if(!selectedContextAndObjectives) {
         return (
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
-                <title>{selectedScenario.name} | Speak Companion</title>
-                <meta name="description" content={`Select a roleplay scenario for ${selectedScenario.name} to practice Spanish.`} />
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-300 mb-4 text-center">Choose a Role Play</h1>
                     <button 
@@ -453,8 +404,6 @@ const SpeakCompanion = () => {
 
     return (
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-3xl">
-            <title>{selectedContextAndObjectives.name} | Speak Companion</title>
-            <meta name="description" content={`Interactive Spanish roleplay: ${selectedContextAndObjectives.description}`} />
             <Modal 
                 isOpen={showLimitModal} 
                 onClose={() => setShowLimitModal(false)} 

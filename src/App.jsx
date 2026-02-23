@@ -82,7 +82,10 @@ export default function App() {
 
     
     useEffect(() => {
-        listenForAuthChanges(); 
+        const unsubscribe = listenForAuthChanges();
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, []);
 
     useEffect(() => {

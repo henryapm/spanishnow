@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { db } from './firebase';
 // --- FIX: Added query, where, and documentId to the import list ---
-import { collection, getDocs, addDoc, doc, updateDoc, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion, onSnapshot } from "firebase/firestore"; 
+import { collection, getDocs, addDoc, doc, updateDoc, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion } from "firebase/firestore"; 
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
 
 const auth = getAuth();
@@ -90,8 +90,7 @@ export const useDecksStore = create((set, get) => ({
     isScenariosLoading: false,
     speakProgress: {},
     interactionCount: 0,
-    _speakProgressUnsub: null,
-    _dailyLimitUnsub: null,
+    isAuthListenerSet: false, // <-- 1. ADD THIS FLAG
 
 
     // --- ACTIONS ---
@@ -102,17 +101,21 @@ export const useDecksStore = create((set, get) => ({
     setTab: (tab) => set({ tab }),
 
     listenForAuthChanges: () => {
+        if (get().isAuthListenerSet) return;
+        set({ isAuthListenerSet: true });
+        
         onAuthStateChanged(auth, async (user) => {
-            // Cleanup previous listeners
-            const { _speakProgressUnsub, _dailyLimitUnsub } = get();
-            if (_speakProgressUnsub) _speakProgressUnsub();
-            if (_dailyLimitUnsub) _dailyLimitUnsub();
 
             if (user) {
                 const tokenResult = await user.getIdTokenResult();
-                const userDocRef = doc(db, 'users', user.uid);
-                const userDocSnap = await getDoc(userDocRef);
                 
+                // --- OPTIMIZATION: Fetch critical user data in parallel ---
+                const [userDocSnap, progressSnapshot, speakProgressSnapshot] = await Promise.all([
+                    getDoc(doc(db, 'users', user.uid)),
+                    getDocs(collection(db, 'users', user.uid, 'progress')),
+                    getDocs(collection(db, 'users', user.uid, 'speakProgress'))
+                ]);
+
                 let userPreference = 'es-ES';
                 let userXp = 0;
                 let subscriptionStatus = false;
@@ -143,28 +146,23 @@ export const useDecksStore = create((set, get) => ({
                     finishedArticles = userDocSnap.data().finishedArticles || [];
                 }
 
-                const progressSnapshot = await getDocs(collection(db, 'users', user.uid, 'progress'));
                 const progressData = {};
                 progressSnapshot.forEach(d => { progressData[d.id] = d.data(); console.log(d.id);
                 });
 
-                // --- Setup Realtime Listeners ---
-                const speakProgressRef = collection(db, 'users', user.uid, 'speakProgress');
-                const speakUnsub = onSnapshot(speakProgressRef, (snapshot) => {
-                    const progressMap = {};
-                    snapshot.forEach(doc => {
-                        progressMap[doc.id] = doc.data().completedRolePlays || [];
-                    });
-                    set({ speakProgress: progressMap });
+                // Process Speak Progress
+                const speakProgressMap = {};
+                speakProgressSnapshot.forEach(doc => {
+                    speakProgressMap[doc.id] = doc.data().completedRolePlays || [];
                 });
+                set({ speakProgress: speakProgressMap });
 
-                let limitUnsub = null;
                 const isPremium = tokenResult.claims.admin === true || isFirestoreAdmin || subscriptionStatus;
                 
                 if (!isPremium) {
                     const today = new Date().toLocaleDateString('en-CA');
                     const limitRef = doc(db, 'users', user.uid, 'daily_limits', 'speak');
-                    limitUnsub = onSnapshot(limitRef, (docSnap) => {
+                    getDoc(limitRef).then((docSnap) => {
                         if (docSnap.exists() && docSnap.data().date === today) {
                             set({ interactionCount: docSnap.data().count || 0 });
                         } else {
@@ -184,9 +182,7 @@ export const useDecksStore = create((set, get) => ({
                     streak: 0,
                     dailyFreeAccess: dailyFreeAccess,
                     finishedArticles: finishedArticles,
-                    savedWordsLoaded: false, // Reset so we fetch fresh for the new user
-                    _speakProgressUnsub: speakUnsub,
-                    _dailyLimitUnsub: limitUnsub
+                    savedWordsLoaded: false // Reset so we fetch fresh for the new user
                 });
             } else {
                 set({ 
@@ -203,12 +199,30 @@ export const useDecksStore = create((set, get) => ({
                     savedWordsSet: new Set(), 
                     savedWordsList: [],
                     speakProgress: {},
-                    interactionCount: 0,
-                    _speakProgressUnsub: null,
-                    _dailyLimitUnsub: null
+                    interactionCount: 0
                 });
             }
         });
+    },
+
+    // --- NEW: Manually update local state after a write (replaces listener) ---
+    updateSpeakProgressLocal: (scenarioId, rolePlayName) => {
+        set(state => {
+            const currentList = state.speakProgress[scenarioId] || [];
+            if (!currentList.includes(rolePlayName)) {
+                return {
+                    speakProgress: {
+                        ...state.speakProgress,
+                        [scenarioId]: [...currentList, rolePlayName]
+                    }
+                };
+            }
+            return {};
+        });
+    },
+
+    incrementInteractionCount: () => {
+        set(state => ({ interactionCount: state.interactionCount + 1 }));
     },
 
     // --- NEW: Check and Record Daily Access ---
@@ -683,11 +697,15 @@ export const useDecksStore = create((set, get) => ({
 
         set({ isScenariosLoading: true });
         try {
-            const scenariosSnapshot = await getDocs(collection(db, 'scenarios'));
+            // --- OPTIMIZATION: Fetch scenarios and prompts in parallel ---
+            const [scenariosSnapshot, promptsDoc] = await Promise.all([
+                getDocs(collection(db, 'scenarios')),
+                getDoc(doc(db, 'appInfo', 'aiPrompts'))
+            ]);
+
             const fetchedScenarios = scenariosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
             let instructions = '';
-            const promptsDoc = await getDoc(doc(db, 'appInfo', 'aiPrompts'));
             if (promptsDoc.exists()) {
                 instructions = promptsDoc.data().scenariosAiInstructions || '';
                 instructions === '' ? alert("AI instructions are missing! Please add them in Firestore to use the Scenarios feature.") : null;
