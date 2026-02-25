@@ -64,6 +64,7 @@ const AccountPage = ({ decks }) => {
                     src={currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`} 
                     alt="Profile" 
                     className="w-20 h-20 sm:w-24 sm:h-24 rounded-full mb-4 sm:mb-0 sm:mr-6"
+                    referrerPolicy="no-referrer"
                 />
                 <div className="text-center sm:text-left">
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200">{currentUser.displayName}</h1>

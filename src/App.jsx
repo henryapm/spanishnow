@@ -1,30 +1,31 @@
-import React, { useEffect, useRef } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, Suspense, lazy } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
 // Import the store and our components
 import { useDecksStore } from './store'; 
-import FlashcardView from './components/FlashcardView';
-import DeckForm from './components/DeckForm';
 import Header from './components/Header';
 import Navigation from './components/Navigation';
 import LandingPage from './components/LandingPage';
-import AccountPage from './components/AccountPage';
-import ListeningView from './components/ListeningView';
-import SessionManager from './components/SessionManager';
-import TopicManager from './components/TopicManager'; // Import the new TopicManager
-import { useLocation } from 'react-router-dom';
-import ArticleForm from './components/ArticleForm';
-import ReaderView from './components/ReaderView';
-import DictionaryManager from './components/DictionaryManager';
-import ReadingLibrary from './components/ReadingLibrary';
-import SpeakCompanion from './components/SpeakCompanion';
-import Booking from './components/Booking';
-import Review from './components/Review';
-import Flashcards from './components/Flashcards';
+
+// Lazy load components to improve initial load time
+const FlashcardView = lazy(() => import('./components/FlashcardView'));
+const DeckForm = lazy(() => import('./components/DeckForm'));
+const AccountPage = lazy(() => import('./components/AccountPage'));
+const ListeningView = lazy(() => import('./components/ListeningView'));
+const SessionManager = lazy(() => import('./components/SessionManager'));
+const TopicManager = lazy(() => import('./components/TopicManager'));
+const ArticleForm = lazy(() => import('./components/ArticleForm'));
+const ReaderView = lazy(() => import('./components/ReaderView'));
+const DictionaryManager = lazy(() => import('./components/DictionaryManager'));
+const ReadingLibrary = lazy(() => import('./components/ReadingLibrary'));
+const SpeakCompanion = lazy(() => import('./components/SpeakCompanion'));
+const Booking = lazy(() => import('./components/Booking'));
+const Review = lazy(() => import('./components/Review'));
+const Flashcards = lazy(() => import('./components/Flashcards'));
 
 // This component is the main layout for authenticated (logged-in) users.
 const AppLayout = () => {
-    const { decks, isLoading, fetchDecks } = useDecksStore();
+    const { decks, isLoading, fetchDecks, fetchUserProgress } = useDecksStore();
     const location = useLocation(); // Hook to get the current URL path
 
     // Define routes that require decks to be loaded
@@ -34,8 +35,9 @@ const AppLayout = () => {
     useEffect(() => {
         if (shouldLoadDecks) {
             fetchDecks();
+            fetchUserProgress(); // Lazy load progress only when needed
         }
-    }, [shouldLoadDecks, fetchDecks]);
+    }, [shouldLoadDecks, fetchDecks, fetchUserProgress]);
 
     if (shouldLoadDecks && (isLoading || Object.keys(decks).length === 0)) {
         return <h1 className="text-4xl font-bold text-sky-800 mb-8 text-center">Loading...</h1>;
@@ -46,26 +48,28 @@ const AppLayout = () => {
             <Header />
             <main className="w-full text-gray-800 dark:bg-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner pb-24">
                 <div className="w-full max-w-xl mx-auto">
-                    <Routes>
-                        <Route path="/" element={<SpeakCompanion/>} />
-                        <Route path="/flashcards" element={<Flashcards decks={decks} />} />
-                        <Route path="/create" element={<DeckForm decks={decks} />} />
-                        <Route path="/review/:deckId" element={<FlashcardView />} />
-                        <Route path="/spaced-repetition" element={<Review />} />
-                        <Route path="/account" element={<AccountPage decks={decks} />} />
-                        <Route path="/listen/:deckId" element={<ListeningView decks={decks} />} />
-                        <Route path="/reading/:articleId" element={<ReaderView />} />
-                        <Route path="/reading" element={<ReadingLibrary />} />
-                        <Route path="/deck/:deckId" element={<SessionManager />} />
-                        <Route path="/bookings" element={<Booking />} />
-                        {/* --- NEW: Admin Route --- */}
-                        <Route path="/admin" element={<TopicManager decks={decks} />} />
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                        <Route path="/admin/create-article" element={<ArticleForm />} />
-                        <Route path="/admin/edit-article/:articleId" element={<ArticleForm />} />
-                        <Route path="/edit/:deckId" element={<DeckForm decks={decks} />} />
-                        <Route path="/admin/dictionary" element={<DictionaryManager />} />
-                    </Routes>
+                    <Suspense fallback={<div className="text-center p-8">Loading...</div>}>
+                        <Routes>
+                            <Route path="/" element={<SpeakCompanion/>} />
+                            <Route path="/flashcards" element={<Flashcards decks={decks} />} />
+                            <Route path="/create" element={<DeckForm decks={decks} />} />
+                            <Route path="/review/:deckId" element={<FlashcardView />} />
+                            <Route path="/spaced-repetition" element={<Review />} />
+                            <Route path="/account" element={<AccountPage decks={decks} />} />
+                            <Route path="/listen/:deckId" element={<ListeningView decks={decks} />} />
+                            <Route path="/reading/:articleId" element={<ReaderView />} />
+                            <Route path="/reading" element={<ReadingLibrary />} />
+                            <Route path="/deck/:deckId" element={<SessionManager />} />
+                            <Route path="/bookings" element={<Booking />} />
+                            {/* --- NEW: Admin Route --- */}
+                            <Route path="/admin" element={<TopicManager decks={decks} />} />
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                            <Route path="/admin/create-article" element={<ArticleForm />} />
+                            <Route path="/admin/edit-article/:articleId" element={<ArticleForm />} />
+                            <Route path="/edit/:deckId" element={<DeckForm decks={decks} />} />
+                            <Route path="/admin/dictionary" element={<DictionaryManager />} />
+                        </Routes>
+                    </Suspense>
                 </div>
             </main>
             <Navigation />

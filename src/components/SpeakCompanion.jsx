@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDecksStore } from '../store';
 import Modal from './Modal';
-import { doc, setDoc, arrayUnion } from 'firebase/firestore';
+import { doc, setDoc, arrayUnion, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
@@ -61,6 +61,7 @@ const SpeakCompanion = () => {
     const scenarios = useDecksStore((state) => state.scenarios);
     const scenariosAiInstructions = useDecksStore((state) => state.scenariosAiInstructions);
     const fetchScenarios = useDecksStore((state) => state.fetchScenarios);
+    const fetchSpeakProgress = useDecksStore((state) => state.fetchSpeakProgress);
     const isScenariosLoading = useDecksStore((state) => state.isScenariosLoading);
     const [isRecording, setIsRecording] = useState(false);
     const [userSpeech, setUserSpeech] = useState('');
@@ -71,8 +72,10 @@ const SpeakCompanion = () => {
     const [interactionCount, setInteractionCount] = useState(0);
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [limitMessage, setLimitMessage] = useState('');
-    // --- NEW: State for user progress ---
-    const [userProgress, setUserProgress] = useState({}); // { [scenarioId]: [completedRolePlayName1, ...] }
+    
+    const userProgress = useDecksStore((state) => state.speakProgress);
+    const updateSpeakProgressLocal = useDecksStore((state) => state.updateSpeakProgressLocal);
+    const incrementInteractionCount = useDecksStore((state) => state.incrementInteractionCount);
     
     const recognitionRef = useRef(null);
     const chatContainerRef = useRef(null);
@@ -82,7 +85,8 @@ const SpeakCompanion = () => {
     // Fetch Scenarios and Goals from Firestore
     useEffect(() => {
         fetchScenarios();
-    }, [fetchScenarios]);
+        fetchSpeakProgress();
+    }, [fetchScenarios, fetchSpeakProgress]);
 
     useEffect(() => {
         // Check for browser support
@@ -235,14 +239,13 @@ const SpeakCompanion = () => {
 
             setChatHistory(prev => [...prev, { role: 'model', text: aiResponseText }]);
             speakText(aiResponseText);
-            if (!isPremium) setInteractionCount(interactionCount + 1);
+            if (!isPremium) incrementInteractionCount();
 
         } catch (error) {
             console.error("Error calling Gemini:", error);
             if (error.message.includes('limit')) {
                 setLimitMessage(error.message);
                 setShowLimitModal(true);
-                setInteractionCount(MAX_FREE_INTERACTIONS);
             } else {
                 setChatHistory(prev => [...prev, { role: 'model', text: `Error: ${error.message}` }]);
             }

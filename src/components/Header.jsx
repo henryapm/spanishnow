@@ -6,8 +6,6 @@ import { FaBookOpen } from 'react-icons/fa';
 import { IoPersonSharp } from 'react-icons/io5';
 import { RiBrain2Fill } from 'react-icons/ri';
 import { PiCardsFill } from 'react-icons/pi';
-import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { getApp } from 'firebase/app';
 
 const Header = () => {
     const navigate = useNavigate();
@@ -17,6 +15,7 @@ const Header = () => {
 
     const currentUser = useDecksStore((state) => state.currentUser);
     const isAdmin = useDecksStore((state) => state.isAdmin);
+    const signInWithGoogle = useDecksStore((state) => state.signInWithGoogle);
     const signOutUser = useDecksStore((state) => state.signOutUser);
     const savedWordsList = useDecksStore((state) => state.savedWordsList);
     const fetchSavedWords = useDecksStore((state) => state.fetchSavedWords);
@@ -62,10 +61,8 @@ const Header = () => {
 
     const handleGoogleSignIn = async () => {
         setErrorMessage('');
-        const auth = getAuth(getApp());
-        const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
+            await signInWithGoogle();
         } catch (error) {
             console.error("Error signing in with Google", error);
             if (error.code === 'auth/popup-closed-by-user') {
@@ -96,6 +93,7 @@ const Header = () => {
                                 src={currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`} 
                                 alt="Profile" 
                                 className="w-8 h-8 rounded-full"
+                                referrerPolicy="no-referrer"
                             />
                             <span className="font-semibold text-gray-700 dark:text-gray-200 hidden sm:block">{currentUser.displayName.split(' ')[0]}</span>
                             <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 text-gray-500 dark:text-gray-400 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
@@ -122,6 +120,7 @@ const Header = () => {
                                         src={currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`} 
                                         alt="Profile" 
                                         className="w-8 h-8 rounded-full"
+                                        referrerPolicy="no-referrer"
                                     />
                                     <span className="ml-2">My Account</span>
                                 </button>

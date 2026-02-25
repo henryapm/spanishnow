@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
-import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { getApp } from 'firebase/app';
+import { useDecksStore } from '../store';
 
 const LandingPage = () => {
     const [errorMessage, setErrorMessage] = useState('');
+    const signInWithGoogle = useDecksStore((state) => state.signInWithGoogle);
 
     const handleGoogleSignIn = async () => {
         setErrorMessage('');
-        const auth = getAuth(getApp());
-        const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
+            await signInWithGoogle();
         } catch (error) {
             console.error("Error signing in with Google", error);
             if (error.code === 'auth/popup-closed-by-user') {

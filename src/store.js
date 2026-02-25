@@ -19,7 +19,7 @@ function getCache() {
   const cachedData = localStorage.getItem(CACHE_KEY);
   if (!cachedData) {
     // Return a default structure if no cache exists
-    return { articles: null, articleDetail: {}, articlesVersion: 0 };
+    return { articles: null, articleDetail: {}, articlesVersion: 0, dictionary: {} };
   }
   return JSON.parse(cachedData);
 }
@@ -90,6 +90,9 @@ export const useDecksStore = create((set, get) => ({
     isScenariosLoading: false,
     speakProgress: {},
     interactionCount: 0,
+    userProgressLoaded: false,
+    speakProgressLoaded: false,
+
     isAuthListenerSet: false, // <-- 1. ADD THIS FLAG
 
 
@@ -102,7 +105,10 @@ export const useDecksStore = create((set, get) => ({
 
     listenForAuthChanges: () => {
         if (get().isAuthListenerSet) return;
+        console.log(get().isAuthListenerSet);
+        
         set({ isAuthListenerSet: true });
+        console.log(get().isAuthListenerSet);
         
         onAuthStateChanged(auth, async (user) => {
 
@@ -110,10 +116,8 @@ export const useDecksStore = create((set, get) => ({
                 const tokenResult = await user.getIdTokenResult();
                 
                 // --- OPTIMIZATION: Fetch critical user data in parallel ---
-                const [userDocSnap, progressSnapshot, speakProgressSnapshot] = await Promise.all([
-                    getDoc(doc(db, 'users', user.uid)),
-                    getDocs(collection(db, 'users', user.uid, 'progress')),
-                    getDocs(collection(db, 'users', user.uid, 'speakProgress'))
+                const [userDocSnap] = await Promise.all([
+                    getDoc(doc(db, 'users', user.uid))
                 ]);
 
                 let userPreference = 'es-ES';
@@ -146,17 +150,6 @@ export const useDecksStore = create((set, get) => ({
                     finishedArticles = userDocSnap.data().finishedArticles || [];
                 }
 
-                const progressData = {};
-                progressSnapshot.forEach(d => { progressData[d.id] = d.data(); console.log(d.id);
-                });
-
-                // Process Speak Progress
-                const speakProgressMap = {};
-                speakProgressSnapshot.forEach(doc => {
-                    speakProgressMap[doc.id] = doc.data().completedRolePlays || [];
-                });
-                set({ speakProgress: speakProgressMap });
-
                 const isPremium = tokenResult.claims.admin === true || isFirestoreAdmin || subscriptionStatus;
                 
                 if (!isPremium) {
@@ -175,8 +168,6 @@ export const useDecksStore = create((set, get) => ({
                     currentUser: user, 
                     isAdmin: isPremium, // Simplified logic since isPremium covers admin check
                     hasActiveSubscription: subscriptionStatus,
-                    progress: progressData,
-                    deckProgress: progressData,
                     listeningPreference: userPreference,
                     totalXp: userXp,
                     streak: 0,
@@ -199,10 +190,44 @@ export const useDecksStore = create((set, get) => ({
                     savedWordsSet: new Set(), 
                     savedWordsList: [],
                     speakProgress: {},
-                    interactionCount: 0
+                    interactionCount: 0,
+                    userProgressLoaded: false,
+                    speakProgressLoaded: false
                 });
             }
         });
+    },
+
+    // --- NEW: Lazy Load Actions ---
+    fetchUserProgress: async () => {
+        const { currentUser, userProgressLoaded } = get();
+        if (!currentUser || userProgressLoaded) return;
+
+        try {
+            const progressSnapshot = await getDocs(collection(db, 'users', currentUser.uid, 'progress'));
+            const progressData = {};
+            progressSnapshot.forEach(d => { progressData[d.id] = d.data(); });
+            
+            set({ progress: progressData, deckProgress: progressData, userProgressLoaded: true });
+        } catch (error) {
+            console.error("Error fetching user progress:", error);
+        }
+    },
+
+    fetchSpeakProgress: async () => {
+        const { currentUser, speakProgressLoaded } = get();
+        if (!currentUser || speakProgressLoaded) return;
+
+        try {
+            const speakProgressSnapshot = await getDocs(collection(db, 'users', currentUser.uid, 'speakProgress'));
+            const speakProgressMap = {};
+            speakProgressSnapshot.forEach(doc => {
+                speakProgressMap[doc.id] = doc.data().completedRolePlays || [];
+            });
+            set({ speakProgress: speakProgressMap, speakProgressLoaded: true });
+        } catch (error) {
+            console.error("Error fetching speak progress:", error);
+        }
     },
 
     // --- NEW: Manually update local state after a write (replaces listener) ---
@@ -309,11 +334,21 @@ export const useDecksStore = create((set, get) => ({
                 return;
             }
 
-            // 2. Fetch the translations for these words from the 'dictionary' collection
-            const translations = new Map();
+            // 2. Resolve Translations (Cache First)
+            const cache = getCache();
+            const cachedDictionary = cache.dictionary || {};
+            const wordsNeedingFetch = [];
+
+            wordsToTranslate.forEach(wordId => {
+                if (!cachedDictionary[wordId]) {
+                    wordsNeedingFetch.push(wordId);
+                }
+            });
+
+            // 3. Fetch only missing words from Firestore
             const chunks = [];
-            for (let i = 0; i < wordsToTranslate.length; i += 30) {
-                chunks.push(wordsToTranslate.slice(i, i + 30));
+            for (let i = 0; i < wordsNeedingFetch.length; i += 30) {
+                chunks.push(wordsNeedingFetch.slice(i, i + 30));
             }
 
             for (const chunk of chunks) {
@@ -323,17 +358,23 @@ export const useDecksStore = create((set, get) => ({
                 );
                 const querySnapshot = await getDocs(transQuery);
                 querySnapshot.forEach((doc) => {
-                    translations.set(doc.id, doc.data().translation);
+                    cachedDictionary[doc.id] = doc.data().translation;
                 });
             }
 
-            // 3. Combine the data into the final list
+            // Save updated dictionary to cache if we fetched anything
+            if (chunks.length > 0) {
+                cache.dictionary = cachedDictionary;
+                setCache(cache);
+            }
+
+            // 4. Combine the data into the final list
             const fullWordsList = wordsToTranslate.map(wordId => {
                 const data = savedWordDataMap.get(wordId);
                 return {
                     id: wordId, // This is the Spanish word
                     // Prefer translation in savedWord doc, fallback to dictionary
-                    translation: data.translation || translations.get(wordId) || "No translation",
+                    translation: data.translation || cachedDictionary[wordId] || "No translation",
                     vocab: data.vocab || null,
                     source: data.source || null,
                     addedAt: data.addedAt,
@@ -613,7 +654,10 @@ export const useDecksStore = create((set, get) => ({
     },
 
     signInWithGoogle: async () => {
-        try { await signInWithPopup(auth, provider); } catch (error) { console.error("Error during sign-in: ", error); }
+        try { await signInWithPopup(auth, provider); } catch (error) { 
+            console.error("Error during sign-in: ", error); 
+            throw error;
+        }
     },
     signOutUser: async () => {
         try { await signOut(auth); } catch (error) { console.error("Error during sign-out: ", error); }
