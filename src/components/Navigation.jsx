@@ -7,6 +7,18 @@ import { RiBrain2Fill } from 'react-icons/ri';
 import { useDecksStore } from '../store';
 
 const Navigation = () => {
+    const savedWordsList = useDecksStore(state => state.savedWordsList);
+    // Filter words that are due for review
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+    const endOfToday = today.getTime();
+
+    const dueWords = savedWordsList.filter(w => {
+        if (w.stage >= 5) return false; // Mastered words are done
+        if (!w.nextReviewDate) return true; // Legacy/New words are due
+        return w.nextReviewDate <= endOfToday;
+    });
+
     return (
         <nav className="fixed bottom-0 left-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50">
             <style>{`
@@ -48,7 +60,12 @@ const Navigation = () => {
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
                     aria-label="Spaced repetition review"
                 >
-                    <RiBrain2Fill className="text-2xl mb-1" />
+                    <div className="relative">
+                        <RiBrain2Fill className="text-2xl mb-1" />
+                        <span className="absolute -top-3 -right-3 bg-red-500 text-white text-xs rounded-full px-1">
+                            {dueWords.length}
+                        </span>
+                    </div>
                 </NavLink>
             </div>
         </nav>
