@@ -12,6 +12,8 @@ const ReadingLibrary = () => {
     const isLoading = useDecksStore((state) => state.isLoading);
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
+    // --- NEW: Import startSession action ---
+    const startSession = useDecksStore((state) => state.startSession);
 
     const isPremium = isAdmin || hasActiveSubscription;
     const [showLimitModal, setShowLimitModal] = useState(false);
@@ -79,6 +81,17 @@ const ReadingLibrary = () => {
         }
     };
 
+    // --- NEW: Handler for starting the structured lesson flow ---
+    const handleStartLesson = (e, article) => {
+        e.stopPropagation(); // Prevent triggering the card's main onClick
+        if (isPremium || !article.premium) {
+            startSession(article.id);
+            navigate('/lesson');
+        } else {
+            setShowLimitModal(true);
+        }
+    };
+
     return (
         <div className="w-full animate-fade-in">
             <Modal 
@@ -139,29 +152,35 @@ const ReadingLibrary = () => {
                     {articlesArray.map((article, index) => {
                         const isLocked = !isPremium && article.premium;
                         return (
-                        <button
+                        <div
                             key={article.id}
                             onClick={() => handleArticleClick(article)}
-                            className={`w-full text-left p-6 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-transform cursor-pointer ${!isLocked ? 'hover:-translate-y-1' : 'opacity-75'}`}
+                            className={`w-full text-left p-6 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-transform cursor-pointer flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 ${!isLocked ? 'hover:-translate-y-1' : 'opacity-75'}`}
                         >
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase text-custom-500 dark:text-custom-400">{article.topic}</p>
-                                    <h2 className="flex flex-col-2 items-center gap-2 text-xl font-bold text-gray-800 dark:text-gray-200">
-                                        {article.title}
-                                        {finishedArticles?.includes(article.id) && <span className="ml-2 text-green-500 text-lg" title="Finished"><BsCheckCircleFill /></span>}
-                                    </h2>
-                                </div>
-                                <div className="flex items-center gap-3">
+                            <div className="flex-1">
+                                <p className="text-xs font-semibold uppercase text-custom-500 dark:text-custom-400">{article.topic}</p>
+                                <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-gray-200">
+                                    {article.title}
+                                    {finishedArticles?.includes(article.id) && <span className="text-green-500 text-lg" title="Finished"><BsCheckCircleFill /></span>}
+                                </h2>
+                            </div>
+                            <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                                <div className="flex items-center gap-2">
                                     {isLocked && <span className="text-2xl" role="img" aria-label="locked">🔒</span>}
-                                    {article.level && (
-                                        <span className={`text-md font-bold px-2 py-1 rounded-full ${getLevelColor(article.level)}`}>
-                                            {article.level}
-                                        </span>
-                                    )}
+                                    {article.level && <span className={`text-md font-bold px-2 py-1 rounded-full ${getLevelColor(article.level)}`}>{article.level}</span>}
+                                </div>
+                                
+                                {/* --- NEW: Lesson Mode Button --- */}
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={(e) => handleStartLesson(e, article)}
+                                        className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded shadow hover:bg-blue-700 transition-colors"
+                                    >
+                                        Start Lesson
+                                    </button>
                                 </div>
                             </div>
-                        </button>
+                        </div>
                     )})}
                 </div>
             ) : (

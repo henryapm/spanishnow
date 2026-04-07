@@ -293,7 +293,7 @@ const SpeakCompanion = () => {
 
     if (!selectedScenario) {
         return (
-            <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
                 <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-500 mb-2 text-center">Choose a Scenario</h1>
                 <p className="text-gray-600 dark:text-gray-300 mb-8 text-center">
                     Select a real-life scenario to practice your Spanish skills.
@@ -340,7 +340,7 @@ const SpeakCompanion = () => {
 
     if(!selectedContextAndObjectives) {
         return (
-            <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-300 mb-4 text-center">Choose a Role Play</h1>
                     <button 
@@ -406,7 +406,7 @@ const SpeakCompanion = () => {
     }
 
     return (
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-3xl">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-3xl">
             <Modal 
                 isOpen={showLimitModal} 
                 onClose={() => setShowLimitModal(false)} 

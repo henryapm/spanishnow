@@ -93,6 +93,14 @@ export const useDecksStore = create((set, get) => ({
     userProgressLoaded: false,
     speakProgressLoaded: false,
 
+    // --- NEW: Structured Lesson Flow State ---
+    activeSession: {
+        isActive: false,
+        articleId: null,
+        step: 'idle', // 'reading', 'review', 'practice', 'completed'
+        wordsSavedInSession: [],
+    },
+
     isAuthListenerSet: false, // <-- 1. ADD THIS FLAG
 
 
@@ -102,6 +110,29 @@ export const useDecksStore = create((set, get) => ({
     })),
 
     setTab: (tab) => set({ tab }),
+
+    // --- NEW: Session Actions ---
+    startSession: (articleId) => set({
+        activeSession: {
+            isActive: true,
+            articleId,
+            step: 'reading',
+            wordsSavedInSession: []
+        }
+    }),
+
+    advanceSessionStep: (nextStep) => set((state) => ({
+        activeSession: { ...state.activeSession, step: nextStep }
+    })),
+
+    endSession: () => set({
+        activeSession: {
+            isActive: false,
+            articleId: null,
+            step: 'idle',
+            wordsSavedInSession: []
+        }
+    }),
 
     listenForAuthChanges: () => {
         if (get().isAuthListenerSet) return;
@@ -434,6 +465,11 @@ export const useDecksStore = create((set, get) => ({
                     addedAt: { seconds: Date.now() / 1000 } // Mock timestamp for local display
                 };
                 set({ savedWordsSet: newSavedWordsSet, savedWordsList: [newItem, ...savedWordsList] });
+            }
+            
+            // Track words saved during the active session
+            if (get().activeSession.isActive && !savedWordsSet.has(spanishWord)) {
+                set(state => ({ activeSession: { ...state.activeSession, wordsSavedInSession: [...state.activeSession.wordsSavedInSession, spanishWord] } }));
             }
         } catch (error) {
             console.error("Error toggling saved word: ", error);

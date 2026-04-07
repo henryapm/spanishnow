@@ -253,6 +253,76 @@ exports.chatWithGemini = onCall({
     }
 });
 
+// --- NEW: Dedicated function for the Lesson Flow AI Chat ---
+exports.chatForLesson = onCall({ 
+    secrets: [geminiApiKey],
+    cors: true 
+}, async (request) => {
+    // 1. Authentication Check
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    const uid = request.auth.uid;
+    const { history, date, context, objectives, scenariosAiInstructions } = request.data;
+
+    const db = admin.firestore();
+
+    // 2. Premium/Limit Check (Reusing the "speak" daily limit)
+    const userDoc = await db.collection('users').doc(uid).get();
+    const userData = userDoc.data() || {};
+    
+    // Check if user is admin or has active subscription
+    const isPremium = userData.isAdmin === true || userData.hasActiveSubscription === true || request.auth.token.admin === true;
+
+    if (!isPremium) {
+        const today = date || new Date().toLocaleDateString('en-CA');
+        const limitRef = db.collection('users').doc(uid).collection('daily_limits').doc('speak');
+        
+        await db.runTransaction(async (t) => {
+            const limitDoc = await t.get(limitRef);
+            let currentCount = 0;
+            
+            if (limitDoc.exists && limitDoc.data().date === today) {
+                currentCount = limitDoc.data().count || 0;
+            }
+
+            if (currentCount >= MAX_FREE_INTERACTIONS) {
+                throw new HttpsError('resource-exhausted', 'You have reached your daily limit for the free tier.');
+            }
+
+            t.set(limitRef, { date: today, count: currentCount + 1 }, { merge: true });
+        });
+    }
+
+    // 3. Call Gemini API
+    const apiKey = geminiApiKey.value();
+    if (!apiKey) {
+        throw new HttpsError('failed-precondition', 'Gemini API key is missing.');
+    }
+
+    const systemInstruction = `${scenariosAiInstructions}\n\nContext: ${context}\nObjectives:\n- ${objectives.join('\n- ')}`;
+    
+    try {
+        const response = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+            {
+                system_instruction: { parts: [{ text: systemInstruction }] },
+                contents: history.map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.text }]
+                }))
+            },
+            { headers: { 'Content-Type': 'application/json' } }
+        );
+
+        return { text: response.data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no entendí." };
+    } catch (error) {
+        console.error("Gemini API Error:", error.response?.data || error.message);
+        throw new HttpsError('internal', `Gemini Error: ${error.message}`);
+    }
+});
+
 exports.seedScenarios = onCall({ 
     cors: true 
 }, async (request) => {

@@ -22,14 +22,15 @@ const SpeakCompanion = lazy(() => import('./components/SpeakCompanion'));
 const Booking = lazy(() => import('./components/Booking'));
 const Review = lazy(() => import('./components/Review'));
 const Flashcards = lazy(() => import('./components/Flashcards'));
+const LessonFlow = lazy(() => import('./components/LessonFlow'));
 
 // This component is the main layout for authenticated (logged-in) users.
 const AppLayout = () => {
-    const { decks, isLoading, fetchDecks, fetchUserProgress } = useDecksStore();
+    const { decks, isDecksLoading, fetchDecks, fetchUserProgress } = useDecksStore();
     const location = useLocation(); // Hook to get the current URL path
 
     // Define routes that require decks to be loaded
-    const deckRoutes = ['/flashcards', '/create', '/review', '/account', '/listen', '/deck', '/edit', '/admin'];
+    const deckRoutes = ['/flashcards', '/create', '/review', '/account', '/listen', '/deck', '/edit', '/admin', '/lesson'];
     const shouldLoadDecks = deckRoutes.some(route => location.pathname.startsWith(route));
 
     useEffect(() => {
@@ -39,7 +40,7 @@ const AppLayout = () => {
         }
     }, [shouldLoadDecks, fetchDecks, fetchUserProgress]);
 
-    if (shouldLoadDecks && (isLoading || Object.keys(decks).length === 0)) {
+    if (shouldLoadDecks && (isDecksLoading || Object.keys(decks).length === 0)) {
         return <h1 className="text-4xl font-bold text-sky-800 mb-8 text-center">Loading...</h1>;
     }
 
@@ -47,10 +48,10 @@ const AppLayout = () => {
         <div className="w-full dark:text-gray-200 max-w-2xl">
             <Header />
             <main className="w-full text-gray-800 dark:bg-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner pb-24">
-                <div className="w-full max-w-xl mx-auto">
+                <div className="w-full max-w-xl mx-auto p-4">
                     <Suspense fallback={<div className="text-center p-8">Loading...</div>}>
                         <Routes>
-                            <Route path="/" element={<SpeakCompanion/>} />
+                            <Route path="/" element={<ReadingLibrary/>} />
                             <Route path="/flashcards" element={<Flashcards decks={decks} />} />
                             <Route path="/create" element={<DeckForm decks={decks} />} />
                             <Route path="/review/:deckId" element={<FlashcardView />} />
@@ -58,7 +59,7 @@ const AppLayout = () => {
                             <Route path="/account" element={<AccountPage decks={decks} />} />
                             <Route path="/listen/:deckId" element={<ListeningView decks={decks} />} />
                             <Route path="/reading/:articleId" element={<ReaderView />} />
-                            <Route path="/reading" element={<ReadingLibrary />} />
+                            <Route path="/speakCompanion" element={<SpeakCompanion />} />
                             <Route path="/deck/:deckId" element={<SessionManager />} />
                             <Route path="/bookings" element={<Booking />} />
                             {/* --- NEW: Admin Route --- */}
@@ -68,6 +69,7 @@ const AppLayout = () => {
                             <Route path="/admin/edit-article/:articleId" element={<ArticleForm />} />
                             <Route path="/edit/:deckId" element={<DeckForm decks={decks} />} />
                             <Route path="/admin/dictionary" element={<DictionaryManager />} />
+                            <Route path="/lesson" element={<LessonFlow />} />
                         </Routes>
                     </Suspense>
                 </div>

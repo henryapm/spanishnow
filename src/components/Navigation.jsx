@@ -32,14 +32,6 @@ const Navigation = () => {
             `}</style>
             <div className="max-w-2xl mx-auto flex justify-around items-center h-16">
                 <NavLink 
-                    to="/" 
-                    className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
-                    aria-label="Speak with AI to learn spanish"
-                >
-                    <IoPersonSharp className="text-2xl mb-1" />
-                </NavLink>
-
-                <NavLink 
                     to="/reading" 
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
                     aria-label="Reading practice"
@@ -47,14 +39,6 @@ const Navigation = () => {
                     <FaBookOpen className="text-2xl mb-1" />
                 </NavLink>
 
-                <NavLink 
-                    to="/flashcards" 
-                    className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
-                    aria-label="Flashcards and spaced repetition"
-                >
-                    <PiCardsFill className="text-2xl mb-1" />
-                </NavLink>
-                
                 <NavLink 
                     to="/spaced-repetition" 
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
@@ -67,6 +51,25 @@ const Navigation = () => {
                         </span>
                     </div>
                 </NavLink>
+
+                <NavLink 
+                    to="/speakCompanion" 
+                    className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
+                    aria-label="Speak with AI to learn spanish"
+                >
+                    <IoPersonSharp className="text-2xl mb-1" />
+                </NavLink>
+
+{/* 
+                <NavLink 
+                    to="/flashcards" 
+                    className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
+                    aria-label="Flashcards and spaced repetition"
+                >
+                    <PiCardsFill className="text-2xl mb-1" />
+                </NavLink> */}
+                
+
             </div>
         </nav>
     );
