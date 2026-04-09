@@ -92,6 +92,8 @@ export const useDecksStore = create((set, get) => ({
     interactionCount: 0,
     userProgressLoaded: false,
     speakProgressLoaded: false,
+    usersList: [],
+    isUsersLoading: false,
 
     // --- NEW: Structured Lesson Flow State ---
     activeSession: {
@@ -136,10 +138,8 @@ export const useDecksStore = create((set, get) => ({
 
     listenForAuthChanges: () => {
         if (get().isAuthListenerSet) return;
-        console.log(get().isAuthListenerSet);
         
         set({ isAuthListenerSet: true });
-        console.log(get().isAuthListenerSet);
         
         onAuthStateChanged(auth, async (user) => {
 
@@ -181,7 +181,8 @@ export const useDecksStore = create((set, get) => ({
                     finishedArticles = userDocSnap.data().finishedArticles || [];
                 }
 
-                const isPremium = tokenResult.claims.admin === true || isFirestoreAdmin || subscriptionStatus;
+                const isTrueAdmin = tokenResult.claims.admin === true || isFirestoreAdmin;
+                const isPremium = isTrueAdmin || subscriptionStatus;
                 
                 if (!isPremium) {
                     const today = new Date().toLocaleDateString('en-CA');
@@ -197,7 +198,7 @@ export const useDecksStore = create((set, get) => ({
 
                 set({ 
                     currentUser: user, 
-                    isAdmin: isPremium, // Simplified logic since isPremium covers admin check
+                    isAdmin: isTrueAdmin, // FIX: Only real admins get admin privileges
                     hasActiveSubscription: subscriptionStatus,
                     listeningPreference: userPreference,
                     totalXp: userXp,
@@ -715,6 +716,26 @@ export const useDecksStore = create((set, get) => ({
         } catch (error) {
             console.error("Error fetching decks: ", error);
             set({ isLoading: false, isDecksLoading: false });
+        }
+    },
+
+    // --- NEW: Fetch all users for Admin Panel ---
+    fetchAllUsers: async () => {
+        const { isAdmin, currentUser, isUsersLoading, usersList } = get();
+        if (!isAdmin || !currentUser || isUsersLoading || usersList.length > 0) return;
+
+        set({ isUsersLoading: true });
+        try {
+            const usersCollection = collection(db, 'users');
+            const usersSnapshot = await getDocs(usersCollection);
+            const usersData = [];
+            usersSnapshot.forEach(doc => {
+                usersData.push({ id: doc.id, ...doc.data() });
+            });
+            set({ usersList: usersData, isUsersLoading: false });
+        } catch (error) {
+            console.error("Error fetching users: ", error);
+            set({ isUsersLoading: false });
         }
     },
 

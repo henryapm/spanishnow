@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
 
@@ -30,6 +30,19 @@ const TopicManager = () => {
     const decks = useDecksStore((state) => state.decks);
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const topics = useMemo(() => groupDecksByTopic(decks), [decks]);
+    
+    const usersList = useDecksStore((state) => state.usersList) || [];
+    const isUsersLoading = useDecksStore((state) => state.isUsersLoading);
+    const fetchAllUsers = useDecksStore((state) => state.fetchAllUsers);
+
+    useEffect(() => {
+        if (isAdmin) {
+            fetchAllUsers();
+        }
+    }, [isAdmin, fetchAllUsers]);
+
+    const premiumUsersCount = usersList.filter(u => u.isAdmin || u.hasActiveSubscription).length;
+    const freeUsersCount = usersList.length - premiumUsersCount;
 
     // If a non-admin somehow gets to this page, show an error.
     if (!isAdmin) {
@@ -46,6 +59,29 @@ const TopicManager = () => {
         <div className="w-full animate-fade-in">
             <h1 className="text-3xl font-bold text-teal-800 dark:text-teal-300 mb-6 text-center">Admin Panel</h1>
             
+            {/* Users Dashboard Section */}
+            <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Users Dashboard</h2>
+                {isUsersLoading ? (
+                    <p className="text-gray-600 dark:text-gray-400">Loading user statistics...</p>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                        <div className="p-4 bg-blue-100 dark:bg-blue-900 rounded-lg shadow">
+                            <p className="text-3xl font-bold text-blue-800 dark:text-blue-200">{usersList.length}</p>
+                            <p className="text-sm font-semibold text-blue-600 dark:text-blue-300 uppercase tracking-wide">Total Users</p>
+                        </div>
+                        <div className="p-4 bg-purple-100 dark:bg-purple-900 rounded-lg shadow">
+                            <p className="text-3xl font-bold text-purple-800 dark:text-purple-200">{premiumUsersCount}</p>
+                            <p className="text-sm font-semibold text-purple-600 dark:text-purple-300 uppercase tracking-wide">Premium Users</p>
+                        </div>
+                        <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow">
+                            <p className="text-3xl font-bold text-gray-800 dark:text-gray-200">{freeUsersCount}</p>
+                            <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Free Users</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Content Management</h2>
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -101,4 +137,3 @@ const TopicManager = () => {
 };
 
 export default TopicManager;
-

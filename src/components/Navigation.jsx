@@ -32,7 +32,7 @@ const Navigation = () => {
             `}</style>
             <div className="max-w-2xl mx-auto flex justify-around items-center h-16">
                 <NavLink 
-                    to="/reading" 
+                    to="/" 
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
                     aria-label="Reading practice"
                 >
