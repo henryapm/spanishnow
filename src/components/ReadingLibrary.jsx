@@ -154,7 +154,7 @@ const ReadingLibrary = () => {
                         return (
                             <div
                             key={article.id}
-                            onClick={() => handleArticleClick(article)}
+                            onClick={(e) => handleStartLesson(e, article)}
                             className={`w-full text-left relative overflow-hidden py-6 pr-6 pl-16 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-transform cursor-pointer flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 ${!isLocked ? 'hover:-translate-y-1' : 'opacity-75'}`}
                             >
                             {article.level && <span className={`absolute left-0 top-0 h-full w-10 flex items-center justify-center text-md font-bold px-2 py-1 h-full ${getLevelColor(article.level)}`}>{article.level}</span>}
@@ -168,16 +168,6 @@ const ReadingLibrary = () => {
                             <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
                                 <div className="flex items-center gap-2">
                                     {isLocked && <span className="text-2xl" role="img" aria-label="locked">🔒</span>}
-                                </div>
-                                
-                                {/* --- NEW: Lesson Mode Button --- */}
-                                <div className="flex gap-2">
-                                    <button 
-                                        onClick={(e) => handleStartLesson(e, article)}
-                                        className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded shadow hover:bg-blue-700 transition-colors"
-                                    >
-                                        Start Lesson
-                                    </button>
                                 </div>
                             </div>
                         </div>

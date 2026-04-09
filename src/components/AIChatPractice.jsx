@@ -246,7 +246,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                     </svg>
                 </button>
                 
-                <div className="mt-4 text-center min-h-[3rem]">
+                <div className="mt-4 text-center min-h-12">
                     {isRecording ? (
                         <p className="text-red-500 font-semibold animate-pulse">Listening...</p>
                     ) : userSpeech ? (

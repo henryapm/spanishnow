@@ -42,7 +42,7 @@ const LandingPage = () => {
 
                     {/* Media Placeholder (Video/Image) */}
                     <div className="aspect-video w-full bg-gray-200 dark:bg-gray-800 rounded-2xl border border-gray-300 dark:border-gray-700 flex items-center justify-center shadow-inner overflow-hidden relative group cursor-pointer">
-                        <div className="absolute inset-0 bg-gradient-to-br from-teal-500/10 to-blue-600/10 group-hover:scale-105 transition-transform duration-700"></div>
+                        <div className="absolute inset-0 bg-linear-to-br from-teal-500/10 to-blue-600/10 group-hover:scale-105 transition-transform duration-700"></div>
                         <span className="text-gray-500 dark:text-gray-400 flex flex-col items-center relative z-10">
                             <svg className="w-16 h-16 mb-2 opacity-80 drop-shadow-md" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
@@ -63,15 +63,15 @@ const LandingPage = () => {
                             </p>
                             <ul className="space-y-4 mt-6 pb-2">
                                 <li className="flex items-start">
-                                    <BsCheckCircleFill className="text-teal-500 mt-1.5 mr-3 flex-shrink-0 text-xl" />
+                                    <BsCheckCircleFill className="text-teal-500 mt-1.5 mr-3 shrink-0 text-xl" />
                                     <span><strong>Reading Library:</strong> Immerse yourself in Spanish stories tailored to your level. Save words you don't know with a single click.</span>
                                 </li>
                                 <li className="flex items-start">
-                                    <BsCheckCircleFill className="text-teal-500 mt-1.5 mr-3 flex-shrink-0 text-xl" />
+                                    <BsCheckCircleFill className="text-teal-500 mt-1.5 mr-3 shrink-0 text-xl" />
                                     <span><strong>Spaced Repetition:</strong> Review your saved vocabulary using a smart algorithm that ensures you never forget what you've learned.</span>
                                 </li>
                                 <li className="flex items-start">
-                                    <BsCheckCircleFill className="text-teal-500 mt-1.5 mr-3 flex-shrink-0 text-xl" />
+                                    <BsCheckCircleFill className="text-teal-500 mt-1.5 mr-3 shrink-0 text-xl" />
                                     <span><strong>AI Speak Companion:</strong> Put your knowledge to the test in real-time. Practice ordering at a restaurant, booking a hotel, or chatting with a friend.</span>
                                 </li>
                             </ul>
@@ -80,7 +80,7 @@ const LandingPage = () => {
                 </div>
 
                 {/* --- Right Column: Sticky CTA Card --- */}
-                <div className="w-full lg:w-96 flex-shrink-0">
+                <div className="w-full lg:w-96 shrink-0">
                     <div className="sticky top-8 bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-xl border border-gray-200 dark:border-gray-700">
                         
                         <div className="mb-6 border-b border-gray-100 dark:border-gray-700 pb-6">
