@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDecksStore } from '../store.js';
 import { LuTurtle } from "react-icons/lu";
 import { BsBookmark, BsBookmarkFill, BsFillVolumeUpFill } from "react-icons/bs";
-import { FaInfoCircle } from 'react-icons/fa';
+import { FaInfoCircle, FaPlayCircle } from 'react-icons/fa';
 
 const StoryReader = ({ articleId, onComplete }) => {
     // --- Store Data ---
@@ -171,45 +171,93 @@ const StoryReader = ({ articleId, onComplete }) => {
             )}
         </div>
     ));
-
     const renderPopup = () => {
-        if (!lookupResult) return null;
-
-        const isSaved = savedWords.has(lookupResult.word);
-        const liveTranslation = translations.get(lookupResult.word) || lookupResult.translation;
-
-        return (
-            <div 
-                style={{ top: `${popupPosition.y}px`, left: `${popupPosition.x}px` }}
-                className={`fixed w-55 bg-gray-800 text-white text-sm font-semibold px-4 py-3 rounded-lg shadow-lg z-50`}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center gap-2">
-                        <p className="font-bold capitalize text-base">{lookupResult.word}</p>
-                        <button onClick={() => handleSpeak(lookupResult.word)} className="text-gray-400 hover:text-blue-400"><BsFillVolumeUpFill size={16} /></button>
+            if (!lookupResult) return null;
+    
+            // Check if the current word is in the user's savedWords Set
+            const isSaved = savedWords.has(lookupResult.word);
+            const liveTranslation = translations.get(lookupResult.word) || lookupResult.translation;
+    
+            return (
+                <div 
+                    style={{ top: `${popupPosition.y}px`, left: `${popupPosition.x}px` }}
+                    // --- MODIFIED: Changed 'fixed' to 'absolute' to scroll with the page ---
+                    className={`fixed w-55 bg-gray-800 text-white text-sm font-semibold px-4 py-3 rounded-lg shadow-lg z-50`}
+                    onClick={(e) => e.stopPropagation()} // Prevents popup from closing when clicking inside it
+                >
+                    <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center gap-2">
+                            <p className="font-bold capitalize text-base">{lookupResult.word}</p>
+                            <button 
+                                onClick={() => handleSpeak(lookupResult.word)}
+                                className="text-gray-400 hover:text-custom-400 transition-colors"
+                                title="Listen"
+                            >
+                                <BsFillVolumeUpFill size={16} />
+                            </button>
+                        </div>
+                        
+                        {/* --- NEW: Save Word Button --- */}
+                        <button 
+                            onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    toggleSavedWord(lookupResult.word, {
+                                        translation: liveTranslation,
+                                        source: `Library (${article.title})`
+                                    })}}
+                            className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors`}
+                            title={isSaved ? "Remove from saved words" : "Save word for training"}
+                        >
+                            {isSaved ? <BsBookmarkFill /> : <BsBookmark />}
+                        </button>
                     </div>
-                    <button 
-                        onClick={(e) => { 
-                                e.stopPropagation(); 
-                                if (!isSaved && sessionWords.length >= 10) {
-                                    alert("You can only save up to 10 words per session to keep your practice concise.");
-                                    return;
-                                }
-                                toggleSavedWord(lookupResult.word, { translation: liveTranslation, source: `Lesson (${article.title})` })
-                        }}
-                        className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors`}
-                    >
-                        {isSaved ? <BsBookmarkFill /> : <BsBookmark />}
-                    </button>
+                    
+                    {/* Admin Editing UI */}
+                    {isEditing ? (
+                        <div>
+                            <textarea
+                                className="w-full bg-gray-700 text-white rounded p-2 text-sm"
+                                value={editText}
+                                onChange={(e) => setEditText(e.target.value)}
+                                rows={2}
+                            />
+                            <button
+                                onClick={handleSaveEdit}
+                                className="w-full mt-2 px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-white font-bold"
+                            >
+                                Save
+                            </button>
+                        </div>
+                    ) : (
+                        // Standard Translation View
+                        <div>
+                            <p className="font-normal">&rarr; {liveTranslation}</p>
+                            {liveTranslation === "No translation found" && (
+                                <a 
+                                    href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(lookupResult.word)}&op=translate`}
+                                    className="text-custom-300 hover:underline text-xs"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Translate with Google.
+                                </a>
+                            )}
+                            {isAdmin && (
+                                <button
+                                    onClick={() => {
+                                        setIsEditing(true);
+                                        setEditText((liveTranslation === "No translation found." || liveTranslation === "Loading...") ? "" : liveTranslation);
+                                    }}
+                                    className="w-full mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white font-bold text-xs"
+                                >
+                                    {liveTranslation === "No translation found." ? "Add" : "Edit"} Translation
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
-                
-                <div>
-                    <p className="font-normal">&rarr; {liveTranslation}</p>
-                </div>
-            </div>
-        );
-    };
+            );
+        };
 
     return (
         <div className="w-full h-full overflow-y-auto p-6 pb-24 animate-fade-in bg-white dark:bg-gray-900" onClick={closePopup}>
@@ -232,6 +280,9 @@ const StoryReader = ({ articleId, onComplete }) => {
                         </span>
                         <button onClick={() => setShowTranslations(!showTranslations)} className="text-sm px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                             {showTranslations ? 'Hide translations' : 'Show translations'}
+                        </button>
+                        <button onClick={() => handleSpeak(article.sentences.map(s => s.spanish).join(' '))} className="flex justify-between items-center gap-2 text-sm px-3 py-1 bg-blue-600 text-gray-700 dark:text-gray-300 rounded hover:bg-blue-700 dark:hover:bg-blue-700 dark:bg-blue-600 transition-colors">
+                            <FaPlayCircle /> <span>Speak Full Story</span>
                         </button>
                     </div>
                 </div>
