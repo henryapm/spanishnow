@@ -25,6 +25,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
     const finalTranscriptRef = useRef('');
     const shouldListenRef = useRef(false);
     const interactionCount = useDecksStore((state) => state.interactionCount);
+    const incrementInteractionCount = useDecksStore((state) => state.incrementInteractionCount);
     const InteractionCounts =() => {     
         return (
         <div className="my-6 text-center">
@@ -125,6 +126,11 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
 
     const handleSend = async () => {
         if (!userSpeech.trim()) return;
+        
+        if (!isPremium && interactionCount >= MAX_FREE_INTERACTIONS) {
+            alert(`You've reached the limit of ${MAX_FREE_INTERACTIONS} free interactions. Please upgrade to Premium to continue.`);
+            return;
+        }
 
         const newUserMessage = { role: 'user', text: userSpeech };
         const newHistory = [...chatHistory, newUserMessage];
@@ -164,6 +170,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
 
             setChatHistory(prev => [...prev, { role: 'model', text: aiResponseText }]);
             speakText(aiResponseText);
+            if (!isPremium) incrementInteractionCount();
         } catch (error) {
             console.error("Error calling Gemini:", error);
             setChatHistory(prev => [...prev, { role: 'model', text: `Error: ${error.message}` }]);
