@@ -5,11 +5,16 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
 
 export default function AIChatPractice({ articleId, targetVocabulary, onComplete }) {
+    const MAX_FREE_INTERACTIONS = 5;
     const article = useDecksStore((state) => state.articles[articleId]);
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
     const scenariosAiInstructions = useDecksStore((state) => state.scenariosAiInstructions);
     const fetchScenarios = useDecksStore((state) => state.fetchScenarios);
-    
+    const isAdmin = useDecksStore((state) => state.isAdmin);
+    const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
+
+    const isPremium = isAdmin || hasActiveSubscription;
+
     const [isRecording, setIsRecording] = useState(false);
     const [userSpeech, setUserSpeech] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
@@ -19,6 +24,16 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
     const chatContainerRef = useRef(null);
     const finalTranscriptRef = useRef('');
     const shouldListenRef = useRef(false);
+    const interactionCount = useDecksStore((state) => state.interactionCount);
+    const InteractionCounts =() => {     
+        return (
+        <div className="my-6 text-center">
+            <span className="text-sm font-semibold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
+                Free Interactions: {interactionCount}/{MAX_FREE_INTERACTIONS}
+            </span>
+        </div>
+        )
+    }
 
     // Ensure AI instructions are loaded
     useEffect(() => {
@@ -181,9 +196,13 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
         <div className="flex flex-col h-full w-full max-w-3xl mx-auto p-4 animate-fade-in pb-24">
             <div className="text-center mb-4">
                 <h2 className="text-2xl font-bold text-teal-600 dark:text-teal-400">Put it into Practice</h2>
+                {!isPremium &&
+                    <InteractionCounts />
+                }
                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                    Chat with AI about <strong>{article?.title}</strong>
                 </p>
+                    Chat with AI about <strong>{article?.title}</strong>
+
                 {targetVocabulary && targetVocabulary.length > 0 && (
                     <p className="text-md text-gray-500 dark:text-gray-400 mt-2">
                         Try to use: {targetVocabulary.map(word => (

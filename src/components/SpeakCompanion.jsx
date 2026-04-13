@@ -7,7 +7,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
 import { BsCheckCircleFill } from "react-icons/bs";
 
-const MAX_FREE_INTERACTIONS = 3;
+const MAX_FREE_INTERACTIONS = 5;
 const MAX_FREE_CHARS = 100;
 
 // --- NEW: Custom Circular Progress Component ---
@@ -69,12 +69,12 @@ const SpeakCompanion = () => {
     const [selectedScenario, setSelectedScenario] = useState(null);
     const [selectedContextAndObjectives, setSelectedContextAndObjectives] = useState(null);
     const [isAiProcessing, setIsAiProcessing] = useState(false);
-    const [interactionCount, setInteractionCount] = useState(0);
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [limitMessage, setLimitMessage] = useState('');
     
     const userProgress = useDecksStore((state) => state.speakProgress);
     const updateSpeakProgressLocal = useDecksStore((state) => state.updateSpeakProgressLocal);
+    const interactionCount = useDecksStore((state) => state.interactionCount);
     const incrementInteractionCount = useDecksStore((state) => state.incrementInteractionCount);
     
     const recognitionRef = useRef(null);
@@ -436,6 +436,11 @@ const SpeakCompanion = () => {
                 >
                     {selectedContextAndObjectives ? 'Change Role Play' : 'Change Scenario'}
                 </button>
+            </div>
+            <div className="flex justify-center">
+                {!isPremium &&
+                    <InteractionCounts />
+                }
             </div>
 
             <div className="mb-4 p-4 bg-custom-50 dark:bg-custom-900/30 rounded-lg border border-custom-100 dark:border-custom-800/50">

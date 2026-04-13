@@ -141,7 +141,7 @@ const SCENARIOS = [
     },
 ];
 
-const MAX_FREE_INTERACTIONS = 3;
+const MAX_FREE_INTERACTIONS = 5;
 
 // --- FIX: Added `cors: true` to options ---
 exports.chatWithGemini = onCall({ 
