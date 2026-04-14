@@ -260,7 +260,7 @@ const StoryReader = ({ articleId, onComplete }) => {
         };
 
     return (
-        <div className="w-full h-full overflow-y-auto p-6 pb-24 animate-fade-in bg-white dark:bg-gray-900" onClick={closePopup}>
+        <div className="w-full h-full overflow-y-auto p-6 pb-24 animate-fade-in bg-white dark:bg-gray-900" onClick={closePopup} onScroll={closePopup}>
             {renderPopup()}
             <div className="max-w-xl m-auto bg-gray-700 p-5 rounded-lg shadow-lg mb-8">
                 <div className="flex items-center justify-between text-center text-md color-gray-100 dark:text-gray-800 mb-5 bg-amber-900 dark:bg-amber-100 p-3 rounded">

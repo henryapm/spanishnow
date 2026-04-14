@@ -6,8 +6,15 @@ import StoryReader from './StoryReader';
 import FlashcardReview from './FlashcardReview';
 import AIChatPractice from './AIChatPractice';
 import SessionComplete from './SessionComplete';
+import { NavLink } from 'react-router-dom';
 
 export default function LessonFlow() {
+    const isAdmin = useDecksStore((state) => state.isAdmin);
+    const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
+    const interactionCount = useDecksStore((state) => state.interactionCount);
+
+    const isPremium = isAdmin || hasActiveSubscription;
+
     const { activeSession, advanceSessionStep, endSession } = useDecksStore();
 
     if (!activeSession.isActive) {
@@ -18,7 +25,12 @@ export default function LessonFlow() {
                     onClick={endSession}
                     className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                 >
-                    Return Home
+                    <NavLink 
+                        to="/"
+                        aria-label="Home"
+                    >
+                        Return Home
+                    </NavLink>
                 </button>
             </div>
         );
