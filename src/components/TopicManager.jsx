@@ -1,6 +1,9 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
+import { getApp } from 'firebase/app';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 // Helper function to group decks by topic
 const groupDecksByTopic = (decks) => {
@@ -11,7 +14,7 @@ const groupDecksByTopic = (decks) => {
            topics[topic] = [];
         }
     });
-
+    
     for (const deckId in decks) {
         const deck = decks[deckId];
         const topic = deck.topic || 'General';
@@ -26,6 +29,7 @@ const groupDecksByTopic = (decks) => {
 
 
 const TopicManager = () => {
+    const fetchNewsConfig = useDecksStore((state) => state.fetchNewsConfig);
     const navigate = useNavigate();
     const decks = useDecksStore((state) => state.decks);
     const isAdmin = useDecksStore((state) => state.isAdmin);
@@ -34,6 +38,26 @@ const TopicManager = () => {
     const usersList = useDecksStore((state) => state.usersList) || [];
     const isUsersLoading = useDecksStore((state) => state.isUsersLoading);
     const fetchAllUsers = useDecksStore((state) => state.fetchAllUsers);
+    
+    const newsApiFrequency = useDecksStore((state) => state.newsApiFrequency);
+    const storedNewsTopic = useDecksStore((state) => state.newsTopic);
+
+    // --- NEW: State for News API Configuration ---
+    const [newsFrequency, setNewsFrequency] = useState(24);
+    const [newsTopic, setNewsTopic] = useState('noticias');
+    const [isSavingNews, setIsSavingNews] = useState(false);
+    const [isFetchingNews, setIsFetchingNews] = useState(false);
+
+    // Fetch configuration exactly once when the component mounts
+    useEffect(() => {
+        fetchNewsConfig();
+    }, [fetchNewsConfig]);
+
+    // Sync local form state when the store finishes fetching from Firestore
+    useEffect(() => {
+        if (newsApiFrequency !== undefined) setNewsFrequency(newsApiFrequency);
+        if (storedNewsTopic) setNewsTopic(storedNewsTopic);
+    }, [newsApiFrequency, storedNewsTopic]);
 
     useEffect(() => {
         if (isAdmin) {
@@ -43,6 +67,38 @@ const TopicManager = () => {
 
     const premiumUsersCount = usersList.filter(u => u.isAdmin || u.hasActiveSubscription).length;
     const freeUsersCount = usersList.length - premiumUsersCount;
+
+    const handleManualFetch = async () => {
+        setIsFetchingNews(true);
+        try {
+            const functions = getFunctions(getApp());
+            const manualFetchNews = httpsCallable(functions, 'manualFetchNews');
+            const result = await manualFetchNews({ topic: newsTopic });
+            alert(result.data.message || "Fetch triggered successfully!");
+        } catch (error) {
+            console.error("Error triggering manual fetch:", error);
+            alert("Failed to trigger fetch: " + error.message);
+        } finally {
+            setIsFetchingNews(false);
+        }
+    };
+
+    const handleSaveConfig = async () => {
+        setIsSavingNews(true);
+        try {
+            const db = getFirestore(getApp());
+            await setDoc(doc(db, "settings", "newsApi"), {
+                topic: newsTopic,
+                frequency: parseInt(newsFrequency, 10)
+            }, { merge: true });
+            alert("News configuration saved successfully!");
+        } catch (error) {
+            console.error("Error saving config:", error);
+            alert("Failed to save config: " + error.message);
+        } finally {
+            setIsSavingNews(false);
+        }
+    };
 
     // If a non-admin somehow gets to this page, show an error.
     if (!isAdmin) {
@@ -102,6 +158,54 @@ const TopicManager = () => {
                         className="flex-1 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-colors text-center"
                     >
                         + Add New Word
+                    </button>
+                </div>
+            </div>
+
+            {/* News API Configuration Section */}
+            <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">News Auto-Fetch (GNews)</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Configure how often to automatically pull Spanish news stories into the Reading Library.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 items-end">
+                    <div className="flex-1">
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Search Topic</label>
+                        <input 
+                            type="text" 
+                            value={newsTopic} 
+                            onChange={(e) => setNewsTopic(e.target.value)} 
+                            className="w-full p-2 border rounded dark:bg-gray-600 dark:text-white focus:ring-2 focus:ring-custom-500 outline-none" 
+                            placeholder="e.g., tecnología" 
+                        />
+                    </div>
+                    <div className="flex-1">
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Fetch Frequency</label>
+                        <select 
+                            value={newsFrequency} 
+                            onChange={(e) => setNewsFrequency(e.target.value)} 
+                            className="w-full p-2 border rounded dark:bg-gray-600 dark:text-white focus:ring-2 focus:ring-custom-500 outline-none"
+                        >
+                            <option value="6">Every 6 Hours</option>
+                            <option value="12">Every 12 Hours</option>
+                            <option value="24">Daily</option>
+                            <option value="168">Weekly</option>
+                            <option value="0">Disabled</option>
+                        </select>
+                    </div>
+                    <button 
+                        onClick={handleSaveConfig}
+                        disabled={isSavingNews}
+                        className="px-6 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition-colors h-[42px] disabled:opacity-50"
+                    >
+                        {isSavingNews ? 'Saving...' : 'Save Config'}
+                    </button>
+                    <button 
+                        onClick={handleManualFetch}
+                        disabled={isFetchingNews}
+                        className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors h-[42px] disabled:opacity-50"
+                    >
+                        {isFetchingNews ? 'Fetching...' : 'Test Fetch'}
                     </button>
                 </div>
             </div>

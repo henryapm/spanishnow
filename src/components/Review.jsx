@@ -89,7 +89,7 @@ const Review = () => {
 
     const [openSections, setOpenSections] = useState({
         stageZero: true,
-        soon: true,
+        soon: false,
         three: false,
         week: false,
         twoWeeks: false,
@@ -163,7 +163,7 @@ const Review = () => {
 
     const handleStartReview = async () => {
         if (dueWords.length === 0) return;
-        const words = dueWords.map(w => w.id);
+        const words = dueWords.slice(0, 10).map(w => w.id);
         await prepareTrainingDeck(words);
         navigate('/review/training');
     };

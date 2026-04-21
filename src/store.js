@@ -94,6 +94,8 @@ export const useDecksStore = create((set, get) => ({
     speakProgressLoaded: false,
     usersList: [],
     isUsersLoading: false,
+    newsApiFrequency: 24,
+    newsTopic: 'noticias',
 
     // --- NEW: Structured Lesson Flow State ---
     activeSession: {
@@ -230,6 +232,20 @@ export const useDecksStore = create((set, get) => ({
         });
     },
 
+    fetchNewsConfig: async () => {
+        try {
+            const configDoc = await getDoc(doc(db, 'settings', 'newsApi'));
+            if (configDoc.exists()) { 
+                const data = configDoc.data();
+                const frequency = data.frequency !== undefined ? parseInt(data.frequency, 10) : 24;
+                const topic = data.topic || 'noticias';
+                set({ newsApiFrequency: frequency, newsTopic: topic });
+            }
+        } catch (error) {
+            console.error("Error fetching news config: ", error);
+        }
+    },
+    
     // --- NEW: Lazy Load Actions ---
     fetchUserProgress: async () => {
         const { currentUser, userProgressLoaded } = get();

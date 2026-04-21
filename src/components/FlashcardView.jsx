@@ -130,8 +130,7 @@ const FlashcardView = () => {
     return (
         <div className="w-full animate-fade-in">
             <h1 className="text-2xl font-bold text-teal-500 mb-6 text-center">{deck?.title || 'Loading...'}</h1>
-            
-            {/* --- MODIFIED: Wrapped card in a div to add the save button --- */}
+            <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4 text-center">{sessionCards.length} cards left</h2>
             <div className="relative">
                 <FlashCard cardData={currentCard} isFlipped={isFlipped} onFlip={() => setIsFlipped(!isFlipped)} />
                 {/* --- NEW: Add to SRS Button for regular decks --- */}
