@@ -33,7 +33,7 @@ const LandingPage = () => {
                     {/* Header */}
                     <div className="text-center lg:text-left">
                         <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-4">
-                            Spanish Now <span className="text-teal-600 dark:text-teal-400">with Henry</span>
+                            The Spanish <span className="text-teal-600 dark:text-teal-400">Suite</span>
                         </h1>
                         <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto lg:mx-0">
                             Unlock your Spanish potential through interactive stories, spaced repetition, and real-world AI conversations.
