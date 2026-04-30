@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { db } from './firebase';
 // --- FIX: Added query, where, and documentId to the import list ---
-import { collection, getDocs, addDoc, doc, updateDoc, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion } from "firebase/firestore"; 
+import { collection, getDocs, addDoc, doc, updateDoc, getFirestore, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion } from "firebase/firestore"; 
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
 
 const auth = getAuth();
@@ -706,9 +706,55 @@ export const useDecksStore = create((set, get) => ({
         } catch (error) { console.error("Error updating listening preference: ", error); }
     },
 
-    signInWithGoogle: async () => {
-        try { await signInWithPopup(auth, provider); } catch (error) { 
-            console.error("Error during sign-in: ", error); 
+    signInWithGoogle: async (options = {}) => {
+        const db = getFirestore();
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            // This logic runs only if the user does NOT exist in your database
+            if (!userDocSnap.exists()) {
+                // --- NEW USER ---
+                // A new user must come through the sign-up flow to accept terms.
+                if (options.isSignUp) {
+                    const newUserProfile = {
+                        uid: user.uid,
+                        displayName: user.displayName,
+                        email: user.email,
+                        photoURL: user.photoURL,
+                        createdAt: serverTimestamp(),
+                        isAdmin: false,
+                        hasActiveSubscription: false,
+                        listeningPreference: 'es-US',
+                        totalXp: 0,
+                        finishedArticles: [],
+                        legal: {
+                            termsVersion: '1.0', // It's good practice to version your terms
+                            termsAcceptedAt: serverTimestamp(),
+                        }
+                    };
+                    await setDoc(userDocRef, newUserProfile);
+                } else {
+                    // Block sign-in for a new user who didn't accept terms.
+                    // Sign them out of the Firebase session and throw a custom error.
+                    await signOut(auth);
+                    const error = new Error('This Google account is not registered. Please use the "Sign Up" button to create an account.');
+                    error.code = 'auth/account-not-registered';
+                    throw error;
+                }
+            } else {
+                // --- EXISTING USER ---
+                // If an existing user tries to "Sign Up" again, we just log them in.
+                if (options.isSignUp) {
+                    console.log("Existing user signed up again. Logging them in.");
+                }
+            }
+            // The existing listenForAuthChanges will handle setting the currentUser state
+        } catch (error) {
+            console.error("Error during sign-in: ", error);
             throw error;
         }
     },

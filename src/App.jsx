@@ -52,7 +52,6 @@ const AppLayout = () => {
                     <Suspense fallback={<div className="text-center p-8">Loading...</div>}>
                         <Routes>
                             <Route path="/" element={<ReadingLibrary/>} />
-                            <Route path="/flashcards" element={<Flashcards decks={decks} />} />
                             <Route path="/create" element={<DeckForm decks={decks} />} />
                             <Route path="/review/:deckId" element={<FlashcardView />} />
                             <Route path="/spaced-repetition" element={<Review />} />
@@ -61,7 +60,6 @@ const AppLayout = () => {
                             <Route path="/reading/:articleId" element={<ReaderView />} />
                             <Route path="/speakCompanion" element={<SpeakCompanion />} />
                             <Route path="/deck/:deckId" element={<SessionManager />} />
-                            <Route path="/bookings" element={<Booking />} />
                             {/* --- NEW: Admin Route --- */}
                             <Route path="/admin" element={<TopicManager decks={decks} />} />
                             <Route path="*" element={<Navigate to="/" replace />} />

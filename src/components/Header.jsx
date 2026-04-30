@@ -125,25 +125,11 @@ const Header = () => {
                                     <span className="ml-2">My Account</span>
                                 </button>
                                 <button
-                                    onClick={() => handleNavigate('/flashcards')}
-                                    className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                >
-                                    <PiCardsFill />
-                                    <span className="ml-2">Flashcards</span>
-                                </button>
-                                <button
                                     onClick={() => handleNavigate('/')}
                                     className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
                                     <FaBookOpen />
                                     <span className="ml-2">Reading Library</span>
-                                </button>
-                                <button
-                                    onClick={() => handleNavigate('/speakCompanion')}
-                                    className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                >
-                                    <IoPersonSharp />
-                                    <span className="ml-2">Speak Companion</span>
                                 </button>
                                 <button
                                     onClick={() => handleNavigate('/spaced-repetition')}
@@ -154,11 +140,11 @@ const Header = () => {
                                     <span className="ml-2 text-xs bg-teal-500 text-white px-2 py-1 rounded-full">{dueWords.length}</span>
                                 </button>
                                 <button
-                                    onClick={() => handleNavigate('/bookings')}
+                                    onClick={() => handleNavigate('/speakCompanion')}
                                     className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                    <MdCalendarToday />
-                                    <span className="ml-2">Book a session</span>
+                                    <IoPersonSharp />
+                                    <span className="ml-2">Speak Companion</span>
                                 </button>
                                 <button
                                     onClick={() => { toggleTheme(); setIsMenuOpen(false); }}
