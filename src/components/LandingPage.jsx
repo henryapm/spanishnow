@@ -176,9 +176,9 @@ const LandingPage = () => {
                         </button>
 
                         <div className="relative flex py-3 items-center">
-                            <div className="flex-grow border-t border-gray-200 dark:border-gray-600"></div>
-                            <span className="flex-shrink mx-4 text-xs text-gray-400 dark:text-gray-500 font-semibold uppercase">Or</span>
-                            <div className="flex-grow border-t border-gray-200 dark:border-gray-600"></div>
+                            <div className="grow border-t border-gray-200 dark:border-gray-600"></div>
+                            <span className="shrink mx-4 text-xs text-gray-400 dark:text-gray-500 font-semibold uppercase">Or</span>
+                            <div className="grow border-t border-gray-200 dark:border-gray-600"></div>
                         </div>
 
                         <button 

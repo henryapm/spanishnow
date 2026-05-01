@@ -726,8 +726,6 @@ export const useDecksStore = create((set, get) => ({
                         email: user.email,
                         photoURL: user.photoURL,
                         createdAt: serverTimestamp(),
-                        isAdmin: false,
-                        hasActiveSubscription: false,
                         listeningPreference: 'es-US',
                         totalXp: 0,
                         finishedArticles: [],
