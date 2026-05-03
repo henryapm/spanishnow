@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { db } from './firebase';
+import { db, functions } from './firebase';
 // --- FIX: Added query, where, and documentId to the import list ---
 import { collection, getDocs, addDoc, doc, updateDoc, getFirestore, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion } from "firebase/firestore"; 
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
+import { httpsCallable } from "firebase/functions";
 
 const auth = getAuth();
 const provider = new GoogleAuthProvider();
@@ -233,6 +234,7 @@ export const useDecksStore = create((set, get) => ({
     },
 
     fetchNewsConfig: async () => {
+        if (!get().isAdmin) return; // Only admins can fetch/update news config 
         try {
             const configDoc = await getDoc(doc(db, 'settings', 'newsApi'));
             if (configDoc.exists()) { 
@@ -448,53 +450,63 @@ export const useDecksStore = create((set, get) => ({
             return;
         }
 
-        const wordRef = doc(db, 'users', currentUser.uid, 'savedWords', spanishWord);
+        const isRemoving = savedWordsSet.has(spanishWord);
+        
+        // Backups for potential rollback if the server fails
+        const previousSavedWordsSet = new Set(savedWordsSet);
+        const previousSavedWordsList = [...savedWordsList];
+        const previousActiveSessionWords = [...get().activeSession.wordsSavedInSession];
+
         const newSavedWordsSet = new Set(savedWordsSet);
 
-        try {
-            if (savedWordsSet.has(spanishWord)) {
-                // Word is in the active set, so "remove" it by setting active: false
-                await updateDoc(wordRef, { active: false });
-                newSavedWordsSet.delete(spanishWord);
-                
-                // Optimistic Update: Remove from local list
-                const newList = savedWordsList.filter(w => w.id !== spanishWord);
-                set({ savedWordsSet: newSavedWordsSet, savedWordsList: newList });
-            } else {
-                // Word is not in the active set, so add it or re-activate it
-                const newWordData = { 
-                    addedAt: serverTimestamp(), 
-                    active: true,
-                    stage: 0,
-                    nextReviewDate: Date.now(),
-                    translation: data.translation || '',
-                    vocab: data.vocab || '',
-                    source: data.source || null
-                };
-                
-                await setDoc(wordRef, newWordData, { merge: true });
-                newSavedWordsSet.add(spanishWord);
-                
-                // Optimistic Update: Add to local list
-                const newItem = {
-                    id: spanishWord,
-                    ...newWordData,
-                    addedAt: { seconds: Date.now() / 1000 } // Mock timestamp for local display
-                };
-                set({ savedWordsSet: newSavedWordsSet, savedWordsList: [newItem, ...savedWordsList] });
-            }
+        // 1. Optimistic Update (Instantly update UI)
+        if (isRemoving) {
+            newSavedWordsSet.delete(spanishWord);
+            const newList = savedWordsList.filter(w => w.id !== spanishWord);
+            set({ savedWordsSet: newSavedWordsSet, savedWordsList: newList });
+        } else {
+            newSavedWordsSet.add(spanishWord);
+            const newWordData = { 
+                addedAt: { seconds: Date.now() / 1000 }, // Mock timestamp for local display
+                active: true,
+                stage: 0,
+                nextReviewDate: Date.now(),
+                translation: data.translation || '',
+                vocab: data.vocab || '',
+                source: data.source || null
+            };
+            const newItem = { id: spanishWord, ...newWordData };
+            set({ savedWordsSet: newSavedWordsSet, savedWordsList: [newItem, ...savedWordsList] });
             
-            // Track words saved during the active session
-            if (get().activeSession.isActive && !savedWordsSet.has(spanishWord)) {
+            if (get().activeSession.isActive) {
                 set(state => ({ activeSession: { ...state.activeSession, wordsSavedInSession: [...state.activeSession.wordsSavedInSession, spanishWord] } }));
             }
+        }
+
+        // 2. Perform the secure network request
+        try {
+            const toggleSavedWordCall = httpsCallable(functions, 'toggleSavedWord');
+            await toggleSavedWordCall({
+                spanishWord,
+                action: isRemoving ? 'remove' : 'add',
+                translation: data.translation,
+                vocab: data.vocab,
+                source: data.source
+            });
         } catch (error) {
             console.error("Error toggling saved word: ", error);
+            
+            // 3. Rollback the UI if the server fails
+            set({ savedWordsSet: previousSavedWordsSet, savedWordsList: previousSavedWordsList });
+            if (!isRemoving && get().activeSession.isActive) {
+                set(state => ({ activeSession: { ...state.activeSession, wordsSavedInSession: previousActiveSessionWords } }));
+            }
+            
             alert("Could not save word. Please try again.");
         }
     },
 
-    // --- NEW: Add a specific card/sentence to SRS with metadata ---
+    // --- NEW: Add a specific card/sentence to SRS from Flashcards
     addCardToSRS: async (card, deckTitle) => {
         const { currentUser, savedWordsSet } = get();
         if (!currentUser) return;
@@ -502,24 +514,21 @@ export const useDecksStore = create((set, get) => ({
         const spanish = card.spanish;
         if (!spanish) return;
 
-        const wordRef = doc(db, 'users', currentUser.uid, 'savedWords', spanish);
-        
+        // 1. Optimistic Update: Update UI instantly BEFORE waiting for the server
+        const previousSet = new Set(savedWordsSet);
+        const newSet = new Set(savedWordsSet);
+        newSet.add(spanish);
+        set({ savedWordsSet: newSet });
+
         try {
-            await setDoc(wordRef, { 
-                addedAt: serverTimestamp(), 
-                active: true,
-                stage: 0,
-                nextReviewDate: Date.now(),
-                translation: card.english || '',
-                vocab: card.vocab || '',
-                source: deckTitle || 'Flashcards'
-            }, { merge: true });
-            
-            const newSet = new Set(savedWordsSet);
-            newSet.add(spanish);
-            set({ savedWordsSet: newSet });
+            // 2. Perform the secure network request
+            const addCardToSRSCall = httpsCallable(functions, 'addCardToSRS');
+            await addCardToSRSCall({ card, deckTitle });
         } catch (error) {
             console.error("Error adding card to SRS:", error);
+            // 3. Rollback the UI if the server request fails
+            set({ savedWordsSet: previousSet });
+            // Optionally show a toast/alert to the user here
         }
     },
 
@@ -637,28 +646,6 @@ export const useDecksStore = create((set, get) => ({
         };
 
         set({ trainingDeck: virtualDeck, isLoading: false });
-    },
-
-    addXp: (amount, message) => {
-        // ... (function is correct, no changes)
-        const { currentUser, streak } = get();
-     if (!currentUser) return;
-
-     let bonus = 0;
-     const newStreak = streak + 1;
-
-     if (newStreak === 5) {
-         bonus = 50;
-         set({ streak: 0 });
-     } else {
-         set({ streak: newStreak });
-     }
-     
-     const totalAmount = amount + bonus;
-     
-     set(state => ({ totalXp: state.totalXp + totalAmount }));
-     const userDocRef = doc(db, 'users', currentUser.uid);
-     setDoc(userDocRef, { totalXp: increment(totalAmount) }, { merge: true });
     },
 
     saveDeckProgress: async (deckId, score, total) => {

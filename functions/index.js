@@ -7,13 +7,14 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/https"); // Make sure to use v2
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const axios = require("axios");
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { getFirestore } = require("firebase-admin/firestore");
+const { FieldValue } = require('firebase-admin/firestore');
 
 
 // Initialize only once
@@ -270,6 +271,11 @@ exports.chatForLesson = onCall({
 
     const uid = request.auth.uid;
     const { history, date, context, objectives, scenariosAiInstructions } = request.data;
+    
+    // Input Validation to prevent server crashes from malformed requests
+    if (!history || !Array.isArray(history) || !objectives || !Array.isArray(objectives) || !context) {
+        throw new HttpsError('invalid-argument', 'Missing or invalid required chat parameters.');
+    }
 
     const db = admin.firestore();
 
@@ -504,3 +510,118 @@ async function fetchAndSaveNews(db, config, configRef) {
         throw new HttpsError('internal', `Error fetching from GNews: ${errorDetails}`);
     }
 }
+
+/**
+ * Securely saves a translation to the dictionary. Only callable by an admin.
+ */
+exports.updateDictionary = onCall(async (request) => {
+    if (!request.auth || !request.auth.token.admin) {
+        throw new HttpsError('permission-denied', 'You must be an admin to update the dictionary.');
+    }
+
+    const { spanishWord, translation } = request.data;
+
+    if (!spanishWord || typeof spanishWord !== 'string' || !translation || typeof translation !== 'string') {
+        throw new HttpsError('invalid-argument', 'Invalid word or translation provided.');
+    }
+
+    const wordRef = admin.firestore().doc(`dictionary/${spanishWord.toLowerCase()}`);
+    await wordRef.set({ translation: translation });
+
+    return { success: true };
+});
+
+/**
+ * Securely adds a card to the SRS system from flashcard component.
+ * Enforces string lengths and types to prevent database bloating.
+ */
+exports.addCardToSRS = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    const uid = request.auth.uid;
+    const { card, deckTitle } = request.data;
+
+    // 1. Strict Input Validation
+    if (!card || typeof card.spanish !== 'string' || card.spanish.trim() === '') {
+        throw new HttpsError('invalid-argument', 'A valid Spanish word is required.');
+    }
+    if (card.spanish.length > 100 || 
+        (card.english && typeof card.english !== 'string') || (card.english && card.english.length > 500) || 
+        (card.vocab && typeof card.vocab !== 'string') || (card.vocab && card.vocab.length > 500) ||
+        (deckTitle && typeof deckTitle !== 'string') || (deckTitle && deckTitle.length > 100)) {
+        throw new HttpsError('invalid-argument', 'Payload is malformed or exceeds maximum allowed length.');
+    }
+
+    const db = admin.firestore();
+    const wordRef = db.collection('users').doc(uid).collection('savedWords').doc(card.spanish);
+
+    // 2. Perform the secure write
+    try {
+        await wordRef.set({
+            addedAt: FieldValue.serverTimestamp(),
+            active: true,
+            stage: 0,
+            nextReviewDate: Date.now(),
+            translation: card.english || '',
+            vocab: card.vocab || '',
+            source: deckTitle || 'Flashcards'
+        }, { merge: true });
+        
+        return { success: true };
+    } catch (error) {
+        console.error("Error adding card to SRS:", error);
+        throw new HttpsError('internal', 'Failed to save the card to the database.');
+    }
+});
+
+/**
+ * Securely toggles a saved word for a user.
+ * Enforces string lengths and payload structure.
+ */
+exports.toggleSavedWord = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    const uid = request.auth.uid;
+    const { spanishWord, action, translation, vocab, source } = request.data;
+
+    // 1. Strict Input Validation
+    if (!spanishWord || typeof spanishWord !== 'string' || spanishWord.trim() === '' || spanishWord.length > 100) {
+        throw new HttpsError('invalid-argument', 'A valid Spanish word is required.');
+    }
+    
+    // Optional fields validation
+    if (translation && (typeof translation !== 'string' || translation.length > 500)) throw new HttpsError('invalid-argument', 'Translation is malformed.');
+    if (vocab && (typeof vocab !== 'string' || vocab.length > 500)) throw new HttpsError('invalid-argument', 'Vocab is malformed.');
+    if (source && (typeof source !== 'string' || source.length > 100)) throw new HttpsError('invalid-argument', 'Source is malformed.');
+
+    const db = admin.firestore();
+    const wordRef = db.collection('users').doc(uid).collection('savedWords').doc(spanishWord);
+
+    // 2. Perform the secure write
+    try {
+        if (action === 'remove') {
+            // Soft delete
+            await wordRef.update({ active: false });
+        } else {
+            // Add or re-activate
+            await wordRef.set({
+                addedAt: FieldValue.serverTimestamp(),
+                active: true,
+                stage: 0,
+                nextReviewDate: Date.now(),
+                translation: translation || '',
+                vocab: vocab || '',
+                source: source || null
+            }, { merge: true });
+        }
+        return { success: true };
+    } catch (error) {
+        console.error("Error toggling saved word:", error);
+        // If updating a non-existent document during 'remove', it throws. We can safely ignore or throw an internal error.
+        throw new HttpsError('internal', 'Failed to toggle the saved word.');
+    }
+});
