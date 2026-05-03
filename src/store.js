@@ -634,38 +634,6 @@ export const useDecksStore = create((set, get) => ({
 
         set({ trainingDeck: virtualDeck, isLoading: false });
     },
-    
-    // uncomment to reimplement flashcards and move to cloud functions for security
-
-    // saveDeckProgress: async (deckId, score, total) => {
-    //     const { currentUser } = get();
-    //     const percentage = Math.round((score / total) * 100)
-    //     if (!currentUser) return;
-        
-    //     try {
-    //         await setDoc(doc(db, 'users', currentUser.uid, 'progress', deckId), {
-    //             deckId,
-    //             score,
-    //             total,
-    //             timestamp: serverTimestamp(),
-    //             percentage: percentage
-    //         }, { merge: true });
-    //         // Update local state
-    //         set(state => ({
-    //             deckProgress: {
-    //                 ...state.deckProgress,
-    //                 [deckId]: {
-    //                     ...state.deckProgress[deckId],
-    //                     score,
-    //                     total,
-    //                     percentage: percentage
-    //                 }
-    //             }
-    //         }));
-    //     } catch (error) {
-    //         console.error("Error saving test result:", error);
-    //     }
-    // },
 
     resetStreak: () => {
         set({ streak: 0 });

@@ -168,6 +168,13 @@ const Review = () => {
         navigate('/review/training');
     };
 
+    const handleOnClose = () => {
+        setIsAddModalOpen(false);
+        setNewWord("");
+        setNewTranslation("");
+    };
+
+
     const handleAddWord = async () => {
         const spanish = String(newWord).trim();
         const english = String(newTranslation).trim();
@@ -233,7 +240,7 @@ const Review = () => {
                         <p>Adding custom words manually is a Premium feature. Upgrade to unlock this functionality!</p>
                     </Modal>
 
-                    <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Word">
+                    <Modal isOpen={isAddModalOpen} onClose={() => handleOnClose()} title="Add New Word">
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-bold mb-1 text-gray-700 dark:text-gray-300">Spanish Word</label>
