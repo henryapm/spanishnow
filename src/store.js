@@ -300,55 +300,26 @@ export const useDecksStore = create((set, get) => ({
         set(state => ({ interactionCount: state.interactionCount + 1 }));
     },
 
-    // --- NEW: Check and Record Daily Access ---
-    checkAndRecordDailyAccess: async (deckId) => {
-        const { currentUser, isAdmin, hasActiveSubscription, dailyFreeAccess } = get();
-        
-        // Admins and Subscribers have unlimited access
-        if (isAdmin || hasActiveSubscription) return true;
-        
-        const now = new Date();
-        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-        // If user has accessed a deck today
-        if (dailyFreeAccess && dailyFreeAccess.date === today) {
-            // If it's the SAME deck, allow it
-            if (String(dailyFreeAccess.deckId) === String(deckId)) {
-                return true;
-            }
-            // If it's a DIFFERENT deck, block it
-            return false;
-        }
-
-        // If it's a new day (or first time), allow and record usage
-        const newAccess = { date: today, deckId: String(deckId) };
-        
-        // Update local state immediately
-        set({ dailyFreeAccess: newAccess });
-
-        // Persist to Firestore
-        if (currentUser) {
-            const userDocRef = doc(db, "users", currentUser.uid);
-            try {
-                await setDoc(userDocRef, { dailyFreeAccess: newAccess }, { merge: true });
-            } catch (error) {
-                console.error("Error recording daily access:", error);
-            }
-        }
-        
-        return true;
-    },
-
     markArticleAsFinished: async (articleId) => {
         const { currentUser, finishedArticles } = get();
         if (!currentUser) return;
 
         if (!finishedArticles.includes(articleId)) {
+            // Backup for potential rollback
+            const previousFinishedArticles = [...finishedArticles];
+            
+            // Optimistic update
             const newFinishedArticles = [...finishedArticles, articleId];
             set({ finishedArticles: newFinishedArticles });
             
-            const userDocRef = doc(db, 'users', currentUser.uid);
-            await setDoc(userDocRef, { finishedArticles: arrayUnion(articleId) }, { merge: true });
+            try {
+                const markFinishedCall = httpsCallable(functions, 'markArticleAsFinished');
+                await markFinishedCall({ articleId });
+            } catch (error) {
+                console.error("Error marking article as finished:", error);
+                // Rollback on error
+                set({ finishedArticles: previousFinishedArticles });
+            }
         }
     },
 
@@ -537,7 +508,8 @@ export const useDecksStore = create((set, get) => ({
         const { currentUser, savedWordsList } = get();
         if (!currentUser) return;
         
-        const wordRef = doc(db, 'users', currentUser.uid, 'savedWords', wordId);
+        // Backup for potential rollback
+        const previousSavedWordsList = [...savedWordsList];
         
         try {
             // Optimization: Use local state instead of fetching the doc again
@@ -567,16 +539,22 @@ export const useDecksStore = create((set, get) => ({
                 // Normalize to midnight so words are due at the start of the day
                 nextDate.setHours(0, 0, 0, 0);
 
-                await updateDoc(wordRef, { stage, nextReviewDate: nextDate.getTime() });
-                
                 // Optimistic Update: Update local state directly without re-fetching everything
                 const newList = savedWordsList.map(w => 
                     w.id === wordId ? { ...w, stage, nextReviewDate: nextDate.getTime() } : w
                 );
                 set({ savedWordsList: newList });
+
+                // Perform the secure network request
+                const updateProgressCall = httpsCallable(functions, 'updateSavedWordProgress');
+                await updateProgressCall({ wordId });
             }
         } catch (error) {
             console.error("Error updating word progress:", error);
+            
+            // Rollback UI if the server request fails
+            set({ savedWordsList: previousSavedWordsList });
+            alert("Could not update progress. Please try again.");
         }
     },
 
@@ -585,19 +563,28 @@ export const useDecksStore = create((set, get) => ({
         const { currentUser, savedWordsList } = get();
         if (!currentUser) return;
         
-        const wordRef = doc(db, 'users', currentUser.uid, 'savedWords', wordId);
+        // Backup for potential rollback
+        const previousSavedWordsList = [...savedWordsList];
         
         try {
             // Reset to stage 0, due immediately
             const now = Date.now();
-            await updateDoc(wordRef, { stage: 0, nextReviewDate: now });
             
+            // Optimistic Update
             const newList = savedWordsList.map(w => 
                 w.id === wordId ? { ...w, stage: 0, nextReviewDate: now } : w
             );
             set({ savedWordsList: newList });
+
+            // Perform the secure network request
+            const resetProgressCall = httpsCallable(functions, 'resetSavedWordProgress');
+            await resetProgressCall({ wordId });
         } catch (error) {
             console.error("Error resetting word progress:", error);
+            
+            // Rollback UI if the server request fails
+            set({ savedWordsList: previousSavedWordsList });
+            alert("Could not reset progress. Please try again.");
         }
     },
 
@@ -647,50 +634,63 @@ export const useDecksStore = create((set, get) => ({
 
         set({ trainingDeck: virtualDeck, isLoading: false });
     },
+    
+    // uncomment to reimplement flashcards and move to cloud functions for security
 
-    saveDeckProgress: async (deckId, score, total) => {
-        const { currentUser } = get();
-        const percentage = Math.round((score / total) * 100)
-        if (!currentUser) return;
+    // saveDeckProgress: async (deckId, score, total) => {
+    //     const { currentUser } = get();
+    //     const percentage = Math.round((score / total) * 100)
+    //     if (!currentUser) return;
         
-        try {
-            await setDoc(doc(db, 'users', currentUser.uid, 'progress', deckId), {
-                deckId,
-                score,
-                total,
-                timestamp: serverTimestamp(),
-                percentage: percentage
-            }, { merge: true });
-            // Update local state
-            set(state => ({
-                deckProgress: {
-                    ...state.deckProgress,
-                    [deckId]: {
-                        ...state.deckProgress[deckId],
-                        score,
-                        total,
-                        percentage: percentage
-                    }
-                }
-            }));
-        } catch (error) {
-            console.error("Error saving test result:", error);
-        }
-    },
+    //     try {
+    //         await setDoc(doc(db, 'users', currentUser.uid, 'progress', deckId), {
+    //             deckId,
+    //             score,
+    //             total,
+    //             timestamp: serverTimestamp(),
+    //             percentage: percentage
+    //         }, { merge: true });
+    //         // Update local state
+    //         set(state => ({
+    //             deckProgress: {
+    //                 ...state.deckProgress,
+    //                 [deckId]: {
+    //                     ...state.deckProgress[deckId],
+    //                     score,
+    //                     total,
+    //                     percentage: percentage
+    //                 }
+    //             }
+    //         }));
+    //     } catch (error) {
+    //         console.error("Error saving test result:", error);
+    //     }
+    // },
 
     resetStreak: () => {
         set({ streak: 0 });
     },
     
     updateListeningPreference: async (pref) => {
-        // ... (function is correct, no changes)
-        const { currentUser } = get();
+        const { currentUser, listeningPreference } = get();
         if (!currentUser) return;
-        const userDocRef = doc(db, 'users', currentUser.uid);
+        
+        // Backup for potential rollback
+        const previousPreference = listeningPreference;
+        
         try {
-            await setDoc(userDocRef, { listeningPreference: pref }, { merge: true });
+            // Optimistic update
             set({ listeningPreference: pref });
-        } catch (error) { console.error("Error updating listening preference: ", error); }
+            
+            // Perform secure network request
+            const updatePrefCall = httpsCallable(functions, 'updateListeningPreference');
+            await updatePrefCall({ preference: pref });
+        } catch (error) { 
+            console.error("Error updating listening preference: ", error); 
+            // Rollback UI if the server request fails
+            set({ listeningPreference: previousPreference });
+            alert("Could not update preference. Please try again.");
+        }
     },
 
     signInWithGoogle: async (options = {}) => {
@@ -714,7 +714,6 @@ export const useDecksStore = create((set, get) => ({
                         photoURL: user.photoURL,
                         createdAt: serverTimestamp(),
                         listeningPreference: 'es-US',
-                        totalXp: 0,
                         finishedArticles: [],
                         legal: {
                             termsVersion: '1.0', // It's good practice to version your terms
@@ -1010,10 +1009,12 @@ export const useDecksStore = create((set, get) => ({
     },
 
     saveDeck: async (deckData, deckId) => {
-        // ... (function is correct, no changes)
         try {
-            if (deckId) { await updateDoc(doc(db, 'decks', deckId), deckData); } 
-            else { await addDoc(collection(db, 'decks'), deckData); }
+            const saveDeckCall = httpsCallable(functions, 'saveDeck');
+            await saveDeckCall({ deckData, deckId });
+            
+            // Optionally force clear the decks cache here if fetchDecks isn't updating it
+            set({ decks: {} });
             await get().fetchDecks();
         } catch (error) {
             console.error("Error saving deck: ", error);
@@ -1022,14 +1023,21 @@ export const useDecksStore = create((set, get) => ({
     },
 
     saveArticle: async (articleData, articleId) => {
-        // ... (function is correct, no changes)
         try {
-            if (articleId) {
-                const articleRef = doc(db, 'articles', articleId);
-                await updateDoc(articleRef, articleData);
-            } else {
-                await addDoc(collection(db, 'articles'), articleData);
+            const saveArticleCall = httpsCallable(functions, 'saveArticle');
+            await saveArticleCall({ articleData, articleId });
+            
+            // Invalidate caches so the UI fetches the fresh article
+            const cache = getCache();
+            if (articleId && cache.articleDetail) {
+                delete cache.articleDetail[articleId];
             }
+            cache.articlesVersion = 0; // Force-invalidate the main article list
+            setCache(cache);
+
+            // Clear memory state so it forces a re-fetch
+            set({ articles: {} });
+            await get().fetchArticles();
         } catch (error) {
             console.error("Error saving article: ", error);
             alert("Failed to save article. Please try again.");
@@ -1038,9 +1046,8 @@ export const useDecksStore = create((set, get) => ({
 
     saveWord: async (wordData) => {
         try {
-            const wordRef = doc(db, 'dictionary', wordData.spanish);
-            await setDoc(wordRef, { translation: wordData.translation });
-            // --- FIX: Removed call to non-existent fetchDictionary() ---
+            const saveWordCall = httpsCallable(functions, 'saveWord');
+            await saveWordCall({ wordData });
         } catch (error) {
             console.error("Error saving word: ", error);
             alert("Failed to save word.");
@@ -1055,8 +1062,8 @@ export const useDecksStore = create((set, get) => ({
             return;
         }
         try {
-            const wordRef = doc(db, 'dictionary', spanishWord);
-            await setDoc(wordRef, { translation: newTranslation });
+            const saveWordCall = httpsCallable(functions, 'saveWord');
+            await saveWordCall({ wordData: { spanish: spanishWord, translation: newTranslation } });
     
             set(state => {
                 const newTranslations = new Map(state.activeArticleTranslations);

@@ -29,7 +29,6 @@ const Flashcards = ({decks}) => {
     const deckProgress = useDecksStore((state) => state.deckProgress);
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
-    const checkAndRecordDailyAccess = useDecksStore((state) => state.checkAndRecordDailyAccess);
     const addCardToSRS = useDecksStore((state) => state.addCardToSRS);
         
     const topics = useMemo(() => groupDecksByTopic(decks), [decks]);
@@ -37,31 +36,7 @@ const Flashcards = ({decks}) => {
     
 
     const handleDeckClick = async (lessonCards, deck, mode) => {
-        // --- Daily Limit Logic ---
-        // 1. Check if the user has access (free deck OR admin OR subscription)
-        // 2. If it's a paid deck and user is NOT admin/subscribed, perform daily check
-        
-        const isUserPremium = isAdmin || hasActiveSubscription;
-
-        if (isUserPremium) {
-            // Unrestricted access
-                navigate(`/deck/${deck.id}`, { state: { lessonCards, deckId: deck.id, mode } });
-        } else {
-                // It's a paid deck and user is free tier
-                // Check if they can use their "one free per day" token
-                const canAccessToday = await checkAndRecordDailyAccess(deck.id);
-                
-                if (canAccessToday) {
-                    navigate(`/deck/${deck.id}`, { state: { lessonCards, deckId: deck.id, mode } });
-                } else {
-                    const now = new Date();
-                    const tomorrow = new Date(now);
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    const dayName = tomorrow.toLocaleDateString('en-US', { weekday: 'long' });
-                    setLimitModalMessage(`You've reached your daily limit for premium decks! You can access a new deck on ${dayName} after 12:00 AM. Subscribe to unlock unlimited access.`);
-                    setShowLimitModal(true);
-                }
-        }
+        navigate(`/deck/${deck.id}`, { state: { lessonCards, deckId: deck.id, mode } });
     };
 
     const handleAddDeckToSRS = async (deck) => {

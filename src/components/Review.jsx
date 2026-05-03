@@ -182,8 +182,8 @@ const Review = () => {
             return;
         }
 
-        if (english.split(/\s+/).length > 2) {
-            alert("English translation must be at most 2 words.");
+        if (english.split(/\s+/).length > 3) {
+            alert("English translation must be at most 3 words.");
             return;
         }
 
