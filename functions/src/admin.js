@@ -24,7 +24,39 @@ exports.saveDeck = onCall(async (request) => {
     const { deckData, deckId } = request.data;
 
     if (!deckData || typeof deckData !== 'object') {
-        throw new HttpsError('invalid-argument', 'Valid deck data is required.');
+        throw new HttpsError('invalid-argument', 'Deck data object is required.');
+    }
+
+    const { title, topic, level, isFree, cards } = deckData;
+
+    if (typeof title !== 'string' || title.trim() === '' || title.length > 100) {
+        throw new HttpsError('invalid-argument', 'A valid title (1-100 characters) is required.');
+    }
+    
+    if (typeof topic !== 'string' || topic.trim() === '' || topic.length > 50) {
+        throw new HttpsError('invalid-argument', 'A valid topic (1-50 characters) is required.');
+    }
+
+    if (typeof level !== 'string' || level.trim() === '' || level.length > 20) {
+        throw new HttpsError('invalid-argument', 'A valid level (1-20 characters) is required.');
+    }
+
+    if (typeof isFree !== 'boolean') {
+        throw new HttpsError('invalid-argument', 'isFree must be a boolean value.');
+    }
+
+    if (!Array.isArray(cards) || cards.length === 0) {
+        throw new HttpsError('invalid-argument', 'Deck must contain at least one card.');
+    }
+
+    const hasInvalidCards = cards.some(card => 
+        !card || 
+        typeof card.spanish !== 'string' || card.spanish.trim() === '' || card.spanish.length > 200 ||
+        typeof card.english !== 'string' || card.english.trim() === '' || card.english.length > 200
+    );
+
+    if (hasInvalidCards) {
+        throw new HttpsError('invalid-argument', 'One or more cards have missing or invalid spanish/english fields.');
     }
     
     try {
@@ -62,7 +94,7 @@ exports.saveArticle = onCall(async (request) => {
 
     const { articleData, articleId } = request.data;
 
-    if (!articleData || typeof articleData !== 'object') {
+    if (!articleData || typeof articleData !== 'object' || !articleData.title || typeof articleData.title !== 'string' || articleData.title.length > 200 || !articleData.content || typeof articleData.content !== 'string' || articleData.content.length > 10000) {
         throw new HttpsError('invalid-argument', 'Valid article data is required.');
     }
     

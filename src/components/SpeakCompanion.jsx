@@ -229,9 +229,7 @@ const SpeakCompanion = () => {
             const result = await chatWithGemini({
                 history: newHistory,
                 personaId: selectedScenario.id,
-                context: selectedContextAndObjectives.context,
-                objectives: selectedContextAndObjectives.objectives,
-                scenariosAiInstructions: scenariosAiInstructions,
+                rolePlayName: selectedContextAndObjectives.name,
                 date: today
             });
 

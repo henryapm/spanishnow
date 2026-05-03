@@ -142,27 +142,10 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
             const functions = getFunctions(getApp());
             const chatForLesson = httpsCallable(functions, 'chatForLesson');
             
-            // --- DYNAMIC AI PROMPTING ---
-            const context = `The user just finished reading a Spanish story/article titled "${article?.title || 'Unknown'}". The overall topic is "${article?.topic || 'General'}". They want to practice having a conversation about it.`;
-            
-            const vocabInstruction = targetVocabulary && targetVocabulary.length > 0 
-                ? `Encourage the user to use the following vocabulary words they just learned: ${targetVocabulary.join(', ')}.`
-                : `Encourage the user to use vocabulary related to the story.`;
-                
-            const objectives = [
-                "Mention to the user the first word they saved, then tell the user what that word translates to in English with the english word wrapped in quotation marks, explain how to use it using english to explain, create a sentence in Spanish using that word, and ask them to do the same with that word. Then move on to the next word and do the same, until you have gone through all the words they saved.",
-                vocabInstruction,
-                "Keep your responses relatively brief (1-2 sentences) so the user doesn't get overwhelmed.",
-                "If the user makes a major mistake, gently correct them in a friendly way, but focus mainly on keeping the conversation going, and only related to the story and vocabulary. Don't correct every single small mistake, just major ones that would impede understanding.",
-                "At the end of the conversation, give the user positive feedback and encouragement based on how well they did using the vocabulary and sticking to the topic.",
-                "ask the user to finish the lesson once they've gone through all the vocabulary, or if they indicate they want to finish, by saying something like 'Great job practicing! When you're ready, click the Finish Lesson button to complete."
-            ];
-
             const result = await chatForLesson({
                 history: newHistory,
-                context: context,
-                objectives: objectives,
-                scenariosAiInstructions: scenariosAiInstructions || "You are a helpful Spanish tutor and conversation partner.",
+                articleId: articleId,
+                targetVocabulary: targetVocabulary || [],
                 date: new Date().toLocaleDateString('en-CA')
             });
 

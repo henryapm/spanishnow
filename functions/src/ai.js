@@ -21,7 +21,7 @@ exports.chatWithGemini = onCall({
     }
 
     const uid = request.auth.uid;
-    const { history, personaId, date, context, objectives } = request.data;
+    const { history, personaId, date, rolePlayName } = request.data;
 
     const db = admin.firestore();
 
@@ -80,15 +80,19 @@ exports.chatWithGemini = onCall({
         throw new HttpsError('failed-precondition', 'Gemini API key is missing. Make sure to set it via "firebase functions:secrets:set GEMINI_API_KEY".');
     }
 
-    const rolePlay = selectedScenario.rolePlays ? selectedScenario.rolePlays.find(rp => rp.context === context) : null;
-    const role = rolePlay ? rolePlay.role : 'Assistant';
+    // Find the specific roleplay by name on the backend
+    const rolePlay = selectedScenario.rolePlays ? selectedScenario.rolePlays.find(rp => rp.name === rolePlayName) : null;
+    if (!rolePlay) {
+        throw new HttpsError('not-found', 'Role play not found.');
+    }
+    const role = rolePlay.role || 'Assistant';
 
     const systemInstruction = `${fetchedAiInstructions}
 
     Scenario: ${selectedScenario.name}
     Role: ${role}
-    Context: ${context}
-    Objectives: ${objectives.join(', ')}`;
+    Context: ${rolePlay.context}
+    Objectives: ${rolePlay.objectives.join(', ')}`;
     
     try {
         const response = await axios.post(
@@ -125,59 +129,66 @@ exports.chatForLesson = onCall({
     secrets: [geminiApiKey],
     cors: true 
 }, async (request) => {
-    // 1. Authentication Check
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
     const uid = request.auth.uid;
-    const { history, date, context, objectives, scenariosAiInstructions } = request.data;
-    
-    // Input Validation to prevent server crashes from malformed requests
-    if (!history || !Array.isArray(history) || !objectives || !Array.isArray(objectives) || !context) {
-        throw new HttpsError('invalid-argument', 'Missing or invalid required chat parameters.');
+    const { history, articleId, targetVocabulary } = request.data;
+
+    if (!history || !Array.isArray(history) || !articleId) {
+        throw new HttpsError('invalid-argument', 'Invalid arguments provided.');
     }
 
     const db = admin.firestore();
-
-    // 2. Premium/Limit Check (Reusing the "speak" daily limit)
-    const userDoc = await db.collection('users').doc(uid).get();
-    const userData = userDoc.data() || {};
     
-    // Check if user is admin or has active subscription
-    const isPremium = userData.isAdmin === true || userData.hasActiveSubscription === true || request.auth.token.admin === true;
+    // 1. Premium / Limit Check (same as chatWithGemini)
+    const userDoc = await db.collection('users').doc(uid).get();
+    const isPremium = userDoc.data()?.isAdmin === true || userDoc.data()?.hasActiveSubscription === true;
 
     if (!isPremium) {
-        const today = date || new Date().toLocaleDateString('en-CA');
+        const today = new Date().toLocaleDateString('en-CA');
         const limitRef = db.collection('users').doc(uid).collection('daily_limits').doc('speak');
-        
         await db.runTransaction(async (t) => {
             const limitDoc = await t.get(limitRef);
-            let currentCount = 0;
-            
-            if (limitDoc.exists && limitDoc.data().date === today) {
-                currentCount = limitDoc.data().count || 0;
-            }
-
-            if (currentCount >= MAX_FREE_INTERACTIONS) {
+            let currentCount = limitDoc.exists && limitDoc.data().date === today ? (limitDoc.data().count || 0) : 0;
+            if (currentCount >= 15) { // MAX_FREE_INTERACTIONS
                 throw new HttpsError('resource-exhausted', 'You have reached your daily limit for the free tier.');
             }
-
             t.set(limitRef, { date: today, count: currentCount + 1 }, { merge: true });
         });
     }
 
-    // 3. Call Gemini API
-    const apiKey = geminiApiKey.value();
-    if (!apiKey) {
-        throw new HttpsError('failed-precondition', 'Gemini API key is missing.');
-    }
-
-    const systemInstruction = `${scenariosAiInstructions}\n\nContext: ${context}\nObjectives:\n- ${objectives.join('\n- ')}`;
+    // 2. Fetch the Article and Global AI Instructions securely on the server
+    const articleDoc = await db.collection('articles').doc(articleId).get();
+    const articleData = articleDoc.data() || {};
     
+    const promptsDoc = await db.collection('appInfo').doc('aiPrompts').get();
+    const globalInstructions = promptsDoc.exists ? promptsDoc.data().scenariosAiInstructions : "You are a helpful Spanish tutor and conversation partner.";
+
+    // 3. Build the context and objectives securely!
+    const context = `The user just finished reading a Spanish story/article titled "${articleData.title || 'Unknown'}". The overall topic is "${articleData.topic || 'General'}". They want to practice having a conversation about it.`;
+    
+    const vocabInstruction = targetVocabulary && targetVocabulary.length > 0 
+        ? `Encourage the user to use the following vocabulary words they just learned: ${targetVocabulary.join(', ')}.`
+        : `Encourage the user to use vocabulary related to the story.`;
+        
+    const objectives = [
+        "Mention to the user the first word they saved, then tell the user what that word translates to in English with the english word wrapped in quotation marks, explain how to use it using english to explain, create a sentence in Spanish using that word, and ask them to do the same with that word. Then move on to the next word and do the same, until you have gone through all the words they saved.",
+        vocabInstruction,
+        "Keep your responses relatively brief (1-2 sentences) so the user doesn't get overwhelmed.",
+        "If the user makes a major mistake, gently correct them in a friendly way, but focus mainly on keeping the conversation going, and only related to the story and vocabulary. Don't correct every single small mistake, just major ones that would impede understanding.",
+        "At the end of the conversation, give the user positive feedback and encouragement based on how well they did using the vocabulary and sticking to the topic.",
+        "ask the user to finish the lesson once they've gone through all the vocabulary, or if they indicate they want to finish, by saying something like 'Great job practicing! When you're ready, click the Finish Lesson button to complete.'"
+    ];
+
+    const systemInstruction = `${globalInstructions}\n\nContext: ${context}\n\nObjectives:\n${objectives.map(o => "- " + o).join('\n')}`;
+
+    // 4. Call Gemini API
+    const apiKey = geminiApiKey.value();
     try {
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+            `<https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}>`,
             {
                 system_instruction: { parts: [{ text: systemInstruction }] },
                 contents: history.map(msg => ({
@@ -188,9 +199,10 @@ exports.chatForLesson = onCall({
             { headers: { 'Content-Type': 'application/json' } }
         );
 
-        return { text: response.data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no entendí." };
+        const aiResponseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no entendí.";
+        return { text: aiResponseText };
     } catch (error) {
         console.error("Gemini API Error:", error.response?.data || error.message);
-        throw new HttpsError('internal', `Gemini Error: ${error.message}`);
+        throw new HttpsError('internal', 'Failed to communicate with AI service.');
     }
 });

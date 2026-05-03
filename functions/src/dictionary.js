@@ -8,7 +8,7 @@ exports.updateDictionary = onCall(async (request) => {
 
     const { spanishWord, translation } = request.data;
 
-    if (!spanishWord || typeof spanishWord !== 'string' || !translation || typeof translation !== 'string') {
+    if (!spanishWord || typeof spanishWord !== 'string' || !translation || typeof translation !== 'string' || spanishWord.length > 100 || translation.length > 100) {
         throw new HttpsError('invalid-argument', 'Invalid word or translation provided.');
     }
 
@@ -40,7 +40,7 @@ exports.saveWord = onCall(async (request) => {
 
     const { wordData } = request.data;
 
-    if (!wordData || typeof wordData.spanish !== 'string' || typeof wordData.translation !== 'string') {
+    if (!wordData || typeof wordData.spanish !== 'string' || typeof wordData.translation !== 'string' || wordData.spanish.trim() === '' || wordData.translation.trim() === '' || wordData.spanish.length > 100 || wordData.translation.length > 100) {
         throw new HttpsError('invalid-argument', 'Valid word data is required.');
     }
     
