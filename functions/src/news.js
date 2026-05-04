@@ -55,12 +55,20 @@ exports.manualFetchNews = onCall({ cors: true, secrets: [gnewsApiKey, geminiApiK
     }
 
     const topic = request.data.topic;
+
+    // Strict input validation for topic
+    if (topic !== undefined) {
+        if (typeof topic !== 'string' || topic.trim() === '' || topic.length > 100) {
+            throw new HttpsError('invalid-argument', 'If provided, topic must be a valid non-empty string up to 100 characters.');
+        }
+    }
+
     let config;
     let configRef = null;
 
-    if (topic && typeof topic === 'string') {
+    if (topic) {
         // If a topic is provided, use it and don't update the scheduled job's timestamp.
-        config = { topic };
+        config = { topic: topic.trim() };
     } else {
         // Otherwise, use the configured topic and update the timestamp.
         configRef = db.collection("settings").doc("newsApi");
@@ -78,7 +86,8 @@ async function fetchAndSaveNews(db, config, configRef) {
         const API_KEY = gnewsApiKey.value();
         const query = config.topic || "noticias";
         
-        const response = await axios.get(`https://gnews.io/api/v4/search?q=${query}&lang=es&apikey=${API_KEY}`);
+        // Encode the query to prevent URL injection/malformed requests
+        const response = await axios.get(`https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=es&apikey=${API_KEY}`);
         const articles = response.data.articles;
 
         if (!articles || articles.length === 0) {

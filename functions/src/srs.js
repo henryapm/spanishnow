@@ -63,6 +63,11 @@ exports.toggleSavedWord = onCall(async (request) => {
     if (!spanishWord || typeof spanishWord !== 'string' || spanishWord.trim() === '' || spanishWord.length > 100) {
         throw new HttpsError('invalid-argument', 'A valid Spanish word is required.');
     }
+
+    // Enforce that action is exactly what we expect it to be
+    if (action !== undefined && action !== 'remove' && action !== 'add') {
+        throw new HttpsError('invalid-argument', 'Action must be either "add" or "remove".');
+    }
     
     // Optional fields validation
     if (translation && (typeof translation !== 'string' || translation.length > 500)) throw new HttpsError('invalid-argument', 'Translation is malformed.');

@@ -23,6 +23,33 @@ exports.chatWithGemini = onCall({
     const uid = request.auth.uid;
     const { history, personaId, date, rolePlayName } = request.data;
 
+    // Strict Input Validation for history to prevent API bloating
+    if (!history || !Array.isArray(history) || history.length > 40) {
+        throw new HttpsError('invalid-argument', 'History must be an array with a maximum of 40 messages.');
+    }
+    
+    const hasInvalidMessage = history.some(msg => 
+        !msg || 
+        (msg.role !== 'user' && msg.role !== 'model') || 
+        typeof msg.text !== 'string' || 
+        msg.text.length > 1000
+    );
+    if (hasInvalidMessage) {
+        throw new HttpsError('invalid-argument', 'History contains invalid roles or excessively long messages.');
+    }
+
+    // Strict Input Validation for personaId and rolePlayName and date to prevent abuse and ensure data integrity
+    if (!personaId || typeof personaId !== 'string' || personaId.trim() === '' || personaId.length > 100) {
+        throw new HttpsError('invalid-argument', 'A valid scenario ID is required.');
+    }
+    if (!rolePlayName || typeof rolePlayName !== 'string' || rolePlayName.trim() === '' || rolePlayName.length > 100) {
+        throw new HttpsError('invalid-argument', 'A valid roleplay name is required.');
+    }
+
+    if (date !== undefined && (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date))) {
+        throw new HttpsError('invalid-argument', 'If provided, date must be a string in YYYY-MM-DD format.');
+    }
+
     const db = admin.firestore();
 
     // Fetch scenario and instructions from Firestore
@@ -136,8 +163,29 @@ exports.chatForLesson = onCall({
     const uid = request.auth.uid;
     const { history, articleId, targetVocabulary } = request.data;
 
-    if (!history || !Array.isArray(history) || !articleId) {
-        throw new HttpsError('invalid-argument', 'Invalid arguments provided.');
+    if (!articleId || typeof articleId !== 'string' || articleId.trim() === '' || articleId.length > 100) {
+        throw new HttpsError('invalid-argument', 'A valid article ID is required.');
+    }
+
+    if (!history || !Array.isArray(history) || history.length > 40) {
+        throw new HttpsError('invalid-argument', 'History must be an array with a maximum of 40 messages.');
+    }
+
+    const hasInvalidMessage = history.some(msg => !msg || (msg.role !== 'user' && msg.role !== 'model') || typeof msg.text !== 'string' || msg.text.length > 1000);
+    if (hasInvalidMessage) {
+        throw new HttpsError('invalid-argument', 'History contains invalid roles or excessively long messages.');
+    }
+
+    if (targetVocabulary !== undefined) {
+        if (!Array.isArray(targetVocabulary)) {
+            throw new HttpsError('invalid-argument', 'targetVocabulary must be an array.');
+        }
+        if (targetVocabulary.length > 10) {
+            throw new HttpsError('invalid-argument', 'Too many vocabulary words provided. Maximum allowed is 10.');
+        }
+        if (targetVocabulary.some(word => typeof word !== 'string' || word.trim() === '' || word.length > 100)) {
+            throw new HttpsError('invalid-argument', 'One or more vocabulary words are invalid or exceed the maximum length of 100 characters.');
+        }
     }
 
     const db = admin.firestore();
@@ -152,7 +200,7 @@ exports.chatForLesson = onCall({
         await db.runTransaction(async (t) => {
             const limitDoc = await t.get(limitRef);
             let currentCount = limitDoc.exists && limitDoc.data().date === today ? (limitDoc.data().count || 0) : 0;
-            if (currentCount >= 15) { // MAX_FREE_INTERACTIONS
+            if (currentCount >= MAX_FREE_INTERACTIONS) { // MAX_FREE_INTERACTIONS
                 throw new HttpsError('resource-exhausted', 'You have reached your daily limit for the free tier.');
             }
             t.set(limitRef, { date: today, count: currentCount + 1 }, { merge: true });
@@ -188,7 +236,7 @@ exports.chatForLesson = onCall({
     const apiKey = geminiApiKey.value();
     try {
         const response = await axios.post(
-            `<https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}>`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
             {
                 system_instruction: { parts: [{ text: systemInstruction }] },
                 contents: history.map(msg => ({

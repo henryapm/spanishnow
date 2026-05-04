@@ -23,6 +23,10 @@ exports.saveDeck = onCall(async (request) => {
 
     const { deckData, deckId } = request.data;
 
+    if (deckId !== undefined && (typeof deckId !== 'string' || deckId.trim() === '' || deckId.length > 100)) {
+        throw new HttpsError('invalid-argument', 'If provided, a valid deck ID (1-100 characters) is required.');
+    }
+
     if (!deckData || typeof deckData !== 'object') {
         throw new HttpsError('invalid-argument', 'Deck data object is required.');
     }
@@ -59,11 +63,14 @@ exports.saveDeck = onCall(async (request) => {
         throw new HttpsError('invalid-argument', 'One or more cards have missing or invalid spanish/english fields.');
     }
     
+    // Reconstruct the object explicitly to drop any unvalidated or hidden properties
+    const sanitizedDeckData = { title, topic, level, isFree, cards };
+
     try {
         if (deckId) {
-            await db.collection('decks').doc(deckId).set(deckData, { merge: true });
+            await db.collection('decks').doc(deckId).set(sanitizedDeckData, { merge: true });
         } else {
-            await db.collection('decks').add(deckData);
+            await db.collection('decks').add(sanitizedDeckData);
         }
         return { success: true };
     } catch (error) {
@@ -94,15 +101,30 @@ exports.saveArticle = onCall(async (request) => {
 
     const { articleData, articleId } = request.data;
 
+    if (articleId !== undefined && (typeof articleId !== 'string' || articleId.trim() === '' || articleId.length > 100)) {
+        throw new HttpsError('invalid-argument', 'If provided, a valid article ID (1-100 characters) is required.');
+    }
+
     if (!articleData || typeof articleData !== 'object' || !articleData.title || typeof articleData.title !== 'string' || articleData.title.length > 200 || !articleData.content || typeof articleData.content !== 'string' || articleData.content.length > 10000) {
         throw new HttpsError('invalid-argument', 'Valid article data is required.');
     }
     
+    // Reconstruct the object with only the expected properties
+    // Note: Add any other properties your frontend sends here if they are missing
+    const sanitizedArticleData = {
+        title: articleData.title,
+        content: articleData.content,
+        ...(articleData.topic !== undefined && { topic: articleData.topic }),
+        ...(articleData.level !== undefined && { level: articleData.level }),
+        ...(articleData.premium !== undefined && { premium: articleData.premium }),
+        ...(articleData.sentences !== undefined && { sentences: articleData.sentences })
+    };
+
     try {
         if (articleId) {
-            await db.collection('articles').doc(articleId).set(articleData, { merge: true });
+            await db.collection('articles').doc(articleId).set(sanitizedArticleData, { merge: true });
         } else {
-            await db.collection('articles').add(articleData);
+            await db.collection('articles').add(sanitizedArticleData);
         }
         return { success: true };
     } catch (error) {
