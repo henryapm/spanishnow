@@ -132,3 +132,33 @@ exports.saveArticle = onCall(async (request) => {
         throw new HttpsError('internal', 'Failed to save the article.');
     }
 });
+
+/**
+ * Securely fetches all users.
+ * Only accessible by admins.
+ */
+exports.getAllUsers = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    const db = admin.firestore();
+    const uid = request.auth.uid;
+    const userDoc = await db.collection('users').doc(uid).get();
+    
+    // Verify admin status securely via backend checks
+    const isAdmin = request.auth.token.admin === true || (userDoc.exists && userDoc.data().isAdmin === true);
+
+    if (!isAdmin) {
+        throw new HttpsError('permission-denied', 'Only admins can view the user list.');
+    }
+
+    try {
+        const usersSnapshot = await db.collection('users').get();
+        const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return { users };
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        throw new HttpsError('internal', 'Failed to fetch the user list.');
+    }
+});

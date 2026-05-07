@@ -661,50 +661,18 @@ export const useDecksStore = create((set, get) => ({
         }
     },
 
-    signInWithGoogle: async (options = {}) => {
-        const db = getFirestore();
+    signInWithGoogle: async () => {
+        // The client's only responsibility is to trigger the sign-in popup.
+        // The onUserCreated cloud function on the backend will handle creating
+        // the user's profile in Firestore securely.
+        // The UI should ensure that the user has accepted the Terms of Service
+        // before this function is called, for example by disabling the sign-in
+        // button until a checkbox is checked.
         try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-
-            const userDocRef = doc(db, 'users', user.uid);
-            const userDocSnap = await getDoc(userDocRef);
-
-            // This logic runs only if the user does NOT exist in your database
-            if (!userDocSnap.exists()) {
-                // --- NEW USER ---
-                // A new user must come through the sign-up flow to accept terms.
-                if (options.isSignUp) {
-                    const newUserProfile = {
-                        uid: user.uid,
-                        displayName: user.displayName,
-                        email: user.email,
-                        photoURL: user.photoURL,
-                        createdAt: serverTimestamp(),
-                        listeningPreference: 'es-US',
-                        finishedArticles: [],
-                        legal: {
-                            termsVersion: '1.0', // It's good practice to version your terms
-                            termsAcceptedAt: serverTimestamp(),
-                        }
-                    };
-                    await setDoc(userDocRef, newUserProfile);
-                } else {
-                    // Block sign-in for a new user who didn't accept terms.
-                    // Sign them out of the Firebase session and throw a custom error.
-                    await signOut(auth);
-                    const error = new Error('This Google account is not registered. Please use the "Sign Up" button to create an account.');
-                    error.code = 'auth/account-not-registered';
-                    throw error;
-                }
-            } else {
-                // --- EXISTING USER ---
-                // If an existing user tries to "Sign Up" again, we just log them in.
-                if (options.isSignUp) {
-                    console.log("Existing user signed up again. Logging them in.");
-                }
-            }
-            // The existing listenForAuthChanges will handle setting the currentUser state
+            await signInWithPopup(auth, provider);
+            // The onAuthStateChanged listener in this store will automatically handle
+            // the user state change, and the onUserCreated cloud function will create
+            // the user document in Firestore if it's a new user.
         } catch (error) {
             console.error("Error during sign-in: ", error);
             throw error;
@@ -740,13 +708,9 @@ export const useDecksStore = create((set, get) => ({
 
         set({ isUsersLoading: true });
         try {
-            const usersCollection = collection(db, 'users');
-            const usersSnapshot = await getDocs(usersCollection);
-            const usersData = [];
-            usersSnapshot.forEach(doc => {
-                usersData.push({ id: doc.id, ...doc.data() });
-            });
-            set({ usersList: usersData, isUsersLoading: false });
+            const fetchUsersCall = httpsCallable(functions, 'getAllUsers');
+            const result = await fetchUsersCall();
+            set({ usersList: result.data.users, isUsersLoading: false });
         } catch (error) {
             console.error("Error fetching users: ", error);
             set({ isUsersLoading: false });
