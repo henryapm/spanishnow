@@ -152,10 +152,27 @@ const StoryReader = ({ articleId, onComplete }) => {
                         const cleanedWord = cleanedWordMatch ? cleanedWordMatch[0] : "";
                         const isSessionWord = sessionWords.includes(cleanedWord);
                         const baseClass = `cursor-pointer rounded transition-colors duration-150 ${isSessionWord ? 'bg-yellow-300 dark:bg-yellow-700 text-gray-900 dark:text-white font-medium hover:bg-yellow-400 dark:hover:bg-yellow-600' : 'hover:bg-yellow-200 dark:hover:bg-yellow-600'}`;
+                        let adminClass = "";
+
+                        // Check if admin is logged in and if word is missing translation
+                        if (isAdmin && word.length > 0) {
+                            const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
+                            if (cleanedWordMatch) {
+                                const cleanedWord = cleanedWordMatch[0];
+                                if (translations.has(cleanedWord)) {
+                                    const translation = translations.get(cleanedWord);
+                                    
+                                    // If no translation is found, apply the admin highlight class
+                                    if (!translation || translation === "No translation found") {
+                                        adminClass = "bg-red-200 dark:bg-red-700 opacity-75"; // Highlight missing words
+                                    }
+                                }
+                            }
+                        }
                         return (
                             <span 
                                 key={wIndex} 
-                                className={baseClass}
+                                className={`${baseClass} ${adminClass}`}
                                 onClick={(e) => handleWordClick(e, word)}
                             >
                                 {word}{' '}

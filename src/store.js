@@ -367,24 +367,16 @@ export const useDecksStore = create((set, get) => ({
             });
 
             // 3. Fetch only missing words from Firestore
-            const chunks = [];
-            for (let i = 0; i < wordsNeedingFetch.length; i += 30) {
-                chunks.push(wordsNeedingFetch.slice(i, i + 30));
-            }
-
-            for (const chunk of chunks) {
-                const transQuery = query(
-                    collection(db, "dictionary"),
-                    where(documentId(), 'in', chunk)
-                );
-                const querySnapshot = await getDocs(transQuery);
-                querySnapshot.forEach((doc) => {
-                    cachedDictionary[doc.id] = doc.data().translation;
-                });
-            }
+            const fetchPromises = wordsNeedingFetch.map(async (wordId) => {
+                const wordSnap = await getDoc(doc(db, 'dictionary', wordId));
+                if (wordSnap.exists()) {
+                    cachedDictionary[wordSnap.id] = wordSnap.data().translation;
+                }
+            });
+            await Promise.all(fetchPromises);
 
             // Save updated dictionary to cache if we fetched anything
-            if (chunks.length > 0) {
+            if (wordsNeedingFetch.length > 0) {
                 cache.dictionary = cachedDictionary;
                 setCache(cache);
             }
@@ -438,10 +430,8 @@ export const useDecksStore = create((set, get) => ({
         } else {
             newSavedWordsSet.add(spanishWord);
             const newWordData = { 
-                addedAt: { seconds: Date.now() / 1000 }, // Mock timestamp for local display
                 active: true,
                 stage: 0,
-                nextReviewDate: Date.now(),
                 translation: data.translation || '',
                 vocab: data.vocab || '',
                 source: data.source || null
@@ -787,7 +777,9 @@ export const useDecksStore = create((set, get) => ({
             let instructions = '';
             if (promptsDoc.exists()) {
                 instructions = promptsDoc.data().scenariosAiInstructions || '';
-                instructions === '' ? alert("AI instructions are missing! Please add them in Firestore to use the Scenarios feature.") : null;
+                if (instructions === '') {
+                    console.warn("AI instructions are missing! Please add them in Firestore under appInfo/aiPrompts to fully use the Scenarios feature.");
+                }
             }
 
             set({ scenarios: fetchedScenarios, scenariosAiInstructions: instructions, isScenariosLoading: false });

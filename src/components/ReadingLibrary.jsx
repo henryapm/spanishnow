@@ -157,7 +157,7 @@ const ReadingLibrary = () => {
                             onClick={(e) => handleStartLesson(e, article)}
                             className={`w-full text-left relative overflow-hidden py-6 pr-6 pl-16 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-transform cursor-pointer flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 ${!isLocked ? 'hover:-translate-y-1' : 'opacity-75'}`}
                             >
-                            {article.level && <span className={`absolute left-0 top-0 h-full w-10 flex items-center justify-center text-md font-bold px-2 py-1 h-full ${getLevelColor(article.level)}`}>{article.level}</span>}
+                            {article.level && <span className={`absolute left-0 top-0 h-full w-10 flex items-center justify-center text-md font-bold px-2 py-1 ${getLevelColor(article.level)}`}>{article.level}</span>}
                             <div className="flex-1">
                                 <p className="text-xs font-semibold uppercase text-custom-500 dark:text-custom-400">{article.topic}</p>
                                 <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-gray-200">
