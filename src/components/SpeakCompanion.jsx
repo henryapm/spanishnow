@@ -11,7 +11,7 @@ const MAX_FREE_INTERACTIONS = 5;
 const MAX_FREE_CHARS = 100;
 
 // --- NEW: Custom Circular Progress Component ---
-const CircularProgress = ({ percentage, size = 50, strokeWidth = 4 }) => {
+export const CircularProgress = ({ percentage, size = 50, strokeWidth = 4 }) => {
     const radius = (size - strokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
     const offset = circumference - (percentage / 100) * circumference;

@@ -32,11 +32,11 @@ const Navigation = () => {
             `}</style>
             <div className="max-w-2xl mx-auto flex justify-around items-center h-16">
                 <NavLink 
-                    to="/" 
+                    to="/reading-library" 
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
                     aria-label="Reading practice"
                 >
-                    <FaBookOpen className="text-2xl mb-1" />
+                    <h2 className="text-2xl mb-1">Read</h2>
                 </NavLink>
 
                 <NavLink 
@@ -45,8 +45,8 @@ const Navigation = () => {
                     aria-label="Spaced repetition review"
                 >
                     <div className="relative">
-                        <RiBrain2Fill className="text-2xl mb-1" />
-                        <span className="absolute -top-3 -right-3 bg-red-500 text-white text-xs rounded-full px-1">
+                        <h2 className="text-2xl mb-1">Review</h2>
+                        <span className="absolute -top-1 -right-3 bg-red-500 text-white text-xs rounded-full px-1">
                             {dueWords.length}
                         </span>
                     </div>
@@ -57,7 +57,7 @@ const Navigation = () => {
                     className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
                     aria-label="Speak with AI to learn spanish"
                 >
-                    <IoPersonSharp className="text-2xl mb-1" />
+                    <h2 className="text-2xl mb-1">Speak</h2>
                 </NavLink>
 
 {/* 

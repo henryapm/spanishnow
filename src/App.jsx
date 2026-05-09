@@ -51,11 +51,11 @@ const AppLayout = () => {
                 <div className="w-full max-w-xl mx-auto">
                     <Suspense fallback={<div className="text-center p-8">Loading...</div>}>
                         <Routes>
-                            <Route path="/" element={<ReadingLibrary/>} />
+                            <Route path="/" element={<AccountPage decks={decks} />} />
+                            <Route path="/reading-library" element={<ReadingLibrary/>} />
                             <Route path="/create" element={<DeckForm decks={decks} />} />
                             <Route path="/review/:deckId" element={<FlashcardView />} />
                             <Route path="/spaced-repetition" element={<Review />} />
-                            <Route path="/account" element={<AccountPage decks={decks} />} />
                             <Route path="/listen/:deckId" element={<ListeningView decks={decks} />} />
                             <Route path="/reading/:articleId" element={<ReaderView />} />
                             <Route path="/speakCompanion" element={<SpeakCompanion />} />
