@@ -1,26 +1,105 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import { CircularProgress } from './SpeakCompanion';
+import { BsCheckCircleFill } from 'react-icons/bs';
 
 const AccountPage = ({ decks }) => {
     const navigate = useNavigate();
     
-    // Selecting each piece of state individually to prevent infinite re-render loops.
     const currentUser = useDecksStore((state) => state.currentUser);
+    {/* Fetch Scenarios */}
     const scenarios = useDecksStore((state) => state.scenarios);
     const userProgress = useDecksStore((state) => state.speakProgress);
-    const progress = useDecksStore((state) => state.progress);
+    const fetchScenarios = useDecksStore((state) => state.fetchScenarios);
+    const fetchSpeakProgress = useDecksStore((state) => state.fetchSpeakProgress);
+    {/* Fetch everything for articles */}
+    const fetchArticles = useDecksStore((state) => state.fetchArticles);
+    const articles = useDecksStore((state) => state.articles);
+    
+    const finishedArticles = useDecksStore((state) => state.finishedArticles);
+    
+    {/* fetch SRS */}
     const savedWordsList = useDecksStore((state) => state.savedWordsList);
+    {/* Fetch settings */}
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
     const updateListeningPreference = useDecksStore((state) => state.updateListeningPreference);
     const theme = useDecksStore((state) => state.theme);
     const toggleTheme = useDecksStore((state) => state.toggleTheme);
 
+    const isAdmin = useDecksStore((state) => state.isAdmin);
+    const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
+    const isPremium = isAdmin || hasActiveSubscription;
+    const startSession = useDecksStore((state) => state.startSession);
+
+    {/* --- Calculate the sentences and words read on the finished articles --- */}
+    const { wordsRead, sentencesRead, articlesRead } = useMemo(() => {
+        let wordCount = 0;
+        let sentenceCount = 0;
+        let articleCount = 0;
+        Object.entries(articles).forEach(([key, article]) => {
+            if (finishedArticles.includes(key) && article.sentences) {
+                sentenceCount += article.sentences.length;
+                articleCount++;
+                article.sentences.forEach(sentence => {
+                    if (sentence.spanish && sentence.spanish.trim()) {
+                        wordCount += sentence.spanish.trim().split(/\s+/).length;
+                    }
+                });
+            }
+        });
+        return { wordsRead: wordCount, sentencesRead: sentenceCount, articlesRead: articleCount };
+    }, [articles, finishedArticles]);
+
+    {/* --- NEW: Calculate completed scenarios --- */}
+    const scenariosCompleted = useMemo(() => {
+        let count = 0;
+        scenarios.forEach(scenario => {
+            const completedCount = userProgress[scenario.id]?.length || 0;
+            const totalCount = scenario.rolePlays ? scenario.rolePlays.length : 0;
+            const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+            if (progressPercent === 100 && totalCount > 0) {
+                count++;
+            }
+        });
+        return count;
+    }, [scenarios, userProgress]);
+
+    
+    const getLevelColor = (level) => {
+        switch (level?.toUpperCase()) {
+            case 'A1': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+            case 'A2': return 'bg-custom-100 text-custom-800 dark:bg-custom-900 dark:text-custom-300';
+            case 'B1': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+            case 'B2': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+            case 'C1': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+            default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+        }
+    };
+
     const handlePreferenceChange = (e) => {
         const newPreference = e.target.value;
         updateListeningPreference(newPreference); 
     };
+
+    // Fetch Scenarios and Goals from Firestore
+    useEffect(() => {
+        fetchScenarios();
+        fetchSpeakProgress();
+    }, [fetchScenarios, fetchSpeakProgress]);
+
+    useEffect(() => {
+        const lastFetch = sessionStorage.getItem('articles_last_fetch');
+        const now = Date.now();
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+
+        // Fetch if we have no articles, OR if there's no fetch history, OR if 1 day has passed
+        if (Object.keys(articles).length === 0 || !lastFetch || (now - parseInt(lastFetch, 10) > ONE_DAY)) {
+            fetchArticles();
+            sessionStorage.setItem('articles_last_fetch', now.toString());
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fetchArticles]);
 
     // Filter words that are due for review
     const today = new Date();
@@ -31,46 +110,10 @@ const AccountPage = ({ decks }) => {
         return w.stage === 5; // Mastered words are done
     });
 
+    let count = 0;
     const dueForReviewWords = savedWordsList.filter(w => {
-        if (w.stage >= 5) return false; // Mastered words are done
-        if (!w.nextReviewDate) return true; // Legacy/New words are due
-        return w.nextReviewDate <= endOfToday;
+        return w.stage < 5;
     });
-
-
-    const stats = useMemo(() => {
-        let totalCardsMastered = 0;
-        let decksCompleted = 0;
-        
-        for (const deckId in decks) {
-            const deck = decks[deckId];
-            if (deck.cards && deck.cards.length > 0) {
-                const deckProgress = progress[deckId] || {};
-                
-                // Count cards with mastery >= 3 (SRS logic)
-                const masteredCount = deck.cards.filter(card => {
-                    const cardData = deckProgress[card.id];
-                    return (cardData?.mastery || 0) >= 3;
-                }).length;
-                
-                totalCardsMastered += masteredCount;
-
-                if (masteredCount === deck.cards.length) {
-                    decksCompleted++;
-                }
-            }
-        }
-        return { totalCardsMastered, decksCompleted };
-    }, [decks, progress]);
-
-    const calculateProgress = (deckId, deck) => {
-        if (!deck.cards || deck.cards.length === 0) return 0;
-        const deckProgress = progress[deckId] || {};
-        
-        // Count cards that have been attempted (exist in progress)
-        const seenCount = deck.cards.filter(card => deckProgress[card.id] !== undefined).length;
-        return (seenCount / deck.cards.length) * 100;
-    };
 
     if (!currentUser) {
         return <div className="text-center dark:text-gray-300">Loading user data...</div>;
@@ -79,7 +122,7 @@ const AccountPage = ({ decks }) => {
     return (
         <div className="animate-fade-in">
             {/* --- Profile Section --- */}
-            <div className="flex flex-col sm:flex-row items-center bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+            <div className="flex flex-col sm:flex-row items-center bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md my-8">
                 <img 
                     src={currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`} 
                     alt="Profile" 
@@ -87,70 +130,88 @@ const AccountPage = ({ decks }) => {
                     referrerPolicy="no-referrer"
                 />
                 <div className="text-center sm:text-left">
-                    Welcome <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200">{currentUser.displayName}</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200">Hi {currentUser.displayName}!</h1>
                 </div>
             </div>
-
-            {/* --- Overall Stats Section --- */}
-            { dueForReviewWords.length > 0 && masteredWords.length > 0 ? (
-                    <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
-                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Spaced Repetition Stats</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-2 border-sky-600 dark:border-sky-400">
-                                <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">{dueForReviewWords.length}</p>
-                                <p className="text-gray-500 dark:text-gray-400">Words saved for review</p>
+            { /* Your(user) Stats Section */ }
+            <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200 text-center mb-8">Your Stats</h1>
+                <div className="bg-sky-500 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
+                    {finishedArticles.length > 0 ? (
+                        <div className="grid grid-rows-3 items-center justify-center">
+                            <h2 className="text-4xl font-bold text-gray-800 text-center">Total read!</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="md:col-span-1 m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
+                                    {articlesRead}
+                                    <div className="text-sm font-normal text-gray-600 dark:text-gray-300">Articles</div>
+                                </div>
+                                <div className="md:col-span-1 m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
+                                    {sentencesRead}
+                                    <div className="text-sm font-normal text-gray-600 dark:text-gray-300">Sentences</div>
+                                </div>
+                                <div className="md:col-span-1 m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
+                                    {wordsRead}
+                                    <div className="text-sm font-normal text-gray-600 dark:text-gray-300">Words</div>
+                                </div>
                             </div>
-                            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-2 border-sky-600 dark:border-sky-400">
-                                <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">{masteredWords.length}</p>
-                                <p className="text-gray-500 dark:text-gray-400">Words Mastered</p>
-                            </div>
+                            <NavLink
+                                to="/reading-library"
+                                className="md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
+                            >
+                                View Library
+                            </NavLink>
                         </div>
+                    ) : (
+                        <p className="text-gray-500 dark:text-gray-400">No articles completed yet.</p>
+                    )}
+                </div>
+                {/* --- SRS Stats Section --- */}
+                { dueForReviewWords.length > 0 || masteredWords.length > 0 ? (
+                        <div className="grid grid-rows-3 items-center justify-center bg-orange-500 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
+                            <h2 className="text-4xl font-bold text-gray-800 text-center">Words Learned</h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-2 border-sky-600 dark:border-sky-400">
+                                    <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">{dueForReviewWords.length}</p>
+                                    <p className="text-gray-500 dark:text-gray-400">Words saved for review</p>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-2 border-sky-600 dark:border-sky-400">
+                                    <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">{masteredWords.length}</p>
+                                    <p className="text-gray-500 dark:text-gray-400">Words Mastered</p>
+                                </div>
+                            </div>
+                            <NavLink
+                                to="/spaced-repetition"
+                                className="m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
+                            >
+                                Review Words
+                            </NavLink>
+                        </div>
+                ) : (
+                    <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
+                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">No Progress Yet</h2>
+                        <p className="text-gray-600 dark:text-gray-400">Go to our
                         <NavLink
                             to="/reading-library"
-                            className=" mt-4 inline-block bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300"
+                            className={"m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"}
+                            aria-label="Reading practice"
                         >
-                            Explore Library
-                        </NavLink>
-                    </div>           
-            ) : (
-                <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8 text-center">
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">No Progress Yet</h2>
-                    <p className="text-gray-600 dark:text-gray-400">Go to our 
-                    <NavLink 
-                        to="/reading-library" 
-                        className={'ml-1 text-custom-600 dark:text-custom-400 nav-item-active hover:text-custom-500 dark:hover:text-custom-300'}
-                        aria-label="Reading practice"
+                            Library
+                        </NavLink> page to start learning!</p>
+                    </div>
+                )}
+                {/* --- Role play Progress Section --- */}
+                <div className="grid grid-rows-3 gap-4 items-center justify-center bg-green-600 text-center p-6 rounded-lg shadow-md mb-8">
+                    <h2 className="text-4xl font-bold text-gray-800 text-center">Scenarios Completed</h2>
+                    <div className="m-auto bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
+                        {scenariosCompleted}
+                    </div>
+                    <NavLink
+                        to="/speakCompanion"
+                        className="m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
                     >
-                        Library
-                    </NavLink> page to start learning!</p>
+                        Role Play Now
+                    </NavLink>
                 </div>
-            )}
-            {/* --- Role play Progress Section --- */}
-            <div className="bg-white text-center dark:bg-gray-700 p-6 rounded-lg shadow-md my-8">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Role Plays Completed</h2>
-                {scenarios.map(scenario => {
-                        // --- NEW: Calculate progress for this scenario ---
-                        const completedCount = userProgress[scenario.id]?.length || 0;
-                        const totalCount = scenario.rolePlays ? scenario.rolePlays.length : 0;
-                        const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-                        return (
-                            progressPercent === 100 && (
-                                <div key={scenario.id} className="mb-4">
-                                    <div className="flex items-center justify-between mb-1 border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4 ">
-                                        <span className="font-bold text-gray-700 dark:text-gray-300">{scenario.name}</span>
-                                        <CircularProgress percentage={progressPercent} />
-                                    </div>
-                                </div>
-                            )
-                        )
-                })}
-                <NavLink
-                    to="/speakCompanion"
-                    className=" mt-4 inline-block bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300"
-                >
-                    Role Play Now
-                </NavLink>
-            </div>
+            
             {/* --- Settings Section --- */}
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Settings</h2>

@@ -31,8 +31,16 @@ const ReadingLibrary = () => {
     }, [sortBy, filterLevel, filterStatus]);
     
     useEffect(() => {
-        // Fetch articles when the component mounts
-        fetchArticles();
+        const lastFetch = sessionStorage.getItem('articles_last_fetch');
+        const now = Date.now();
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+
+        // Fetch if we have no articles, OR if there's no fetch history, OR if 1 day has passed
+        if (Object.keys(articles).length === 0 || !lastFetch || (now - parseInt(lastFetch, 10) > ONE_DAY)) {
+            fetchArticles();
+            sessionStorage.setItem('articles_last_fetch', now.toString());
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchArticles]);
 
     // Handle the loading state while articles are being fetched
