@@ -530,9 +530,9 @@ export const useDecksStore = create((set, get) => ({
                 nextDate.setHours(0, 0, 0, 0);
 
                 // Optimistic Update: Update local state directly without re-fetching everything
-                const newList = savedWordsList.map(w => 
+                const newList = savedWordsList.map(w => (
                     w.id === wordId ? { ...w, stage, nextReviewDate: nextDate.getTime() } : w
-                );
+                ));
                 set({ savedWordsList: newList });
 
                 // Perform the secure network request

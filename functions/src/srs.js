@@ -69,10 +69,10 @@ exports.toggleSavedWord = onCall(async (request) => {
         throw new HttpsError('invalid-argument', 'Action must be either "add" or "remove".');
     }
     
-    // Optional fields validation
-    if (translation && (typeof translation !== 'string' || translation.length > 500)) throw new HttpsError('invalid-argument', 'Translation is malformed.');
-    if (vocab && (typeof vocab !== 'string' || vocab.length > 500)) throw new HttpsError('invalid-argument', 'Vocab is malformed.');
-    if (source && (typeof source !== 'string' || source.length > 100)) throw new HttpsError('invalid-argument', 'Source is malformed.');
+    // Strict Optional fields validation
+    if (translation !== undefined && translation !== null && (typeof translation !== 'string' || translation.length > 500)) throw new HttpsError('invalid-argument', 'Translation must be a string under 500 characters.');
+    if (vocab !== undefined && vocab !== null && (typeof vocab !== 'string' || vocab.length > 500)) throw new HttpsError('invalid-argument', 'Vocab must be a string under 500 characters.');
+    if (source !== undefined && source !== null && (typeof source !== 'string' || source.length > 100)) throw new HttpsError('invalid-argument', 'Source must be a string under 100 characters.');
 
     const db = admin.firestore();
     const wordRef = db.collection('users').doc(uid).collection('savedWords').doc(spanishWord);

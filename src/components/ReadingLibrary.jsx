@@ -146,11 +146,11 @@ const ReadingLibrary = () => {
                     id="filter-select"
                     value={filterLevel} 
                     onChange={(e) => setFilterLevel(e.target.value)}
-                    className="flex flex-row gap-2 align-end p-2 rounded-lg dark:text-white shadow-sm focus:ring-2 focus:ring-custom-500 outline-none"
+                    className="flex flex-row gap-2 align-end p-2 rounded-lg bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-custom-500 outline-none"
                 >
                     <li className={`cursor-pointer p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white ${filterLevel === 'All' ? 'ring-2 ring-custom-500' : ''}`} onClick={() => setFilterLevel('All')} value="All">All</li>
                     {levelOrder && Object.keys(levelOrder).map(level => (
-                        <li className={`cursor-pointer p-2 rounded-lg ${getLevelColor(level)} ${filterLevel === level ? 'ring-2 ring-custom-500' : ''}`} key={level} onClick={() => setFilterLevel(level)} value={level}>{level}</li>
+                        <li className={`cursor-pointer p-2 rounded-lg border border-gray-500 ${getLevelColor(level)} ${filterLevel === level ? 'ring-2 ring-custom-500' : ''}`} key={level} onClick={() => setFilterLevel(level)} value={level}>{level}</li>
                     ))}
                 </ul>
             </div>

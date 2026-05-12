@@ -11,14 +11,14 @@ const ReviewItem = ({ word }) => {
     const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-4 border-custom-500 flex flex-row items-start justify-between gap-4">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-8 border-custom-500 border flex flex-row items-start justify-between gap-4">
             <div className="flex flex-col">
                 <p className="font-bold text-lg text-gray-800 dark:text-gray-200 capitalize">{word.id}</p>
                 <button type="button" onClick={() => setIsRevealed(!isRevealed)}>
                     <p className={`text-gray-600 dark:text-gray-400 text-sm text-left transition-all duration-300 ${isRevealed ? '' : 'blur-sm select-none'}`}>
                         {word.translation}
                     </p>
-                    <span className="flex align-left text-xs text-gray-500 dark:text-gray-400">{`tap to ${isRevealed ? 'Hide' : 'Show'}`}</span>
+                    <span className="flex align-left text-md text-gray-500 dark:text-custom-400">{`tap to ${isRevealed ? 'Hide' : 'Show'}`}</span>
                 </button>
                 <br />
                 {word.translation === 'No translation' && <a href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(word.id)}&op=translate`} className="text-custom-200 hover:underline" target="_blank" rel="noopener noreferrer">Open in Google Translate</a>}
@@ -278,7 +278,7 @@ const Review = () => {
                         <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md mb-8">
                             <p className="text-gray-600 dark:text-gray-300 mb-4">You don't have any words due for review right now.</p>
                             <p className="text-gray-500 dark:text-gray-400">Read articles and click on words to save them!</p>
-                            <button onClick={() => navigate('/reading')} className="mt-4 px-6 py-2 bg-custom-600 text-white rounded-full hover:bg-custom-700 transition-colors">
+                            <button onClick={() => navigate('/reading-library')} className="mt-4 px-6 py-2 bg-custom-600 text-white rounded-full hover:bg-custom-700 transition-colors">
                                 Go to Reading Library
                             </button>
                         </div>
