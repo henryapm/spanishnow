@@ -170,14 +170,19 @@ const ReadingLibrary = () => {
                                 <p className="text-xs font-semibold uppercase text-custom-500 dark:text-custom-400">{article.topic}</p>
                                 <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-gray-200">
                                     {article.title}
-                                    {finishedArticles?.includes(article.id) && <span className="text-green-500 text-lg" title="Finished"><BsCheckCircleFill /></span>}
+                                    {finishedArticles?.includes(article.id) && <span className="flex items-center gap-2 text-green-500 text-lg" title="Finished"> Read <BsCheckCircleFill /></span>}
                                 </h2>
                             </div>
-                            <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-                                <div className="flex items-center gap-2">
-                                    {isLocked && <span className="text-2xl" role="img" aria-label="locked">🔒</span>}
+                            {isLocked && (
+                                <div className="absolute top-5 -right-12 w-40 text-center bg-purple-600 text-white text-[10px] font-bold uppercase tracking-widest py-1 shadow-md rotate-45 z-10 pointer-events-none">
+                                    Premium 🔒
                                 </div>
-                            </div>
+                            )}
+                            {isPremium && article.premium && (
+                                <div className="absolute top-5 -right-12 w-40 text-center bg-purple-600 text-white text-[10px] font-bold uppercase tracking-widest py-1 shadow-md rotate-45 z-10 pointer-events-none">
+                                    Premium
+                                </div>
+                            )}
                         </div>
                     )})}
                 </div>
