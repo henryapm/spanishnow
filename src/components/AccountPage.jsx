@@ -139,23 +139,23 @@ const AccountPage = ({ decks }) => {
                     {finishedArticles.length > 0 ? (
                         <div className="grid grid-rows-3 items-center justify-center">
                             <h2 className="text-4xl font-bold text-gray-800 text-center">Total read!</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="md:col-span-1 m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
+                            <div className="grid grid-cols-3 gap-6">
+                                <div className="m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
                                     {articlesRead}
                                     <div className="text-sm font-normal text-gray-600 dark:text-gray-300">Articles</div>
                                 </div>
-                                <div className="md:col-span-1 m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
+                                <div className="m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
                                     {sentencesRead}
                                     <div className="text-sm font-normal text-gray-600 dark:text-gray-300">Sentences</div>
                                 </div>
-                                <div className="md:col-span-1 m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
+                                <div className="m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
                                     {wordsRead}
                                     <div className="text-sm font-normal text-gray-600 dark:text-gray-300">Words</div>
                                 </div>
                             </div>
                             <NavLink
                                 to="/reading-library"
-                                className="md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
+                                className="m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
                             >
                                 View Library
                             </NavLink>
