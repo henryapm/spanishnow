@@ -161,7 +161,15 @@ const AccountPage = ({ decks }) => {
                             </NavLink>
                         </div>
                     ) : (
-                        <p className="text-gray-500 dark:text-gray-400">No articles completed yet.</p>
+                        <div className="grid grid-rows-2 items-center justify-center">
+                            <p className="text-gray-500 dark:text-gray-400">No articles completed yet.</p>
+                            <NavLink
+                                    to="/reading-library"
+                                    className="m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
+                                >
+                                    View Library
+                            </NavLink>
+                        </div>
                     )}
                 </div>
                 {/* --- SRS Stats Section --- */}
@@ -186,8 +194,8 @@ const AccountPage = ({ decks }) => {
                             </NavLink>
                         </div>
                 ) : (
-                    <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
-                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">No Progress Yet</h2>
+                    <div className="grid grid-rows-3 items-center justify-center bg-orange-500 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
+                        <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">No Progress Yet</h2>
                         <p className="text-gray-600 dark:text-gray-400">Go to our
                         <NavLink
                             to="/reading-library"
@@ -196,13 +204,21 @@ const AccountPage = ({ decks }) => {
                         >
                             Library
                         </NavLink> page to start learning!</p>
+                        <NavLink
+                            to="/reading-library"
+                            className="m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
+                        >
+                            Library
+                        </NavLink>
+
                     </div>
                 )}
                 {/* --- Role play Progress Section --- */}
                 <div className="grid grid-rows-3 gap-4 items-center justify-center bg-green-600 text-center p-6 rounded-lg shadow-md mb-8">
-                    <h2 className="text-4xl font-bold text-gray-800 text-center">Scenarios Completed</h2>
-                    <div className="m-auto bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
-                        {scenariosCompleted}
+                    <h2 className="text-4xl font-bold text-gray-800 text-center">Scenarios</h2>
+                    <div className="m-auto bg-white dark:bg-gray-800 text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
+                        <div className="text-3xl font-bold">{scenariosCompleted}</div>
+                        <p className="text-gray-500 dark:text-gray-400">Completed</p>
                     </div>
                     <NavLink
                         to="/speakCompanion"

@@ -30,6 +30,8 @@ const StoryReader = ({ articleId, onComplete }) => {
     const [showTranslations, setShowTranslations] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState("");
+    const [isTranslationsOn, setIsTranslationsOn] = useState(false);
+    
     const POPUP_WIDTH = 220; 
     const POPUP_HEIGHT_ESTIMATE = 120;
 
@@ -290,16 +292,21 @@ const StoryReader = ({ articleId, onComplete }) => {
                     <div className="mb-3 max-w-2xl mx-auto">
                         <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200">{article.title}</h1>
                     </div>
-                <div className="mb-4 flex justify-between items-center max-w-2xl mx-auto">
-                    <div className="flex items-center gap-4">
+                <div className="grid grid-rows items-start max-w-2xl mb-4">
+                    <div className="flex items-center justify-between mb-4">
                         <span className="text-sm font-bold text-blue-700 bg-blue-100 dark:bg-blue-900 dark:text-blue-300 px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
                             {sessionWords.length}/10 Words
                         </span>
-                        <button onClick={() => setShowTranslations(!showTranslations)} className="text-sm px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
-                            {showTranslations ? 'Hide translations' : 'Show translations'}
-                        </button>
+                    </div>
+                    <div className="flex gap-2">
                         <button onClick={() => handleSpeak(article.sentences.map(s => s.spanish).join(' '))} className="flex justify-between items-center gap-2 text-sm px-3 py-1 bg-blue-600 text-gray-700 dark:text-gray-300 rounded hover:bg-blue-700 dark:hover:bg-blue-700 dark:bg-blue-600 transition-colors">
-                            <FaPlayCircle /> <span>Speak Full Story</span>
+                            <FaPlayCircle /> <span>Play Story</span>
+                        </button>
+                        <button onClick={() => {setShowTranslations(!showTranslations)
+                                                setIsTranslationsOn(!isTranslationsOn);
+                                                }
+                        } className={`text-sm px-3 py-1 text-gray-100 rounded hover:bg-gray-300 dark:hover:bg-green-600 transition-colors ` + (isTranslationsOn ? 'bg-green-800' : 'bg-green-500')}>
+                            {showTranslations ? 'ES' : 'ES/EN'}
                         </button>
                     </div>
                 </div>
