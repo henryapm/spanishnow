@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDecksStore } from '../store.js';
 import { LuTurtle } from "react-icons/lu";
 import { BsBookmark, BsBookmarkFill, BsFillVolumeUpFill } from "react-icons/bs";
-import { FaInfoCircle, FaPlayCircle } from 'react-icons/fa';
+import { FaInfoCircle, FaPlayCircle, FaRegPauseCircle } from 'react-icons/fa';
+import { CiPlay1 } from 'react-icons/ci';
 
 const StoryReader = ({ articleId, onComplete }) => {
     // --- Store Data ---
@@ -31,6 +32,8 @@ const StoryReader = ({ articleId, onComplete }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState("");
     const [isTranslationsOn, setIsTranslationsOn] = useState(false);
+    const [playingState, setPlayingState] = useState({ text: null, rate: null });
+    const currentSpeechRef = useRef({ text: null, rate: null });
     
     const POPUP_WIDTH = 220; 
     const POPUP_HEIGHT_ESTIMATE = 120;
@@ -68,10 +71,46 @@ const StoryReader = ({ articleId, onComplete }) => {
     // --- Event Handlers ---
     const handleSpeak = (textToSpeak, rate = 1.0) => {
         if (!textToSpeak || !window.speechSynthesis) return;
+
+        if (
+            window.speechSynthesis.speaking &&
+            currentSpeechRef.current.text === textToSpeak &&
+            currentSpeechRef.current.rate === rate
+        ) {
+            window.speechSynthesis.cancel();
+            currentSpeechRef.current = { text: null, rate: null };
+            setPlayingState({ text: null, rate: null });
+            return;
+        }
+
         window.speechSynthesis.cancel(); 
+        currentSpeechRef.current = { text: textToSpeak, rate };
+        setPlayingState({ text: textToSpeak, rate });
+
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.lang = listeningPreference;
         utterance.rate = rate;
+
+        utterance.onend = () => {
+            if (
+                currentSpeechRef.current.text === textToSpeak && 
+                currentSpeechRef.current.rate === rate
+            ) {
+                currentSpeechRef.current = { text: null, rate: null };
+                setPlayingState({ text: null, rate: null });
+            }
+        };
+
+        utterance.onerror = () => {
+            if (
+                currentSpeechRef.current.text === textToSpeak && 
+                currentSpeechRef.current.rate === rate
+            ) {
+                currentSpeechRef.current = { text: null, rate: null };
+                setPlayingState({ text: null, rate: null });
+            }
+        };
+
         window.speechSynthesis.speak(utterance);
     };
 
@@ -132,20 +171,21 @@ const StoryReader = ({ articleId, onComplete }) => {
     const renderedContent = (article.sentences || []).map((sentenceObj, sIndex) => (
         <div key={sIndex}>
             <div className="flex gap-4 items-start">
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col gap-4 items-center">
                     <button 
-                        onClick={() => handleSpeak(sentenceObj.spanish)}
-                        className="mt-1 text-gray-400 hover:text-blue-500 transition-colors"
+                        onClick={() => handleSpeak(sentenceObj.spanish, 1.0)}
+                        className="h-6 w-6 text-gray-400 hover:text-blue-500 transition-colors"
                         title="Read paragraph aloud"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                        {playingState.text === sentenceObj.spanish && playingState.rate === 1.0 ? <FaRegPauseCircle className="w-full h-full" /> : <CiPlay1 className="w-full h-full" />}
                     </button>
                     <button 
                         onClick={() => handleSpeak(sentenceObj.spanish, 0.5)}
-                        className="mt-2 text-gray-400 hover:text-blue-500 transition-colors"
+                        className={"h-6 w-6 transition-colors text-gray-400 hover:text-blue-500"}
                         title="Read paragraph slowly"
                     >
-                        <LuTurtle />
+                        {playingState.text === sentenceObj.spanish && playingState.rate === 0.5 ? <FaRegPauseCircle className="w-full h-full"/> : <LuTurtle className="w-full h-full" />
+                        }
                     </button>
                 </div>
                 <p className="leading-loose">
@@ -278,6 +318,8 @@ const StoryReader = ({ articleId, onComplete }) => {
             );
         };
 
+    const fullStoryText = article ? article.sentences.map(s => s.spanish).join(' ') : '';
+
     return (
         <div className="w-full h-full overflow-y-auto p-6 pb-24 animate-fade-in bg-white dark:bg-gray-900" onClick={closePopup} onScroll={closePopup}>
             {renderPopup()}
@@ -299,8 +341,9 @@ const StoryReader = ({ articleId, onComplete }) => {
                         </span>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={() => handleSpeak(article.sentences.map(s => s.spanish).join(' '))} className="flex justify-between items-center gap-2 text-sm px-3 py-1 bg-blue-600 text-gray-700 dark:text-gray-300 rounded hover:bg-blue-700 dark:hover:bg-blue-700 dark:bg-blue-600 transition-colors">
-                            <FaPlayCircle /> <span>Play Story</span>
+                        <button onClick={() => handleSpeak(fullStoryText, 1.0)} className="flex justify-between items-center gap-2 text-sm px-3 py-1 bg-blue-600 text-gray-700 dark:text-gray-300 rounded hover:bg-blue-700 dark:hover:bg-blue-700 dark:bg-blue-600 transition-colors">
+                            {playingState.text === fullStoryText && playingState.rate === 1.0 ? <FaRegPauseCircle /> : <FaPlayCircle />} 
+                            <span>{playingState.text === fullStoryText && playingState.rate === 1.0 ? 'Pause Story' : 'Play Story'}</span>
                         </button>
                         <button onClick={() => {setShowTranslations(!showTranslations)
                                                 setIsTranslationsOn(!isTranslationsOn);
