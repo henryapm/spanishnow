@@ -139,18 +139,18 @@ const AccountPage = ({ decks }) => {
                     {finishedArticles.length > 0 ? (
                         <div className="grid grid-rows-3 items-center justify-center">
                             <h2 className="text-4xl font-bold text-gray-800 text-center">Total read!</h2>
-                            <div className="grid grid-cols-3 gap-6">
+                            <div className="grid grid-cols-3 justify-center items-center gap-6">
                                 <div className="m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
-                                    {articlesRead}
-                                    <div className="text-sm font-normal text-gray-600 dark:text-gray-300">Articles</div>
+                                    <div className="flex justify-center">{articlesRead}</div>
+                                    <div className="flex justify-center text-sm font-normal text-gray-600 dark:text-gray-300">Articles</div>
                                 </div>
                                 <div className="m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
-                                    {sentencesRead}
-                                    <div className="text-sm font-normal text-gray-600 dark:text-gray-300">Sentences</div>
+                                    <div className="flex justify-center">{sentencesRead}</div>
+                                    <div className="flex justify-center text-sm font-normal text-gray-600 dark:text-gray-300">Sentences</div>
                                 </div>
                                 <div className="m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
-                                    {wordsRead}
-                                    <div className="text-sm font-normal text-gray-600 dark:text-gray-300">Words</div>
+                                    <div className="flex justify-center">{wordsRead}</div>
+                                    <div className="flex justify-center text-sm font-normal text-gray-600 dark:text-gray-300">Words</div>
                                 </div>
                             </div>
                             <NavLink
