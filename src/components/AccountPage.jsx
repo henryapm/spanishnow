@@ -135,23 +135,13 @@ const AccountPage = ({ decks }) => {
             </div>
             { /* Your(user) Stats Section */ }
             <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200 text-center mb-8">Your Stats</h1>
-                <div className="bg-sky-500 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
+                <div className="bg-linear-to-r from-sky-500 to-sky-800 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
                     {finishedArticles.length > 0 ? (
-                        <div className="grid grid-rows-3 items-center justify-center">
-                            <h2 className="text-4xl font-bold text-gray-800 text-center">Total read!</h2>
-                            <div className="grid grid-cols-3 justify-center items-center gap-6">
-                                <div className="m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
-                                    <div className="flex justify-center">{articlesRead}</div>
-                                    <div className="flex justify-center text-sm font-normal text-gray-600 dark:text-gray-300">Articles</div>
-                                </div>
-                                <div className="m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
-                                    <div className="flex justify-center">{sentencesRead}</div>
-                                    <div className="flex justify-center text-sm font-normal text-gray-600 dark:text-gray-300">Sentences</div>
-                                </div>
-                                <div className="m-auto w-full bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
-                                    <div className="flex justify-center">{wordsRead}</div>
-                                    <div className="flex justify-center text-sm font-normal text-gray-600 dark:text-gray-300">Words</div>
-                                </div>
+                        <div className="grid grid-cols-3 gap-4 items-center justify-center">
+                            <h2 className="text-4xl font-bold text-gray-800 text-center">Reading</h2>
+                            <div className="m-auto bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-2">
+                                <div className="flex justify-center">{wordsRead}</div>
+                                <div className="flex justify-center text-sm font-normal text-gray-600 dark:text-gray-300">Words</div>
                             </div>
                             <NavLink
                                 to="/reading-library"
@@ -174,17 +164,11 @@ const AccountPage = ({ decks }) => {
                 </div>
                 {/* --- SRS Stats Section --- */}
                 { dueForReviewWords.length > 0 || masteredWords.length > 0 ? (
-                        <div className="grid grid-rows-3 items-center justify-center bg-orange-500 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
-                            <h2 className="text-4xl font-bold text-gray-800 text-center">Words Learned</h2>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-2 border-sky-600 dark:border-sky-400">
+                        <div className="grid grid-cols-3 items-center justify-center bg-linear-to-r from-yellow-500 to-orange-500 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
+                            <h2 className="text-4xl font-bold text-gray-800 text-center">Words</h2>
+                            <div className="bg-white dark:bg-gray-800 p-2 m-auto rounded-lg shadow border-2 border-sky-600 dark:border-sky-400">
                                     <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">{dueForReviewWords.length}</p>
-                                    <p className="text-gray-500 dark:text-gray-400">Words saved for review</p>
-                                </div>
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-2 border-sky-600 dark:border-sky-400">
-                                    <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">{masteredWords.length}</p>
-                                    <p className="text-gray-500 dark:text-gray-400">Words Mastered</p>
-                                </div>
+                                    <p className="text-gray-500 dark:text-gray-400">Learning</p>
                             </div>
                             <NavLink
                                 to="/spaced-repetition"
@@ -194,7 +178,7 @@ const AccountPage = ({ decks }) => {
                             </NavLink>
                         </div>
                 ) : (
-                    <div className="grid grid-rows-3 items-center justify-center bg-orange-500 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
+                    <div className="grid grid-rows-3 items-center justify-center bg-linear-to-r from-yellow-500 to-orange-500 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
                         <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">No Progress Yet</h2>
                         <p className="text-gray-600 dark:text-gray-400">Go to our
                         <NavLink
@@ -214,9 +198,9 @@ const AccountPage = ({ decks }) => {
                     </div>
                 )}
                 {/* --- Role play Progress Section --- */}
-                <div className="grid grid-rows-3 gap-4 items-center justify-center bg-green-600 text-center p-6 rounded-lg shadow-md mb-8">
-                    <h2 className="text-4xl font-bold text-gray-800 text-center">Scenarios</h2>
-                    <div className="m-auto bg-white dark:bg-gray-800 text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-4">
+                <div className="grid grid-cols-3 gap-4 items-center justify-center bg-linear-to-r from-green-500 to-green-800 text-center p-6 rounded-lg shadow-md mb-8">
+                    <h2 className="text-2xl font-bold text-gray-800 text-center">Conversations</h2>
+                    <div className="m-auto bg-white dark:bg-gray-800 text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-2">
                         <div className="text-3xl font-bold">{scenariosCompleted}</div>
                         <p className="text-gray-500 dark:text-gray-400">Completed</p>
                     </div>
