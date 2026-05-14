@@ -3,6 +3,7 @@ import { useNavigate, NavLink } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import { CircularProgress } from './SpeakCompanion';
 import { BsCheckCircleFill } from 'react-icons/bs';
+import { FaArrowCircleRight } from 'react-icons/fa';
 
 const AccountPage = ({ decks }) => {
     const navigate = useNavigate();
@@ -133,84 +134,36 @@ const AccountPage = ({ decks }) => {
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200">Hi {currentUser.displayName}!</h1>
                 </div>
             </div>
-            { /* Your(user) Stats Section */ }
+            {/* --- PRUEBA --- */}
             <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200 text-center mb-8">Your Stats</h1>
-                <div className="bg-linear-to-r from-sky-500 to-sky-800 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
-                    {finishedArticles.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-4 items-center justify-center">
-                            <h2 className="text-4xl font-bold text-gray-800 text-center">Reading</h2>
-                            <div className="m-auto bg-white dark:bg-gray-800 text-3xl font-bold text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-2">
-                                <div className="flex justify-center">{wordsRead}</div>
-                                <div className="flex justify-center text-sm font-normal text-gray-600 dark:text-gray-300">Words</div>
-                            </div>
-                            <NavLink
-                                to="/reading-library"
-                                className="m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
-                            >
-                                View Library
-                            </NavLink>
-                        </div>
-                    ) : (
-                        <div className="grid grid-rows-2 items-center justify-center">
-                            <p className="text-gray-500 dark:text-gray-400">No articles completed yet.</p>
-                            <NavLink
-                                    to="/reading-library"
-                                    className="m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
-                                >
-                                    View Library
-                            </NavLink>
-                        </div>
-                    )}
+            <div className="grid grid-cols-3 gap-3 items-center align-center justify-center mb-8">
+                <div className="col-span-2 items-center justify-center bg-linear-to-b from-sky-500 to-blue-700 md:p-6 sm:p-6 text-left rounded-lg shadow-md">
+                    <h2 className="text-2xl text-gray-800">Read</h2>
+                    <p className='text-6xl bold text-blue-200'>{wordsRead} <span className='text-sm text-gray-200'>Words</span></p>
                 </div>
-                {/* --- SRS Stats Section --- */}
-                { dueForReviewWords.length > 0 || masteredWords.length > 0 ? (
-                        <div className="grid grid-cols-3 items-center justify-center bg-linear-to-r from-yellow-500 to-orange-500 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
-                            <h2 className="text-4xl font-bold text-gray-800 text-center">Words</h2>
-                            <div className="bg-white dark:bg-gray-800 p-2 m-auto rounded-lg shadow border-2 border-sky-600 dark:border-sky-400">
-                                    <p className="text-3xl font-bold text-sky-600 dark:text-sky-400">{dueForReviewWords.length}</p>
-                                    <p className="text-gray-500 dark:text-gray-400">Learning</p>
-                            </div>
-                            <NavLink
-                                to="/spaced-repetition"
-                                className="m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
-                            >
-                                Review Words
-                            </NavLink>
-                        </div>
-                ) : (
-                    <div className="grid grid-rows-3 items-center justify-center bg-linear-to-r from-yellow-500 to-orange-500 p-6 rounded-lg shadow-md gap-4 text-center mb-8">
-                        <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">No Progress Yet</h2>
-                        <p className="text-gray-600 dark:text-gray-400">Go to our
-                        <NavLink
-                            to="/reading-library"
-                            className={"m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"}
-                            aria-label="Reading practice"
-                        >
-                            Library
-                        </NavLink> page to start learning!</p>
-                        <NavLink
-                            to="/reading-library"
-                            className="m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
-                        >
-                            Library
-                        </NavLink>
-
-                    </div>
-                )}
-                {/* --- Role play Progress Section --- */}
-                <div className="grid grid-cols-3 gap-4 items-center justify-center bg-linear-to-r from-green-500 to-green-800 text-center p-6 rounded-lg shadow-md mb-8">
-                    <h2 className="text-2xl font-bold text-gray-800 text-center">Conversations</h2>
-                    <div className="m-auto bg-white dark:bg-gray-800 text-sky-600 dark:text-sky-400 text-center border-2 border-sky-600 dark:border-sky-400 rounded-lg p-2">
-                        <div className="text-3xl font-bold">{scenariosCompleted}</div>
-                        <p className="text-gray-500 dark:text-gray-400">Completed</p>
-                    </div>
-                    <NavLink
-                        to="/speakCompanion"
-                        className="m-auto md:col-span-1 bg-gray-100 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300"
-                    >
-                        Role Play Now
-                    </NavLink>
+                <NavLink className="flex flex-col items-center justify-center text-2xl" to="/reading-library">
+                    <FaArrowCircleRight />
+                    Read
+                </NavLink>
+                <div className="col-span-2 items-center justify-center bg-linear-to-b from-yellow-500 to-red-700 md:p-6 sm:p-6 text-left rounded-lg shadow-md">
+                    <h2 className="text-2xl text-gray-800">Learning</h2>
+                    <p className='text-6xl bold text-blue-200'>{dueForReviewWords.length} <span className='text-sm text-gray-200'>Words</span></p>
+                    
                 </div>
+                <NavLink className="flex flex-col items-center justify-center text-2xl" to="/spaced-repetition">
+                    <FaArrowCircleRight />
+                    Review
+                </NavLink>
+                <div className="col-span-2 items-center justify-center bg-linear-to-b from-green-500 to-green-900 md:p-6 sm:p-6 text-left rounded-lg shadow-md">
+                    <h2 className="text-2xl text-gray-800">Completed</h2>
+                    <p className='text-6xl bold text-blue-200'>{scenariosCompleted} <span className='text-sm text-gray-200'>Role Plays</span></p>
+                </div>
+                <NavLink className="flex flex-col items-center justify-center text-2xl" to="/speakCompanion">
+                    <FaArrowCircleRight />
+                    Speak
+                </NavLink>
+                    
+            </div>
             
             {/* --- Settings Section --- */}
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
