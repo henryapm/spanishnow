@@ -12,9 +12,9 @@ const ReviewItem = ({ word }) => {
 
     return (
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-8 border-custom-500 border flex flex-row items-start justify-between">
-            <div className="flex flex-row items-baseline gap-2 wrap-anywhere">
+            <div className="flex flex-col items-baseline gap-2 wrap-anywhere">
                 {/* TODO breakdown word.id into have characters if it's a multi-character word of more than 10 characters */}
-                <p className="font-bold text-lg text-gray-800 dark:text-gray-200 capitalize">{word.id}</p>
+                <p className="font-bold text-lg text-gray-800 dark:text-gray-200 capitalize underline">{word.id}</p>
                 <button type="button" onClick={() => setIsRevealed(!isRevealed)}>
                     <p className={`text-gray-600 dark:text-gray-400 text-sm text-left transition-all duration-300 overflow-auto ${isRevealed ? '' : 'blur-sm select-none'}`}>
                         {word.translation}

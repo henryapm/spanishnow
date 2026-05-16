@@ -136,35 +136,23 @@ const AccountPage = ({ decks }) => {
             </div>
             {/* --- PRUEBA --- */}
             <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200 text-center mb-8">Your Stats</h1>
-            <div className="grid grid-cols-3 gap-3 items-center align-center justify-center mb-8">
-                <div className="col-span-2 items-center justify-center bg-linear-to-b from-sky-500 to-blue-700 md:p-6 sm:p-6 text-left rounded-lg shadow-md">
-                    <h2 className="text-2xl text-gray-800">Read</h2>
-                    <p className='text-6xl bold text-blue-200'>{wordsRead} <span className='text-sm text-gray-200'>Words</span></p>
+            <div className="flex flex-row gap-3  items-center align-center justify-center mb-4 ">
+                <div className="flex flex-col bg-linear-to-b wrap-break-word from-yellow-500 w-50 p-2 to-red-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
+                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Learning</h2>
+                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-100'><span className="font-extrabold text-2xl">{dueForReviewWords.length}</span> <span className='text-sm text-gray-200'>Words</span></p>
                 </div>
-                <NavLink className="flex flex-col items-center justify-center text-2xl" to="/reading-library">
-                    <FaArrowCircleRight />
-                    Read
-                </NavLink>
-                <div className="col-span-2 items-center justify-center bg-linear-to-b from-yellow-500 to-red-700 md:p-6 sm:p-6 text-left rounded-lg shadow-md">
-                    <h2 className="text-2xl text-gray-800">Learning</h2>
-                    <p className='text-6xl bold text-blue-200'>{dueForReviewWords.length} <span className='text-sm text-gray-200'>Words</span></p>
-                    
+                                    
+                <div className="flex flex-col bg-linear-to-b wrap-break-word from-sky-500 p-2 w-50 to-blue-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
+                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Read</h2>
+                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-100'><span className="font-extrabold text-2xl">{wordsRead}</span> <span className='text-sm text-gray-200'>Words</span></p>
                 </div>
-                <NavLink className="flex flex-col items-center justify-center text-2xl" to="/spaced-repetition">
-                    <FaArrowCircleRight />
-                    Review
-                </NavLink>
-                <div className="col-span-2 items-center justify-center bg-linear-to-b from-green-500 to-green-900 md:p-6 sm:p-6 text-left rounded-lg shadow-md">
-                    <h2 className="text-2xl text-gray-800">Completed</h2>
-                    <p className='text-6xl bold text-blue-200'>{scenariosCompleted} <span className='text-sm text-gray-200'>Role Plays</span></p>
-                </div>
-                <NavLink className="flex flex-col items-center justify-center text-2xl" to="/speakCompanion">
-                    <FaArrowCircleRight />
-                    Speak
-                </NavLink>
-                    
             </div>
-            
+            <div className="flex flex-row gap-3 items-center align-center justify-center mb-8">
+                <div className="flex flex-col bg-linear-to-b wrap-break-word from-green-500 p-2 w-75 to-green-900 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
+                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Completed</h2>
+                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-200'><span className="font-extrabold text-2xl">{scenariosCompleted}</span> <span className='text-sm text-gray-200'>Roles</span></p>
+                </div>
+            </div>
             {/* --- Settings Section --- */}
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Settings</h2>
