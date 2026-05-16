@@ -12,7 +12,7 @@ const ReviewItem = ({ word }) => {
 
     return (
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-8 border-custom-500 border flex flex-row items-start justify-between gap-4">
-            <div className="flex flex-col">
+            <div className="flex flex-row items-baseline gap-6">
                 <p className="font-bold text-lg text-gray-800 dark:text-gray-200 capitalize">{word.id}</p>
                 <button type="button" onClick={() => setIsRevealed(!isRevealed)}>
                     <p className={`text-gray-600 dark:text-gray-400 text-sm text-left transition-all duration-300 ${isRevealed ? '' : 'blur-sm select-none'}`}>
@@ -30,7 +30,7 @@ const ReviewItem = ({ word }) => {
                                 toggleSavedWord(word.id);
                             }
                         }}
-                    className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors`}
+                    className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors cursor-pointer`}
                     title={isSaved ? "Remove from saved words" : "Save word for training"}
                 >
                     {isSaved ? <BsBookmarkFill /> : ''}

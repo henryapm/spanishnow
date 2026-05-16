@@ -67,10 +67,17 @@ export default function LessonFlow() {
 
                 <div className="flex-1 mx-4 max-w-2xl">
                     <div className="h-3 w-full bg-gray-200 rounded-full overflow-hidden dark:bg-gray-700">
-                        <div 
+                        {activeSession.step === 'review' && activeSession.wordsSavedInSession.length === 0 ? 
+                            <div 
+                            className="h-full bg-blue-500 transition-all duration-500 ease-in-out" 
+                            style={{ width: `100%` }}
+                            ></div>
+                        :
+                            <div 
                             className="h-full bg-blue-500 transition-all duration-500 ease-in-out" 
                             style={{ width: `${getProgress()}%` }}
-                        ></div>
+                            ></div>
+                        }
                     </div>
                 </div>
 
@@ -88,12 +95,14 @@ export default function LessonFlow() {
                     />
                 )}
                 
-                {activeSession.step === 'review' && (
+                {activeSession.step === 'review' && activeSession.wordsSavedInSession.length === 0 ? (
+                    <SessionComplete onFinish={endSession} />
+                ) : activeSession.step === 'review' &&
                     <FlashcardReview 
                         wordsToReview={activeSession.wordsSavedInSession}
                         onComplete={() => advanceSessionStep('practice')} 
                     />
-                )}
+                }
                 
                 {activeSession.step === 'practice' && (
                     <AIChatPractice 
