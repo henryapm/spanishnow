@@ -11,11 +11,12 @@ const ReviewItem = ({ word }) => {
     const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-8 border-custom-500 border flex flex-row items-start justify-between gap-4">
-            <div className="flex flex-row items-baseline gap-6">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border-l-8 border-custom-500 border flex flex-row items-start justify-between">
+            <div className="flex flex-row items-baseline gap-2 wrap-anywhere">
+                {/* TODO breakdown word.id into have characters if it's a multi-character word of more than 10 characters */}
                 <p className="font-bold text-lg text-gray-800 dark:text-gray-200 capitalize">{word.id}</p>
                 <button type="button" onClick={() => setIsRevealed(!isRevealed)}>
-                    <p className={`text-gray-600 dark:text-gray-400 text-sm text-left transition-all duration-300 ${isRevealed ? '' : 'blur-sm select-none'}`}>
+                    <p className={`text-gray-600 dark:text-gray-400 text-sm text-left transition-all duration-300 overflow-auto ${isRevealed ? '' : 'blur-sm select-none'}`}>
                         {word.translation}
                     </p>
                     <span className="flex align-left text-md text-gray-500 dark:text-custom-400">{`tap to ${isRevealed ? 'Hide' : 'Show'}`}</span>

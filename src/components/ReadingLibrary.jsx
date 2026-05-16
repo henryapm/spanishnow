@@ -163,29 +163,29 @@ const ReadingLibrary = () => {
                             <div
                             key={article.id}
                             onClick={(e) => handleStartLesson(e, article)}
-                            className={`w-full text-left relative overflow-hidden py-6 pr-6 pl-16 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-transform flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 ${!isLocked ? 'hover:-translate-y-1 cursor-pointer' : 'opacity-45 cursor-not-allowed'}`}
+                            className={`w-full text-left relative overflow-hidden py-6 pr-6 pl-16 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-transform flex flex-col sm:flex-row justify-between items-start gap-4 ${!isLocked ? 'hover:-translate-y-1 cursor-pointer' : 'opacity-45 cursor-not-allowed'}`}
                             >
-                            {article.level && <span className={`absolute left-0 top-0 h-full w-10 flex items-center justify-center text-md font-bold px-2 py-1 ${getLevelColor(article.level)}`}>{article.level}</span>}
-                            <div className="grid grid-cols-3 gap-2 items-center justify-between">
-                                <div className="col-span-2">
-                                    <p className="text-xs font-semibold uppercase text-custom-500 dark:text-custom-400">{article.topic}</p>
-                                    <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-gray-200">
-                                        {article.title}
-                                    </h2>
+                                {article.level && <span className={`absolute left-0 top-0 h-full w-10 flex items-center justify-center text-md font-bold px-2 py-1 ${getLevelColor(article.level)}`}>{article.level}</span>}
+                                <div className="flex flex-row gap-2 items-end justify-between">
+                                    <div className="col-span-2">
+                                        <p className="text-xs font-semibold uppercase text-custom-500 dark:text-custom-400">{article.topic}</p>
+                                        <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-gray-200">
+                                            {article.title}
+                                        </h2>
+                                    </div>
+                                    <div className="col-start-4">{finishedArticles?.includes(article.id) && <span className="flex items-center gap-2 text-green-500 text-lg" title="Finished"> Read <BsCheckCircleFill /></span>}</div>
                                 </div>
-                                <div className="col-start-4">{finishedArticles?.includes(article.id) && <span className="flex items-center gap-2 text-green-500 text-lg" title="Finished"> Read <BsCheckCircleFill /></span>}</div>
+                                {isLocked && (
+                                    <div className="absolute top-5 -right-12 w-40 text-center bg-purple-600 text-white text-[10px] font-bold uppercase tracking-widest py-1 shadow-md rotate-45 z-10 pointer-events-none">
+                                        Premium 🔒
+                                    </div>
+                                )}
+                                {isPremium && article.premium && (
+                                    <div className="absolute top-5 -right-12 w-40 text-center bg-purple-600 text-white text-[10px] font-bold uppercase tracking-widest py-1 shadow-md rotate-45 z-10 pointer-events-none">
+                                        Premium
+                                    </div>
+                                )}
                             </div>
-                            {isLocked && (
-                                <div className="absolute top-5 -right-12 w-40 text-center bg-purple-600 text-white text-[10px] font-bold uppercase tracking-widest py-1 shadow-md rotate-45 z-10 pointer-events-none">
-                                    Premium 🔒
-                                </div>
-                            )}
-                            {isPremium && article.premium && (
-                                <div className="absolute top-5 -right-12 w-40 text-center bg-purple-600 text-white text-[10px] font-bold uppercase tracking-widest py-1 shadow-md rotate-45 z-10 pointer-events-none">
-                                    Premium
-                                </div>
-                            )}
-                        </div>
                     )})}
                 </div>
             ) : (
