@@ -22,12 +22,10 @@ const addXpInTransaction = async (transaction, userRef, userDoc, xpToAdd) => {
     const lastXpDate = userData.lastXpDate;
     let newStreak = userData.streak || 0;
     
-    // Use dot notation to update a map field. This will store XP for each day.
-    const historyField = `xpHistory.${todayDateString}`;
+    const xpHistoryRef = userRef.collection('xpHistory').doc(todayDateString);
 
     const updates = {
-        totalXp: admin.firestore.FieldValue.increment(xpToAdd),
-        [historyField]: admin.firestore.FieldValue.increment(xpToAdd)
+        totalXp: admin.firestore.FieldValue.increment(xpToAdd)
     };
 
     if (lastXpDate !== todayDateString) {
@@ -53,7 +51,13 @@ const addXpInTransaction = async (transaction, userRef, userDoc, xpToAdd) => {
     
     console.log('[addXpInTransaction] Update object prepared:', updates);
     transaction.update(userRef, updates);
-    console.log('[addXpInTransaction] Transaction update queued.');
+
+    // Create or update the document in the xpHistory subcollection.
+    // We use set with merge:true to create the document if it doesn't exist,
+    // or update it if it does, incrementing the 'xp' field.
+    transaction.set(xpHistoryRef, { xp: admin.firestore.FieldValue.increment(xpToAdd) }, { merge: true });
+
+    console.log('[addXpInTransaction] Transaction updates queued for user doc and xpHistory subcollection.');
 };
 
 /**

@@ -17,7 +17,6 @@ const ListeningView = ({ currentCard, onCorrect, onIncorrect }) => {
     
     // --- CORRECTED STATE SELECTION ---
     // Selecting each piece of state individually to prevent re-render loops.
-    const resetStreak = useDecksStore((state) => state.resetStreak);
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
     
     const [userAnswer, setUserAnswer] = useState([]);
@@ -65,7 +64,6 @@ const ListeningView = ({ currentCard, onCorrect, onIncorrect }) => {
             setFeedback('correct');
         } else {
             setFeedback('incorrect');
-            resetStreak();
         }
     };
 

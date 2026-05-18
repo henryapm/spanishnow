@@ -123,7 +123,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
         utterance.lang = listeningPreference || 'es-ES';
         window.speechSynthesis.speak(utterance);
     };
-
+    
     const handleSend = async () => {
         if (!userSpeech.trim()) return;
         

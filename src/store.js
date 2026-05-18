@@ -129,7 +129,7 @@ export const useDecksStore = create((set, get) => ({
             wordsSavedInSession: []
         }
     }),
-
+    
     advanceSessionStep: async (nextStep) => {
         const { activeSession, totalXp, savedWordsList } = get();
         const previousStep = activeSession.step;
@@ -212,7 +212,6 @@ export const useDecksStore = create((set, get) => ({
                 let userXp = 0;
                 let userDailyXp = 0;
                 let userStreak = 0;
-                let xpHistory = {};
                 let subscriptionStatus = false;
                 let isFirestoreAdmin = false;
                 let dailyFreeAccess = null;
@@ -223,7 +222,6 @@ export const useDecksStore = create((set, get) => ({
                     userXp = userDocSnap.data().totalXp || 0;
                     userDailyXp = userDocSnap.data().dailyXp || 0;
                     userStreak = userDocSnap.data().streak || 0;
-                    xpHistory = userDocSnap.data().xpHistory || {};
                     subscriptionStatus = userDocSnap.data().hasActiveSubscription === true;
                     isFirestoreAdmin = userDocSnap.data().isAdmin === true;
                     
@@ -266,7 +264,6 @@ export const useDecksStore = create((set, get) => ({
                     totalXp: userXp,
                     dailyXp: userDailyXp,
                     streak: userStreak,
-                    xpHistory: xpHistory,
                     dailyFreeAccess,
                     // Reset these on login to ensure fresh data is fetched
                     finishedArticles: new Set(),
@@ -287,7 +284,7 @@ export const useDecksStore = create((set, get) => ({
                     totalXp: 0,
                     dailyXp: 0,
                     streak: 0, 
-                    xpHistory: {},
+                    xpHistory: {}, // Clear on logout
                     dailyFreeAccess: null, 
                     finishedArticles: new Set(), 
                     savedWordsLoaded: false, 
@@ -330,6 +327,39 @@ export const useDecksStore = create((set, get) => ({
             set({ progress: progressData, deckProgress: progressData, userProgressLoaded: true });
         } catch (error) {
             console.error("Error fetching user progress:", error);
+        }
+    },
+
+    fetchXpHistory: async () => {
+        const { currentUser } = get();
+        if (!currentUser) return;
+
+        try {
+            // We need the last 7 days for the chart.
+            const today = new Date();
+            const dateStrings = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                dateStrings.push(d.toLocaleDateString('en-CA')); // 'YYYY-MM-DD'
+            }
+
+            // Firestore 'in' query is limited to 30 values, 7 is fine.
+            const historyQuery = query(
+                collection(db, 'users', currentUser.uid, 'xpHistory'),
+                where(documentId(), 'in', dateStrings)
+            );
+
+            const querySnapshot = await getDocs(historyQuery);
+            
+            const newXpHistory = {};
+            querySnapshot.forEach(doc => {
+                newXpHistory[doc.id] = doc.data().xp || 0;
+            });
+
+            set({ xpHistory: newXpHistory });
+        } catch (error) {
+            console.error("Error fetching XP history:", error);
         }
     },
 
@@ -720,10 +750,6 @@ export const useDecksStore = create((set, get) => ({
         };
 
         set({ trainingDeck: virtualDeck, isLoading: false });
-    },
-
-    resetStreak: () => {
-        set({ streak: 0 });
     },
     
     updateListeningPreference: async (pref) => {

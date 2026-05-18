@@ -147,7 +147,7 @@ exports.getAllUsers = onCall(async (request) => {
     const userDoc = await db.collection('users').doc(uid).get();
     
     // Verify admin status securely via backend checks
-    const isAdmin = request.auth.token.admin === true || (userDoc.exists && userDoc.data().isAdmin === true);
+    const isAdmin = request.auth.token.admin === true;
 
     if (!isAdmin) {
         throw new HttpsError('permission-denied', 'Only admins can view the user list.');

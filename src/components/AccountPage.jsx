@@ -3,8 +3,8 @@ import { useNavigate, NavLink } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import { CircularProgress } from './SpeakCompanion';
 import { BsCheckCircleFill } from 'react-icons/bs';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { FaArrowCircleRight } from 'react-icons/fa';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { FaArrowCircleRight, FaFire } from 'react-icons/fa';
 
 const AccountPage = ({ decks }) => {
     const navigate = useNavigate();
@@ -21,6 +21,8 @@ const AccountPage = ({ decks }) => {
     
     const finishedArticles = useDecksStore((state) => state.finishedArticles);
     const xpHistory = useDecksStore((state) => state.xpHistory);
+    const fetchXpHistory = useDecksStore((state) => state.fetchXpHistory);
+    const streak = useDecksStore((state) => state.streak);
     
     {/* fetch SRS */}
     const savedWordsList = useDecksStore((state) => state.savedWordsList);
@@ -88,7 +90,8 @@ const AccountPage = ({ decks }) => {
     useEffect(() => {
         fetchScenarios();
         fetchSpeakProgress();
-    }, [fetchScenarios, fetchSpeakProgress]);
+        fetchXpHistory();
+    }, [fetchScenarios, fetchSpeakProgress, fetchXpHistory]);
 
     useEffect(() => {
         const lastFetch = sessionStorage.getItem('articles_last_fetch');
@@ -151,10 +154,10 @@ const AccountPage = ({ decks }) => {
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200">Hi {currentUser.displayName}!</h1>
                 </div>
             </div>
-            {/* --- PRUEBA --- */}
+            {/* --- STATS --- */}
             <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200 text-center mb-8">Your Stats</h1>
             <div className="flex flex-row gap-3  items-center align-center justify-center mb-4 ">
-                <div className="flex flex-col bg-linear-to-b wrap-break-word from-yellow-500 w-50 p-2 to-red-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
+                <div className="flex flex-col bg-linear-to-b wrap-break-word from-purple-400 w-50 p-2 to-purple-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
                     <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Learning</h2>
                     <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-100'><span className="font-extrabold text-2xl">{dueForReviewWords.length}</span> <span className='text-sm text-gray-200'>Words</span></p>
                 </div>
@@ -165,9 +168,13 @@ const AccountPage = ({ decks }) => {
                 </div>
             </div>
             <div className="flex flex-row gap-3 items-center align-center justify-center mb-8">
-                <div className="flex flex-col bg-linear-to-b wrap-break-word from-green-500 p-2 w-75 to-green-900 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
+                <div className="flex flex-col bg-linear-to-b wrap-break-word from-green-500 p-2 w-50 to-green-900 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
                     <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Completed</h2>
                     <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-200'><span className="font-extrabold text-2xl">{scenariosCompleted}</span> <span className='text-sm text-gray-200'>Roles</span></p>
+                </div>
+                <div className="flex flex-col bg-linear-to-b wrap-break-word from-orange-500 p-2 w-50 to-red-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
+                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Streak</h2>
+                    <p className='flex flex-row items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-orange-200'><span className="font-extrabold text-2xl">{streak}</span> <FaFire className="text-2xl" /></p>
                 </div>
             </div>
 

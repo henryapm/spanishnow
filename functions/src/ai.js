@@ -7,7 +7,7 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 const scenariosInstructions = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context, if the user doesn't seem to understand what to do, and says things out of the context or doesn't attempt to complete an objective suggest a response that they could use so that the role play makes sense and is completed. If the user deviates from the scenario, gently steer them back on track by reminding them of the context and objectives. If the user completes the objectives, congratulate them and suggest they try another scenario for further practice. ";
 
-const MAX_FREE_INTERACTIONS = 5;
+const MAX_FREE_INTERACTIONS = 5; // Maximum free interactions per day for non-premium users
 const { addXp, XP_FOR_CHAT } = require("./xp.js");
 
 exports.chatWithGemini = onCall({ 
@@ -196,7 +196,10 @@ exports.chatForLesson = onCall({
     
     // 1. Premium / Limit Check (same as chatWithGemini)
     const userDoc = await db.collection('users').doc(uid).get();
-    const isPremium = userDoc.data()?.isAdmin === true || userDoc.data()?.hasActiveSubscription === true;
+    const userData = userDoc.data() || {};
+
+    // --- FIX: Check for admin status in both Firestore doc and auth token claims ---
+    const isPremium = userData.isAdmin === true || userData.hasActiveSubscription === true || request.auth.token.admin === true;
 
     if (!isPremium) {
         const today = new Date().toLocaleDateString('en-CA');
@@ -226,6 +229,7 @@ exports.chatForLesson = onCall({
         : `Encourage the user to use vocabulary related to the story.`;
         
     const objectives = [
+        "if the user starts by giving you an example of one of the vocabulary words in a sentence, respond by praising their effort and continue by moving on to the next word in the next vocabulary word they just learned. If they don't start with a vocab word, gently prompt them to try using one of the new words they learned from the story.",
         "Mention to the user the first word they saved, then tell the user what that word translates to in English with the english word wrapped in quotation marks, explain how to use it using english to explain, create a sentence in Spanish using that word, and ask them to do the same with that word. Then move on to the next word and do the same, until you have gone through all the words they saved.",
         vocabInstruction,
         "Keep your responses relatively brief (1-2 sentences) so the user doesn't get overwhelmed.",
