@@ -14,3 +14,4 @@ Object.assign(exports, require('./src/dictionary'));
 Object.assign(exports, require('./src/user'));
 Object.assign(exports, require('./src/library'));
 Object.assign(exports, require('./src/admin'));
+Object.assign(exports, require('./src/xp'));

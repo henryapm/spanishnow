@@ -313,8 +313,13 @@ const ReaderView = () => {
             <div className="mt-12 flex justify-center">
                 <button
                     onClick={async () => {
-                        await markArticleAsFinished(articleId);
-                        navigate('/reading');
+                        try {
+                            await markArticleAsFinished(articleId);
+                            navigate('/reading'); // Only navigate on success
+                        } catch (error) {
+                            // Error is already logged by the store, but we can alert the user.
+                            alert("Failed to save progress. Please check your connection and try again.");
+                        }
                     }}
                     className="px-8 py-3 bg-green-600 text-white font-bold rounded-full shadow-lg hover:bg-green-700 transition-transform transform hover:scale-105 flex items-center gap-2"
                 >

@@ -18,7 +18,6 @@ const ReadingLibrary = () => {
     const isPremium = isAdmin || hasActiveSubscription;
     const [showLimitModal, setShowLimitModal] = useState(false);
     const finishedArticles = useDecksStore((state) => state.finishedArticles);
-
     
     const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('reading_sortBy') || 'Free/Premium');
     const [filterLevel, setFilterLevel] = useState(() => sessionStorage.getItem('reading_filterLevel') || 'All');
@@ -173,7 +172,7 @@ const ReadingLibrary = () => {
                                             {article.title}
                                         </h2>
                                     </div>
-                                    <div className="col-start-4">{finishedArticles?.includes(article.id) && <span className="flex items-center gap-2 text-green-500 text-lg" title="Finished"> Read <BsCheckCircleFill /></span>}</div>
+                                    <div className="col-start-4">{finishedArticles?.has(article.id) && <span className="flex items-center gap-2 text-green-500 text-lg" title="Finished"> Read <BsCheckCircleFill /></span>}</div>
                                 </div>
                                 {isLocked && (
                                     <div className="absolute top-5 -right-12 w-40 text-center bg-purple-600 text-white text-[10px] font-bold uppercase tracking-widest py-1 shadow-md rotate-45 z-10 pointer-events-none">

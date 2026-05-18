@@ -3,6 +3,7 @@ import { useNavigate, NavLink } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import { CircularProgress } from './SpeakCompanion';
 import { BsCheckCircleFill } from 'react-icons/bs';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { FaArrowCircleRight } from 'react-icons/fa';
 
 const AccountPage = ({ decks }) => {
@@ -19,6 +20,7 @@ const AccountPage = ({ decks }) => {
     const articles = useDecksStore((state) => state.articles);
     
     const finishedArticles = useDecksStore((state) => state.finishedArticles);
+    const xpHistory = useDecksStore((state) => state.xpHistory);
     
     {/* fetch SRS */}
     const savedWordsList = useDecksStore((state) => state.savedWordsList);
@@ -39,7 +41,7 @@ const AccountPage = ({ decks }) => {
         let sentenceCount = 0;
         let articleCount = 0;
         Object.entries(articles).forEach(([key, article]) => {
-            if (finishedArticles.includes(key) && article.sentences) {
+            if (finishedArticles.has(key) && article.sentences) {
                 sentenceCount += article.sentences.length;
                 articleCount++;
                 article.sentences.forEach(sentence => {
@@ -65,7 +67,6 @@ const AccountPage = ({ decks }) => {
         });
         return count;
     }, [scenarios, userProgress]);
-
     
     const getLevelColor = (level) => {
         switch (level?.toUpperCase()) {
@@ -101,6 +102,22 @@ const AccountPage = ({ decks }) => {
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchArticles]);
+
+    const weeklyXpData = useMemo(() => {
+        const data = [];
+        const today = new Date();
+        for (let i = 6; i >= 0; i--) {
+            const day = new Date(today);
+            day.setDate(today.getDate() - i);
+
+            const dateString = day.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+            const dayName = day.toLocaleDateString('en-US', { weekday: 'short' });
+
+            const xp = xpHistory[dateString] || 0;
+            data.push({ name: dayName, xp });
+        }
+        return data;
+    }, [xpHistory]);
 
     // Filter words that are due for review
     const today = new Date();
@@ -153,6 +170,32 @@ const AccountPage = ({ decks }) => {
                     <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-200'><span className="font-extrabold text-2xl">{scenariosCompleted}</span> <span className='text-sm text-gray-200'>Roles</span></p>
                 </div>
             </div>
+
+            {/* --- Weekly XP Chart --- */}
+            <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Weekly Activity</h2>
+                <div style={{ width: '100%', height: 300 }}>
+                    <ResponsiveContainer>
+                        <LineChart
+                            data={weeklyXpData}
+                            margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#4A5568' : '#E2E8F0'} />
+                            <XAxis dataKey="name" stroke={theme === 'dark' ? '#A0AEC0' : '#4A5568'} />
+                            <YAxis stroke={theme === 'dark' ? '#A0AEC0' : '#4A5568'} />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: theme === 'dark' ? '#2D3748' : '#FFFFFF',
+                                    borderColor: theme === 'dark' ? '#4A5568' : '#E2E8F0'
+                                }}
+                                labelStyle={{ color: theme === 'dark' ? '#E2E8F0' : '#1A202C' }}
+                            />
+                            <Line type="monotone" dataKey="xp" name="XP Gained" stroke="#4F46E5" strokeWidth={2} activeDot={{ r: 8 }} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
             {/* --- Settings Section --- */}
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Settings</h2>

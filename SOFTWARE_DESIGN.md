@@ -58,7 +58,12 @@ Stores public information and application-specific data for each user. Document 
   "email": "user@example.com",
   "isAdmin": false,
   "hasActiveSubscription": true,
-  "listeningPreference": "female"
+  "listeningPreference": "female",
+  "timezone": "America/New_York",
+  "totalXp": 250,
+  "dailyXp": 15,
+  "lastXpDate": "2026-05-16",
+  "xpHistory": { "2026-05-16": 15, "2026-05-15": 50 }
 }
 ```
 *(Note: also contains subcollections like `savedWords` for SRS data and `daily_limits` for usage tracking).*

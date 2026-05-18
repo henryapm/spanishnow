@@ -1,6 +1,7 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const { FieldValue } = require("firebase-admin/firestore");
+const { addXpInTransaction, XP_FOR_SRS } = require("./xp.js");
 
 /**
  * Securely adds a card to the SRS system from flashcard component.
@@ -160,6 +161,74 @@ exports.updateSavedWordProgress = onCall(async (request) => {
         console.error("Error updating word progress:", error);
         if (error.code) throw error; // Rethrow existing HttpsErrors
         throw new HttpsError('internal', 'Failed to update word progress.');
+    }
+});
+
+/**
+ * Securely updates the SRS stage for multiple saved words in a batch.
+ * Recalculates the next review date on the server to prevent progress spoofing.
+ */
+exports.updateMultipleSavedWordProgress = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    const uid = request.auth.uid;
+    const { wordIds } = request.data;
+
+    if (!wordIds || !Array.isArray(wordIds) || wordIds.length === 0) {
+        throw new HttpsError('invalid-argument', 'A non-empty array of word IDs is required.');
+    }
+    
+    if (wordIds.length > 10) { // Prevent abuse
+        throw new HttpsError('invalid-argument', 'Too many words provided. Maximum allowed is 10.');
+    }
+    if (wordIds.some(wordId => typeof wordId !== 'string' || wordId.trim() === '' || wordId.length > 100)) {
+        throw new HttpsError('invalid-argument', 'One or more word IDs are invalid or exceed the maximum length of 100 characters.');
+    }
+
+    const db = admin.firestore();
+    const userRef = db.collection('users').doc(uid);
+
+    try {
+        await db.runTransaction(async (t) => {
+            // READ FIRST: All reads must happen before all writes in a transaction.
+            const userDoc = await t.get(userRef);
+            if (!userDoc.exists) {
+                throw new HttpsError('not-found', 'User document not found.');
+            }
+
+            const promises = wordIds.map(async (wordId) => {
+                const wordRef = db.collection('users').doc(uid).collection('savedWords').doc(wordId);
+                const docSnap = await t.get(wordRef);
+
+                if (docSnap.exists) {
+                    const data = docSnap.data();
+                    let stage = data.stage || 0;
+                    let nextDate = new Date();
+
+                    // This logic should be identical to the single update function
+                    if (stage === 0) { nextDate.setDate(nextDate.getDate() + 1); stage = 1; } 
+                    else if (stage === 1) { nextDate.setDate(nextDate.getDate() + 3); stage = 2; } 
+                    else if (stage === 2) { nextDate.setDate(nextDate.getDate() + 7); stage = 3; } 
+                    else if (stage === 3) { nextDate.setDate(nextDate.getDate() + 14); stage = 4; } 
+                    else if (stage >= 4) { stage = 5; }
+
+                    nextDate.setHours(0, 0, 0, 0);
+                    t.update(wordRef, { stage, nextReviewDate: nextDate.getTime() });
+                }
+            });
+            await Promise.all(promises);
+
+            // After updating all words, award the total XP for the batch in the same transaction
+            const xpToAward = wordIds.length * XP_FOR_SRS;
+            await addXpInTransaction(t, userRef, userDoc, xpToAward);
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating multiple word progress:", error);
+        if (error.code) throw error; // Rethrow existing HttpsErrors
+        throw new HttpsError('internal', 'Failed to update word progress for the batch.');
     }
 });
 

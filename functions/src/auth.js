@@ -11,8 +11,7 @@ exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
         email: user.email || '',
         photoURL: user.photoURL || '',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        listeningPreference: 'es-US',
-        finishedArticles: [],
+        listeningPreference: 'es-US', // finishedArticles is now a subcollection
         isAdmin: false,
         hasActiveSubscription: false,
         legal: {

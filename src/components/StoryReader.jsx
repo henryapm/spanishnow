@@ -34,6 +34,7 @@ const StoryReader = ({ articleId, onComplete }) => {
     const [isTranslationsOn, setIsTranslationsOn] = useState(false);
     const [playingState, setPlayingState] = useState({ text: null, rate: null });
     const currentSpeechRef = useRef({ text: null, rate: null });
+    const [isCompleting, setIsCompleting] = useState(false);
     
     const POPUP_WIDTH = 220; 
     const POPUP_HEIGHT_ESTIMATE = 120;
@@ -358,8 +359,24 @@ const StoryReader = ({ articleId, onComplete }) => {
                     {isDictionaryLoading ? <p>Loading...</p> : renderedContent}
                 </div>
                 <div className="mt-12 flex justify-center pb-12">
-                    <button onClick={async () => { await markArticleAsFinished(articleId); onComplete(); }} className="px-10 py-4 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 flex items-center gap-2">
-                        Continue to Review ➔
+                    <button
+                        onClick={async () => {
+                            setIsCompleting(true);
+                            try {
+                                await markArticleAsFinished(articleId);
+                                onComplete();
+                            } catch (error) {
+                                alert("Failed to save progress. Please check your connection and try again.");
+                            } finally {
+                                setIsCompleting(false);
+                            }
+                        }}
+                        className="px-10 py-4 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 flex items-center justify-center w-64"
+                        disabled={isCompleting}
+                    >
+                        {isCompleting ? (
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                        ) : 'Continue to Review ➔'}
                     </button>
                 </div>
             </div>

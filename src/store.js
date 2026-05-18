@@ -78,14 +78,16 @@ export const useDecksStore = create((set, get) => ({
     progress: {},
     deckProgress: {},
     listeningPreference: 'es-ES',
+    dailyXp: 0,
     totalXp: 0,
     streak: 0,
+    xpHistory: {},
     theme: 'dark',
     savedWordsSet: new Set(),
     savedWordsList: [],
     savedWordsLoaded: false,
-    dailyFreeAccess: null, // { date: "YYYY-MM-DD", deckId: "..." }
-    finishedArticles: [],
+    dailyFreeAccess: null,
+    finishedArticles: new Set(),
     scenarios: [],
     scenariosAiInstructions: '',
     isScenariosLoading: false,
@@ -102,8 +104,10 @@ export const useDecksStore = create((set, get) => ({
     activeSession: {
         isActive: false,
         articleId: null,
-        step: 'idle', // 'reading', 'review', 'practice', 'completed'
+        step: 'idle', // 'reading', 'review', 'practice', 'completed',
         wordsSavedInSession: [],
+        srsXpInSession: 0, // XP accumulated in this review session
+        srsWordsToUpdate: [], // wordIds accumulated for batch update
     },
 
     isAuthListenerSet: false, // <-- 1. ADD THIS FLAG
@@ -126,16 +130,66 @@ export const useDecksStore = create((set, get) => ({
         }
     }),
 
-    advanceSessionStep: (nextStep) => set((state) => ({
-        activeSession: { ...state.activeSession, step: nextStep }
-    })),
+    advanceSessionStep: async (nextStep) => {
+        const { activeSession, totalXp, savedWordsList } = get();
+        const previousStep = activeSession.step;
+
+        // --- Logic to flush SRS progress and XP when moving from review to practice ---
+        const xpToFlush = activeSession.srsXpInSession || 0;
+        const wordsToUpdate = activeSession.srsWordsToUpdate || [];
+
+        if (previousStep === 'review' && nextStep === 'practice' && (xpToFlush > 0 || wordsToUpdate.length > 0)) {
+            // Backups for potential rollback
+            const previousTotalXp = totalXp;
+            const previousSavedWordsList = [...savedWordsList];
+
+            // Optimistic update: clear session state and advance the step
+            set(state => ({
+                activeSession: {
+                    ...state.activeSession,
+                    step: nextStep,
+                    srsXpInSession: 0,
+                    srsWordsToUpdate: []
+                }
+            }));
+
+            try {
+                // The backend function now handles both updating words and awarding XP in one transaction.
+                const updateProgressCall = httpsCallable(functions, 'updateMultipleSavedWordProgress');
+                await updateProgressCall({ wordIds: wordsToUpdate });
+
+            } catch (error) {
+                console.error("Error flushing SRS progress/XP:", error);
+                // Rollback on error.
+                set(state => ({
+                    activeSession: {
+                        ...state.activeSession,
+                        step: previousStep, // Go back to the review step
+                        srsXpInSession: xpToFlush, // Restore the unflushed XP
+                        srsWordsToUpdate: wordsToUpdate, // Restore the unflushed words
+                    },
+                    // Rollback the optimistic updates
+                    totalXp: previousTotalXp,
+                    savedWordsList: previousSavedWordsList
+                }));
+                alert("There was a problem saving your review progress. Please try again.");
+            }
+        } else {
+             // Default behavior for other step transitions
+             set((state) => ({
+                activeSession: { ...state.activeSession, step: nextStep }
+            }));
+        }
+    },
 
     endSession: () => set({
         activeSession: {
             isActive: false,
             articleId: null,
             step: 'idle',
-            wordsSavedInSession: []
+            wordsSavedInSession: [],
+            srsXpInSession: 0, // XP accumulated in this review session
+            srsWordsToUpdate: [], // wordIds accumulated for batch update
         }
     }),
 
@@ -156,14 +210,20 @@ export const useDecksStore = create((set, get) => ({
 
                 let userPreference = 'es-ES';
                 let userXp = 0;
+                let userDailyXp = 0;
+                let userStreak = 0;
+                let xpHistory = {};
                 let subscriptionStatus = false;
                 let isFirestoreAdmin = false;
                 let dailyFreeAccess = null;
                 let finishedArticles = [];
 
-                if (userDocSnap.exists()) {
-                    userPreference = userDocSnap.data().listeningPreference || 'es-ES';
+                if (userDocSnap.exists) {
+                    userPreference = userDocSnap.data().listeningPreference || 'es-US';
                     userXp = userDocSnap.data().totalXp || 0;
+                    userDailyXp = userDocSnap.data().dailyXp || 0;
+                    userStreak = userDocSnap.data().streak || 0;
+                    xpHistory = userDocSnap.data().xpHistory || {};
                     subscriptionStatus = userDocSnap.data().hasActiveSubscription === true;
                     isFirestoreAdmin = userDocSnap.data().isAdmin === true;
                     
@@ -181,7 +241,6 @@ export const useDecksStore = create((set, get) => ({
                     } else {
                         dailyFreeAccess = serverAccess;
                     }
-                    finishedArticles = userDocSnap.data().finishedArticles || [];
                 }
 
                 const isTrueAdmin = tokenResult.claims.admin === true || isFirestoreAdmin;
@@ -205,11 +264,19 @@ export const useDecksStore = create((set, get) => ({
                     hasActiveSubscription: subscriptionStatus,
                     listeningPreference: userPreference,
                     totalXp: userXp,
-                    streak: 0,
-                    dailyFreeAccess: dailyFreeAccess,
-                    finishedArticles: finishedArticles,
-                    savedWordsLoaded: false // Reset so we fetch fresh for the new user
+                    dailyXp: userDailyXp,
+                    streak: userStreak,
+                    xpHistory: xpHistory,
+                    dailyFreeAccess,
+                    // Reset these on login to ensure fresh data is fetched
+                    finishedArticles: new Set(),
+                    savedWordsLoaded: false,
+                    savedWordsSet: new Set(),
+                    savedWordsList: [],
                 });
+
+                // --- ADDED: Trigger fetch for subcollections after user is set ---
+                get().fetchFinishedArticles();
             } else {
                 set({ 
                     currentUser: null, 
@@ -217,10 +284,12 @@ export const useDecksStore = create((set, get) => ({
                     progress: {}, 
                     deckProgress: {},
                     listeningPreference: 'es-ES', 
-                    totalXp: 0, 
+                    totalXp: 0,
+                    dailyXp: 0,
                     streak: 0, 
+                    xpHistory: {},
                     dailyFreeAccess: null, 
-                    finishedArticles: [], 
+                    finishedArticles: new Set(), 
                     savedWordsLoaded: false, 
                     savedWordsSet: new Set(), 
                     savedWordsList: [],
@@ -300,17 +369,34 @@ export const useDecksStore = create((set, get) => ({
         set(state => ({ interactionCount: state.interactionCount + 1 }));
     },
 
-    markArticleAsFinished: async (articleId) => {
-        const { currentUser, finishedArticles } = get();
+    fetchFinishedArticles: async () => {
+        const { currentUser } = get();
         if (!currentUser) return;
 
-        if (!finishedArticles.includes(articleId)) {
+        try {
+            const articlesSnapshot = await getDocs(collection(db, 'users', currentUser.uid, 'finishedArticles'));
+            const articleIds = new Set();
+            articlesSnapshot.forEach(doc => {
+                articleIds.add(doc.id);
+            });
+            set({ finishedArticles: articleIds });
+        } catch (error) {
+            console.error("Error fetching finished articles:", error);
+        }
+    },
+
+    markArticleAsFinished: async (articleId) => {
+        const { currentUser, finishedArticles, totalXp } = get();
+        if (!currentUser) return;
+
+        if (!finishedArticles.has(articleId)) {
             // Backup for potential rollback
-            const previousFinishedArticles = [...finishedArticles];
+            const previousFinishedArticles = new Set(finishedArticles);
+            const previousTotalXp = totalXp;
             
             // Optimistic update
-            const newFinishedArticles = [...finishedArticles, articleId];
-            set({ finishedArticles: newFinishedArticles });
+            const newFinishedArticles = new Set(finishedArticles).add(articleId);
+            set({ finishedArticles: newFinishedArticles, totalXp: totalXp + 10 });
             
             try {
                 const markFinishedCall = httpsCallable(functions, 'markArticleAsFinished');
@@ -318,7 +404,8 @@ export const useDecksStore = create((set, get) => ({
             } catch (error) {
                 console.error("Error marking article as finished:", error);
                 // Rollback on error
-                set({ finishedArticles: previousFinishedArticles });
+                set({ finishedArticles: previousFinishedArticles, totalXp: previousTotalXp });
+                throw error; // Re-throw the error for the component to handle
             }
         }
     },
@@ -495,11 +582,13 @@ export const useDecksStore = create((set, get) => ({
 
     // --- NEW: Advance the SRS stage for a saved word ---
     updateSavedWordProgress: async (wordId) => {
-        const { currentUser, savedWordsList } = get();
+        const { currentUser, savedWordsList, totalXp, activeSession } = get();
         if (!currentUser) return;
         
         // Backup for potential rollback
         const previousSavedWordsList = [...savedWordsList];
+        const previousTotalXp = totalXp;
+        const previousSrsXpInSession = activeSession.srsXpInSession || 0;
         
         try {
             // Optimization: Use local state instead of fetching the doc again
@@ -533,17 +622,25 @@ export const useDecksStore = create((set, get) => ({
                 const newList = savedWordsList.map(w => (
                     w.id === wordId ? { ...w, stage, nextReviewDate: nextDate.getTime() } : w
                 ));
-                set({ savedWordsList: newList });
 
-                // Perform the secure network request
-                const updateProgressCall = httpsCallable(functions, 'updateSavedWordProgress');
-                await updateProgressCall({ wordId });
+                const xpForSrs = 2;
+                set({
+                    savedWordsList: newList,
+                    totalXp: totalXp + xpForSrs,
+                    activeSession: {
+                        ...activeSession,
+                        srsXpInSession: (activeSession.srsXpInSession || 0) + xpForSrs,
+                        srsWordsToUpdate: [...(activeSession.srsWordsToUpdate || []), wordId]
+                    }
+                });
+
+                // NOTE: The network request is now batched and sent in `advanceSessionStep`.
             }
         } catch (error) {
             console.error("Error updating word progress:", error);
-            
+
             // Rollback UI if the server request fails
-            set({ savedWordsList: previousSavedWordsList });
+            set({ savedWordsList: previousSavedWordsList, totalXp: previousTotalXp, activeSession: { ...activeSession, srsXpInSession: previousSrsXpInSession, srsWordsToUpdate: previousSrsWordsToUpdate } });
             alert("Could not update progress. Please try again.");
         }
     },

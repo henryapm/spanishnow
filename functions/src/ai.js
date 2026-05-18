@@ -1,6 +1,5 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https"); // Make sure to use v2
 const { defineSecret } = require("firebase-functions/params");
-
 const admin = require("firebase-admin");
 const axios = require("axios");
 
@@ -9,7 +8,7 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const scenariosInstructions = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context, if the user doesn't seem to understand what to do, and says things out of the context or doesn't attempt to complete an objective suggest a response that they could use so that the role play makes sense and is completed. If the user deviates from the scenario, gently steer them back on track by reminding them of the context and objectives. If the user completes the objectives, congratulate them and suggest they try another scenario for further practice. ";
 
 const MAX_FREE_INTERACTIONS = 5;
-
+const { addXp, XP_FOR_CHAT } = require("./xp.js");
 
 exports.chatWithGemini = onCall({ 
     secrets: [geminiApiKey],
@@ -139,6 +138,11 @@ exports.chatWithGemini = onCall({
         );
 
         const aiResponseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no entendí.";
+
+        // Award XP for chatting, but don't fail the whole function if it errors.
+        addXp(db, uid, XP_FOR_CHAT).catch(err => {
+            console.error("Non-fatal error awarding XP for chat:", err);
+        });
         return { text: aiResponseText };
 
     } catch (error) {
@@ -248,6 +252,12 @@ exports.chatForLesson = onCall({
         );
 
         const aiResponseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no entendí.";
+        
+        // Award XP for chatting, but don't fail the whole function if it errors.
+        addXp(db, uid, XP_FOR_CHAT).catch(err => {
+            console.error("Non-fatal error awarding XP for lesson chat:", err);
+        });
+
         return { text: aiResponseText };
     } catch (error) {
         console.error("Gemini API Error:", error.response?.data || error.message);
