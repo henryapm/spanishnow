@@ -8,7 +8,7 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const scenariosInstructions = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context, if the user doesn't seem to understand what to do, and says things out of the context or doesn't attempt to complete an objective suggest a response that they could use so that the role play makes sense and is completed. If the user deviates from the scenario, gently steer them back on track by reminding them of the context and objectives. If the user completes the objectives, congratulate them and suggest they try another scenario for further practice. ";
 
 const MAX_FREE_INTERACTIONS = 5; // Maximum free interactions per day for non-premium users
-const { addXp, XP_FOR_CHAT } = require("./xp.js");
+const { addXp, XP_FOR_CHAT, XP_FOR_SCENARIO, addXpInTransaction } = require("./xp.js");
 
 exports.chatWithGemini = onCall({ 
     secrets: [geminiApiKey],
@@ -139,11 +139,12 @@ exports.chatWithGemini = onCall({
 
         const aiResponseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no entendí.";
 
-        // Award XP for chatting, but don't fail the whole function if it errors.
-        addXp(db, uid, XP_FOR_CHAT).catch(err => {
+        // Award XP for chatting and get streak info
+        const xpResult = await addXp(db, uid, XP_FOR_CHAT).catch(err => {
             console.error("Non-fatal error awarding XP for chat:", err);
+            return null; // Return null on error
         });
-        return { text: aiResponseText };
+        return { text: aiResponseText, ...xpResult };
 
     } catch (error) {
         console.error("Gemini API Error:", error.response?.data || error.message);
@@ -257,14 +258,71 @@ exports.chatForLesson = onCall({
 
         const aiResponseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no entendí.";
         
-        // Award XP for chatting, but don't fail the whole function if it errors.
-        addXp(db, uid, XP_FOR_CHAT).catch(err => {
+        // Award XP for chatting and get streak info
+        const xpResult = await addXp(db, uid, XP_FOR_CHAT).catch(err => {
             console.error("Non-fatal error awarding XP for lesson chat:", err);
+            return null;
         });
 
-        return { text: aiResponseText };
+        return { text: aiResponseText, ...xpResult };
     } catch (error) {
         console.error("Gemini API Error:", error.response?.data || error.message);
         throw new HttpsError('internal', 'Failed to communicate with AI service.');
+    }
+});
+
+exports.completeRolePlay = onCall(async (request) => {
+    // 1. Auth check
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+    const uid = request.auth.uid;
+
+    // 2. Input validation
+    const { scenarioId, rolePlayName } = request.data;
+    if (!scenarioId || typeof scenarioId !== 'string' || scenarioId.trim() === '' || scenarioId.length > 100) {
+        throw new HttpsError('invalid-argument', 'A valid scenario ID is required.');
+    }
+    if (!rolePlayName || typeof rolePlayName !== 'string' || rolePlayName.trim() === '' || rolePlayName.length > 100) {
+        throw new HttpsError('invalid-argument', 'A valid roleplay name is required.');
+    }
+
+    const db = admin.firestore();
+    const userRef = db.collection('users').doc(uid);
+    const progressDocRef = userRef.collection('speakProgress').doc(scenarioId);
+
+    try {
+        // --- MODIFICATION: Use a transaction for atomicity ---
+        // This ensures that both the progress is updated AND XP is awarded, or neither.
+        const xpResult = await db.runTransaction(async (t) => {
+            const [userDoc, progressDoc] = await t.getAll(userRef, progressDocRef);
+
+            if (!userDoc.exists) {
+                throw new HttpsError('not-found', 'User document not found. Cannot save progress.');
+            }
+
+            const completedRolePlays = progressDoc.exists ? progressDoc.data().completedRolePlays || [] : [];
+
+            // 3. Idempotency check: if already completed, do nothing.
+            if (completedRolePlays.includes(rolePlayName)) {
+                return { streakUpdated: false, newStreak: 0, message: 'Already completed.' };
+            }
+
+            // 4. Update progress and award XP within the transaction
+            t.set(progressDocRef, {
+                completedRolePlays: admin.firestore.FieldValue.arrayUnion(rolePlayName)
+            }, { merge: true });
+
+            // Use the transactional version of addXp
+            const transactionXpResult = await addXpInTransaction(t, userRef, userDoc, XP_FOR_SCENARIO);
+            return transactionXpResult;
+        });
+
+        return { success: true, ...xpResult };
+
+    } catch (error) {
+        console.error("Error completing role play:", error);
+        if (error.code) throw error; // Re-throw HttpsError to pass specific messages to client
+        throw new HttpsError('internal', `Failed to save progress. Reason: ${error.message}`);
     }
 });

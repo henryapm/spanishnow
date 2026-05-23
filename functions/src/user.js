@@ -30,3 +30,36 @@ exports.updateListeningPreference = onCall(async (request) => {
         throw new HttpsError('internal', 'Failed to update user preference.');
     }
 });
+
+/**
+ * Securely updates a user's timezone.
+ * Prevents malicious users from writing arbitrary fields.
+ */
+exports.updateUserTimezone = onCall(async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    const uid = request.auth.uid;
+    const { timezone } = request.data;
+
+    // 1. Strict Input Validation
+    if (!timezone || typeof timezone !== 'string' || timezone.length > 50) {
+        throw new HttpsError('invalid-argument', 'A valid timezone string is required.');
+    }
+    
+    // 2. Verify it's a real IANA timezone to prevent junk data
+    try {
+        new Intl.DateTimeFormat(undefined, { timeZone: timezone });
+    } catch (e) {
+        throw new HttpsError('invalid-argument', 'The provided timezone is not a valid IANA time zone.');
+    }
+
+    const db = admin.firestore();
+    const userRef = db.collection('users').doc(uid);
+
+    // 3. Only update the explicitly allowed field
+    await userRef.update({ timezone: timezone });
+    
+    return { success: true };
+});

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDecksStore } from '../store';
 import Modal from './Modal';
-import { doc, setDoc, arrayUnion, getFirestore } from 'firebase/firestore';
 import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
@@ -72,8 +71,10 @@ const SpeakCompanion = () => {
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [limitMessage, setLimitMessage] = useState('');
     
-    const userProgress = useDecksStore((state) => state.speakProgress);
+    const speakProgress = useDecksStore((state) => state.speakProgress);
     const updateSpeakProgressLocal = useDecksStore((state) => state.updateSpeakProgressLocal);
+    const rollbackSpeakProgressLocal = useDecksStore((state) => state.rollbackSpeakProgressLocal);
+    const handleXpResult = useDecksStore((state) => state.handleXpResult);
     const interactionCount = useDecksStore((state) => state.interactionCount);
     const incrementInteractionCount = useDecksStore((state) => state.incrementInteractionCount);
     
@@ -234,6 +235,7 @@ const SpeakCompanion = () => {
             });
 
             const aiResponseText = result.data.text;
+            handleXpResult(result.data); // Handle potential streak updates
 
             setChatHistory(prev => [...prev, { role: 'model', text: aiResponseText }]);
             speakText(aiResponseText);
@@ -256,28 +258,43 @@ const SpeakCompanion = () => {
     const handleCompleteRolePlay = async () => {
         if (!currentUser || !selectedScenario || !selectedContextAndObjectives) return;
 
-        const isAlreadyCompleted = userProgress[selectedScenario.id]?.includes(selectedContextAndObjectives.name);
+        const scenarioId = selectedScenario.id;
+        const rolePlayName = selectedContextAndObjectives.name;
+        const wasAlreadyCompleted = speakProgress[scenarioId]?.includes(rolePlayName);
 
+        // Optimistic UI update if not already marked as complete locally
+        if (!wasAlreadyCompleted) {
+            updateSpeakProgressLocal(scenarioId, rolePlayName);
+            // TODO - notification for completion and how many XP were earned, maybe a confetti animation?
+        }
+
+        // --- Store pre-update state for potential rollback ---
+        const previousScenario = selectedScenario;
+        const previousContext = selectedContextAndObjectives;
+        const previousHistory = chatHistory;
+
+        // Reset UI state immediately for a snappy user experience
+        setSelectedContextAndObjectives(null);
+        setSelectedScenario(null);
+        setChatHistory([]);
+        setUserSpeech('');
         try {
-            if (!isAlreadyCompleted) {
-                const db = getFirestore(getApp()); // Ensure db is available if not imported globally
-                const progressDocRef = doc(db, 'users', currentUser.uid, 'speakProgress', selectedScenario.id);
-                
-                await setDoc(progressDocRef, {
-                    completedRolePlays: arrayUnion(selectedContextAndObjectives.name)
-                }, { merge: true });
-                updateSpeakProgressLocal(selectedScenario.id, selectedContextAndObjectives.name);
-                alert("Great job! Progress saved.");
-            }
-
-            // Optional: Provide feedback or navigate back
-            setSelectedContextAndObjectives(null);
-            setSelectedScenario(null);
-            setChatHistory([]);
-            setUserSpeech('');
+            // Call the secure cloud function to handle the database write and XP award
+            const functions = getFunctions(getApp());
+            const completeRolePlayCall = httpsCallable(functions, 'completeRolePlay');
+            const result = await completeRolePlayCall({ scenarioId, rolePlayName });
+            handleXpResult(result.data); // Pass the result to the global handler
         } catch (error) {
-            console.error("Error saving progress:", error);
-            alert("Failed to save progress. Please try again.");
+            console.error("Error saving progress via Cloud Function:", error);
+            alert(`Failed to save progress: ${error.message}`);
+
+            // --- Rollback UI to pre-save state on error ---
+            if (!wasAlreadyCompleted) {
+                rollbackSpeakProgressLocal(scenarioId, rolePlayName);
+            }
+            setSelectedScenario(previousScenario);
+            setSelectedContextAndObjectives(previousContext);
+            setChatHistory(previousHistory);
         }
     };
 
@@ -304,7 +321,7 @@ const SpeakCompanion = () => {
                 <div className="grid grid-cols-1 gap-6">
                     {scenarios.map(scenario => {
                         // --- NEW: Calculate progress for this scenario ---
-                        const completedCount = userProgress[scenario.id]?.length || 0;
+                        const completedCount = speakProgress[scenario.id]?.length || 0;
                         const totalCount = scenario.rolePlays ? scenario.rolePlays.length : 0;
                         const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
@@ -355,7 +372,7 @@ const SpeakCompanion = () => {
                 <div className="grid grid-cols-1 gap-4">
                 {selectedScenario.rolePlays.map((rolePlay, index) => {
                         // --- NEW: Check if this specific roleplay is completed ---
-                        const isCompleted = userProgress[selectedScenario.id]?.includes(rolePlay.name);
+                        const isCompleted = speakProgress[selectedScenario.id]?.includes(rolePlay.name);
 
                         return (
                         <button 
@@ -537,13 +554,13 @@ const SpeakCompanion = () => {
                 <button 
                     onClick={handleCompleteRolePlay}
                     className={`px-8 py-3 font-bold rounded-lg shadow-md transition-colors flex items-center justify-center mx-auto gap-2 ${
-                        userProgress[selectedScenario.id]?.includes(selectedContextAndObjectives.name)
+                        speakProgress[selectedScenario.id]?.includes(selectedContextAndObjectives.name)
                             ? 'bg-blue-600 text-white hover:bg-blue-700'
                             : 'bg-green-600 text-white hover:bg-green-700'
                     }`}
                 >
                     <BsCheckCircleFill />
-                    {userProgress[selectedScenario.id]?.includes(selectedContextAndObjectives.name) 
+                    {speakProgress[selectedScenario.id]?.includes(selectedContextAndObjectives.name) 
                         ? 'Completed - Finish' 
                         : 'Finish & Mark Complete'}
                 </button>

@@ -20,7 +20,3 @@ The workflow is strictly:
 9. If creating a new feature/component/page that will change the UI always provide an ASCII mockup before writing any html/CSS.
 10. if creating a function it most be securely implemented, no user can inject malicious code to my db or abuse my api.
 11. when updating functionality lets do one concern at the time and walk me through the changes before just suggesting diff to be added without explaining anything.
-
-
-## 2. Overview
-This document outlines the software architecture and design for "The Spanish Suite", an interactive web application designed to help users learn and practice Spanish. The application provides reading exercises, and spaced-repetition (SRS) flashcards and AI-driven conversation practice.

@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { db, functions } from './firebase';
-// --- FIX: Added query, where, and documentId to the import list ---
-import { collection, getDocs, addDoc, doc, updateDoc, getFirestore, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion } from "firebase/firestore"; 
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
+import { collection, getDocs, addDoc, doc, updateDoc, getFirestore, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion } from "firebase/firestore";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, getAdditionalUserInfo, deleteUser } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 
 const auth = getAuth();
@@ -99,6 +98,9 @@ export const useDecksStore = create((set, get) => ({
     isUsersLoading: false,
     newsApiFrequency: 24,
     newsTopic: 'noticias',
+    // --- NEW: Global state for streak notifications ---
+    lastStreakNotificationDate: null,
+    showStreakConfetti: false,
 
     // --- NEW: Structured Lesson Flow State ---
     activeSession: {
@@ -129,7 +131,7 @@ export const useDecksStore = create((set, get) => ({
             wordsSavedInSession: []
         }
     }),
-    
+
     advanceSessionStep: async (nextStep) => {
         const { activeSession, totalXp, savedWordsList } = get();
         const previousStep = activeSession.step;
@@ -217,19 +219,33 @@ export const useDecksStore = create((set, get) => ({
                 let dailyFreeAccess = null;
                 let finishedArticles = [];
 
+                // --- NEW: Timezone Synchronization ---
+                // Check if user document exists and if timezone is missing.
+                // If so, update it with the browser's timezone. This is a one-time fix.
+                const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (userDocSnap.exists && !userDocSnap.data.timezone || userDocSnap.data.timezone !== browserTimezone) {
+                    // --- SECURE FIX: Call a dedicated Cloud Function ---
+                    const updateUserTimezoneCall = httpsCallable(functions, 'updateUserTimezone');
+                    updateUserTimezoneCall({ timezone: browserTimezone }).catch(error => {
+                        // Log the error, but don't block the login flow.
+                        // This is a non-critical, one-time update.
+                        console.error("Failed to sync timezone:", error.message || error.text || error);
+                    });
+                }
+
                 if (userDocSnap.exists) {
-                    userPreference = userDocSnap.data().listeningPreference || 'es-US';
-                    userXp = userDocSnap.data().totalXp || 0;
-                    userDailyXp = userDocSnap.data().dailyXp || 0;
-                    userStreak = userDocSnap.data().streak || 0;
-                    subscriptionStatus = userDocSnap.data().hasActiveSubscription === true;
-                    isFirestoreAdmin = userDocSnap.data().isAdmin === true;
+                    userPreference = userDocSnap.data.listeningPreference || 'es-US';
+                    userXp = userDocSnap.data.totalXp || 0;
+                    userDailyXp = userDocSnap.data.dailyXp || 0;
+                    userStreak = userDocSnap.data.streak || 0;
+                    subscriptionStatus = userDocSnap.data.hasActiveSubscription === true;
+                    isFirestoreAdmin = userDocSnap.data.isAdmin === true;
                     
                     // --- FIX: Race Condition Handling ---
                     // If we have a local record for TODAY, but server has nothing (or old date), 
                     // keep the local version. This prevents the auth listener from overwriting 
                     // our optimistic update before the server write completes.
-                    const serverAccess = userDocSnap.data().dailyFreeAccess || null;
+                    const serverAccess = userDocSnap.data.dailyFreeAccess || null;
                     const localAccess = get().dailyFreeAccess;
                     const now = new Date();
                     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -326,7 +342,7 @@ export const useDecksStore = create((set, get) => ({
             
             set({ progress: progressData, deckProgress: progressData, userProgressLoaded: true });
         } catch (error) {
-            console.error("Error fetching user progress:", error);
+            console.error("Error fetching user progress:", error.message);
         }
     },
 
@@ -395,6 +411,46 @@ export const useDecksStore = create((set, get) => ({
         });
     },
 
+    // --- NEW: Rollback function for optimistic speak progress update ---
+    rollbackSpeakProgressLocal: (scenarioId, rolePlayName) => {
+        set(state => {
+            const currentList = state.speakProgress[scenarioId] || [];
+            if (currentList.includes(rolePlayName)) {
+                return {
+                    speakProgress: {
+                        ...state.speakProgress,
+                        [scenarioId]: currentList.filter(name => name !== rolePlayName)
+                    }
+                };
+            }
+            // If the rolePlayName isn't in the list, no state change is needed.
+            return {};
+        });
+    },
+
+    // --- NEW: Action to handle XP results and trigger streak notifications ---
+    handleXpResult: (result) => {
+        if (!result || !result.streakUpdated) {
+            return; // Do nothing if the streak wasn't updated
+        }
+
+        const { newStreak } = result;
+        const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+
+        // Update the global streak value from the backend's source of truth
+        set({ streak: newStreak });
+
+        // Check if we should show the notification for the first time today
+        if (get().lastStreakNotificationDate !== today) {
+            set({
+                lastStreakNotificationDate: today,
+                showStreakConfetti: true
+            });
+        }
+    },
+
+    hideStreakConfetti: () => set({ showStreakConfetti: false }),
+
     incrementInteractionCount: () => {
         set(state => ({ interactionCount: state.interactionCount + 1 }));
     },
@@ -416,27 +472,51 @@ export const useDecksStore = create((set, get) => ({
     },
 
     markArticleAsFinished: async (articleId) => {
-        const { currentUser, finishedArticles, totalXp } = get();
+        const { currentUser, finishedArticles, totalXp, activeSession, handleXpResult } = get();
         if (!currentUser) return;
 
         if (!finishedArticles.has(articleId)) {
             // Backup for potential rollback
             const previousFinishedArticles = new Set(finishedArticles);
             const previousTotalXp = totalXp;
+            const previousStep = activeSession.step;
             
             // Optimistic update
             const newFinishedArticles = new Set(finishedArticles).add(articleId);
             set({ finishedArticles: newFinishedArticles, totalXp: totalXp + 10 });
+
+            // Optimistic update: clear session state and advance the step
+            set(state => ({
+                activeSession: {
+                    ...state.activeSession,
+                    step: 'review',
+                }
+            }));
             
             try {
                 const markFinishedCall = httpsCallable(functions, 'markArticleAsFinished');
-                await markFinishedCall({ articleId });
+                const result = await markFinishedCall({ articleId });
+                handleXpResult(result.data); // Pass the result to the global handler
             } catch (error) {
                 console.error("Error marking article as finished:", error);
                 // Rollback on error
                 set({ finishedArticles: previousFinishedArticles, totalXp: previousTotalXp });
+                set(state => ({
+                    activeSession: {
+                        ...state.activeSession,
+                        step: previousStep,
+                    }
+                }));
                 throw error; // Re-throw the error for the component to handle
             }
+        } else {
+            // If we already have this article marked as finished, just advance the step
+            set(state => ({
+                activeSession: {
+                    ...state.activeSession,
+                    step: 'review',
+                }
+            }));
         }
     },
 
@@ -774,23 +854,24 @@ export const useDecksStore = create((set, get) => ({
         }
     },
 
-    signInWithGoogle: async () => {
-        // The client's only responsibility is to trigger the sign-in popup.
-        // The onUserCreated cloud function on the backend will handle creating
-        // the user's profile in Firestore securely.
-        // The UI should ensure that the user has accepted the Terms of Service
-        // before this function is called, for example by disabling the sign-in
-        // button until a checkbox is checked.
+    signInWithGoogle: async ({ isSignUpFlow = false } = {}) => {
         try {
             await signInWithPopup(auth, provider);
-            // The onAuthStateChanged listener in this store will automatically handle
-            // the user state change, and the onUserCreated cloud function will create
-            // the user document in Firestore if it's a new user.
         } catch (error) {
-            console.error("Error during sign-in: ", error);
+            console.error("Error during signInWithPopup: ", error);
+            throw error;
+        }
+
+        try {
+            const verifyAuthFlowCall = httpsCallable(functions, 'verifyAuthFlow');
+            await verifyAuthFlowCall({ isSignUpFlow });
+        } catch (error) {
+            console.error("Server-side sign-in verification failed:", error);
+            await signOut(auth); // Clear the local session immediately
             throw error;
         }
     },
+    
     signOutUser: async () => {
         try { await signOut(auth); } catch (error) { console.error("Error during sign-out: ", error); }
     },

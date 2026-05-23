@@ -27,25 +27,28 @@ exports.markArticleAsFinished = onCall(async (request) => {
 
     try {
         // Perform both operations in a single atomic transaction
-        await db.runTransaction(async (t) => {
+        const xpResult = await db.runTransaction(async (t) => {
             // READ FIRST: Read both documents we might interact with.
             const [userDoc, finishedDoc] = await t.getAll(userRef, finishedArticleRef);
-
-            if (finishedDoc.exists) {
-                return; // Exit gracefully if already finished.
-            }
 
             if (!userDoc.exists) {
                 throw new HttpsError('not-found', 'User document not found.');
             }
 
+            if (finishedDoc.exists) {
+                // If already finished, return a default object indicating no streak change.
+                return { streakUpdated: false, newStreak: userDoc.data().streak || 0, message: 'Already completed.' };
+            }
+
             // WRITE operations: These are now queued after all reads.
-            await addXpInTransaction(t, userRef, userDoc, XP_FOR_READING);
+            const transactionXpResult = await addXpInTransaction(t, userRef, userDoc, XP_FOR_READING);
 
             // Create a document in the subcollection to mark it as finished.
             t.set(finishedArticleRef, { finishedAt: FieldValue.serverTimestamp() });
+
+            return transactionXpResult;
         });
-        return { success: true };
+        return { success: true, ...xpResult };
     } catch (error) {
         // Log the detailed error on the backend
         console.error("FATAL: Error in [markArticleAsFinished] transaction:", error);

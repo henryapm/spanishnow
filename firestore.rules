@@ -1,0 +1,95 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // Helper function to check if the current user is an admin.
+    // This is secure because it checks both a custom claim and a server-side document read.
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.admin == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+      );
+    }
+    
+    // --- USERS COLLECTION ---
+    match /users/{userId} {
+      // READ: Users can read their own profile. Admins can read any profile.
+      allow read: if request.auth.uid == userId || isAdmin();
+
+      // WRITE: DENY ALL client-side creates, updates, and deletes.
+      // This is the most important rule. It forces all sensitive changes (XP, streak,
+      // admin status, etc.) to go through a secure Cloud Function.
+      // User creation MUST be handled by an `onUserCreate` backend trigger.
+      // User updates (like timezone or preferences) MUST go through specific callable functions.
+      allow write: if false;
+
+      // --- USER SUBCOLLECTIONS ---
+
+      // Users can manage their own list of saved words.
+      match /savedWords/{wordId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+
+      // Users can manage their own flashcard progress.
+      match /progress/{deckId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+
+      // PROTECTED: Limits can be read by the user but only written by the backend.
+      match /daily_limits/{limitId} {
+        allow read: if request.auth.uid == userId;
+        allow write: if false;
+      }
+
+      // PROTECTED: Speak progress can be read, but only written by the backend.
+      match /speakProgress/{scenarioId} {
+        allow read: if request.auth.uid == userId;
+        allow write: if false;
+      }
+
+      // PROTECTED: Finished articles can be read, but only written by the backend.
+      match /finishedArticles/{articleId} {
+        allow read: if request.auth.uid == userId;
+        allow write: if false;
+      }
+
+      // PROTECTED: XP history can be read for the chart, but NEVER written from the client.
+      match /xpHistory/{historyId} {
+        allow read: if request.auth.uid == userId;
+        allow write: if false;
+      }
+    }
+    
+    // --- GLOBAL COLLECTIONS ---
+    
+    match /scenarios/{scenarioId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    match /appInfo/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /decks/{deckId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /articles/{articleId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /dictionary/{word} {
+      allow get, list: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    match /settings/{settingDoc} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

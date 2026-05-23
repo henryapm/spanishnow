@@ -6,6 +6,8 @@ import { useDecksStore } from './store';
 import Header from './components/Header';
 import Navigation from './components/Navigation';
 import LandingPage from './components/LandingPage';
+import StreakNotification from './components/StreakNotification';
+
 
 // Lazy load components to improve initial load time
 const FlashcardView = lazy(() => import('./components/FlashcardView'));
@@ -23,6 +25,8 @@ const Booking = lazy(() => import('./components/Booking'));
 const Review = lazy(() => import('./components/Review'));
 const Flashcards = lazy(() => import('./components/Flashcards'));
 const LessonFlow = lazy(() => import('./components/LessonFlow'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./components/TermsOfService'));
 
 // This component is the main layout for authenticated (logged-in) users.
 const AppLayout = () => {
@@ -46,6 +50,7 @@ const AppLayout = () => {
 
     return (
         <div className="w-full dark:text-gray-200 max-w-2xl">
+            <StreakNotification />
             <Header />
             <main className="w-full text-gray-800 dark:bg-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner pb-24">
                 <div className="w-full max-w-xl mx-auto">
@@ -112,6 +117,19 @@ export default function App() {
     return (
         <div className="dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col items-center justify-top font-sans p-4">
             <Routes>
+                {/* Public Legal Routes */}
+                <Route path="/privacy" element={
+                    <Suspense fallback={<div className="text-center p-8">Loading...</div>}>
+                        <PrivacyPolicy />
+                    </Suspense>
+                } />
+                <Route path="/terms" element={
+                    <Suspense fallback={<div className="text-center p-8">Loading...</div>}>
+                        <TermsOfService />
+                    </Suspense>
+                } />
+                
+                {/* Auth-gated Routes */}
                 {currentUser ? (
                     <Route path="/*" element={<AppLayout />} />
                 ) : (

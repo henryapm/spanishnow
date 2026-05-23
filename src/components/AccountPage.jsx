@@ -21,6 +21,7 @@ const AccountPage = ({ decks }) => {
     
     const finishedArticles = useDecksStore((state) => state.finishedArticles);
     const xpHistory = useDecksStore((state) => state.xpHistory);
+    const totalXp = useDecksStore((state) => state.totalXp);
     const fetchXpHistory = useDecksStore((state) => state.fetchXpHistory);
     const streak = useDecksStore((state) => state.streak);
     
@@ -103,7 +104,6 @@ const AccountPage = ({ decks }) => {
             fetchArticles();
             sessionStorage.setItem('articles_last_fetch', now.toString());
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchArticles]);
 
     const weeklyXpData = useMemo(() => {

@@ -1,17 +1,15 @@
 // functions/index.js
 const admin = require("firebase-admin");
+const requireDirectory = require('require-directory');
 
 // 1. Initialize Firebase Admin ONLY ONCE at the top level
-if (admin.apps.length === 0) {
-    admin.initializeApp();
-}
+admin.initializeApp();
 
-// 2. Export functions from your decomposed files
-Object.assign(exports, require('./src/ai'));
-Object.assign(exports, require('./src/news'));
-Object.assign(exports, require('./src/srs'));
-Object.assign(exports, require('./src/dictionary'));
-Object.assign(exports, require('./src/user'));
-Object.assign(exports, require('./src/library'));
-Object.assign(exports, require('./src/admin'));
-Object.assign(exports, require('./src/xp'));
+// Load all files in the /src directory
+const modules = requireDirectory(module, './src');
+
+// Flatten the exports so they deploy with their original names 
+// (e.g., 'chatWithGemini' instead of 'ai-chatWithGemini')
+Object.keys(modules).forEach((moduleName) => {
+    Object.assign(exports, modules[moduleName]);
+});

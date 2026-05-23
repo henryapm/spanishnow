@@ -2,6 +2,7 @@ const { HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
 const XP_FOR_READING = 10;
+const XP_FOR_SCENARIO = 5;
 const XP_FOR_SRS = 2;
 const XP_FOR_CHAT = 3;
 
@@ -21,6 +22,7 @@ const addXpInTransaction = async (transaction, userRef, userDoc, xpToAdd) => {
 
     const lastXpDate = userData.lastXpDate;
     let newStreak = userData.streak || 0;
+    let streakUpdated = false;
     
     const xpHistoryRef = userRef.collection('xpHistory').doc(todayDateString);
 
@@ -29,6 +31,7 @@ const addXpInTransaction = async (transaction, userRef, userDoc, xpToAdd) => {
     };
 
     if (lastXpDate !== todayDateString) {
+        streakUpdated = true;
         // It's a new day for the user.
         const today = new Date(todayDateString + 'T12:00:00Z'); // Use noon UTC to avoid DST issues
         const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
@@ -58,6 +61,8 @@ const addXpInTransaction = async (transaction, userRef, userDoc, xpToAdd) => {
     transaction.set(xpHistoryRef, { xp: admin.firestore.FieldValue.increment(xpToAdd) }, { merge: true });
 
     console.log('[addXpInTransaction] Transaction updates queued for user doc and xpHistory subcollection.');
+
+    return { streakUpdated, newStreak };
 };
 
 /**
@@ -72,15 +77,22 @@ const addXpInTransaction = async (transaction, userRef, userDoc, xpToAdd) => {
 const addXp = async (db, uid, xpToAdd) => {
     const userRef = db.collection('users').doc(uid);
 
+    let result = { streakUpdated: false, newStreak: 0 };
     await db.runTransaction(async (t) => {
         const userDoc = await t.get(userRef);
-        await addXpInTransaction(t, userRef, userDoc, xpToAdd);
+        if (!userDoc.exists()) {
+            console.error(`User ${uid} not found in addXp, cannot award XP.`);
+            return;
+        }
+        result = await addXpInTransaction(t, userRef, userDoc, xpToAdd);
     });
     console.log(`Awarded ${xpToAdd} XP to user ${uid}`);
+    return result;
 };
 
 module.exports = {
     XP_FOR_READING,
+    XP_FOR_SCENARIO,
     XP_FOR_SRS,
     XP_FOR_CHAT,
     addXp,
