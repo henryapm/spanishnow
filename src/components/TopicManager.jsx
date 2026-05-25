@@ -196,14 +196,14 @@ const TopicManager = () => {
                     <button 
                         onClick={handleSaveConfig}
                         disabled={isSavingNews}
-                        className="px-6 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition-colors h-[42px] disabled:opacity-50"
+                        className="px-6 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition-colors h-10 disabled:opacity-50"
                     >
                         {isSavingNews ? 'Saving...' : 'Save Config'}
                     </button>
                     <button 
                         onClick={handleManualFetch}
                         disabled={isFetchingNews}
-                        className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors h-[42px] disabled:opacity-50"
+                        className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors h-10 disabled:opacity-50"
                     >
                         {isFetchingNews ? 'Fetching...' : 'Test Fetch'}
                     </button>

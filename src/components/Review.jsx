@@ -89,7 +89,7 @@ const Review = () => {
     const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
 
     const [openSections, setOpenSections] = useState({
-        stageZero: true,
+        stageZero: false,
         soon: false,
         three: false,
         week: false,

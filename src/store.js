@@ -185,6 +185,48 @@ export const useDecksStore = create((set, get) => ({
         }
     },
 
+    flushStandaloneSrsProgress: async () => {
+        const { standaloneSrsWordsToUpdate = [], standaloneSrsXp = 0, totalXp, savedWordsList } = get();
+
+        if (standaloneSrsWordsToUpdate.length === 0) return;
+
+        // Backups for potential rollback
+        const previousTotalXp = totalXp;
+        const previousSavedWordsList = [...savedWordsList];
+        const wordsToUpdate = [...standaloneSrsWordsToUpdate];
+        const xpToFlush = standaloneSrsXp;
+
+        // Optimistic update: clear queue
+        set({
+            standaloneSrsWordsToUpdate: [],
+            standaloneSrsXp: 0
+        });
+
+        try {
+            // Chunk the words into batches of 10 maximum (backend limit)
+            const chunks = [];
+            for (let i = 0; i < wordsToUpdate.length; i += 10) {
+                chunks.push(wordsToUpdate.slice(i, i + 10));
+            }
+
+            const updateProgressCall = httpsCallable(functions, 'updateMultipleSavedWordProgress');
+            
+            for (const chunk of chunks) {
+                await updateProgressCall({ wordIds: chunk });
+            }
+        } catch (error) {
+            console.error("Error flushing standalone SRS progress:", error);
+            // Rollback on error
+            set({
+                standaloneSrsWordsToUpdate: wordsToUpdate,
+                standaloneSrsXp: xpToFlush,
+                totalXp: previousTotalXp,
+                savedWordsList: previousSavedWordsList
+            });
+            alert("There was a problem saving your review progress. Please try again.");
+        }
+    },
+
     endSession: () => set({
         activeSession: {
             isActive: false,
@@ -707,6 +749,9 @@ export const useDecksStore = create((set, get) => ({
         const previousSavedWordsList = [...savedWordsList];
         const previousTotalXp = totalXp;
         const previousSrsXpInSession = activeSession.srsXpInSession || 0;
+        const previousSrsWordsToUpdate = activeSession.srsWordsToUpdate || [];
+        const previousStandaloneWordsToUpdate = get().standaloneSrsWordsToUpdate || [];
+        const previousStandaloneXp = get().standaloneSrsXp || 0;
         
         try {
             // Optimization: Use local state instead of fetching the doc again
@@ -742,17 +787,26 @@ export const useDecksStore = create((set, get) => ({
                 ));
 
                 const xpForSrs = 2;
-                set({
-                    savedWordsList: newList,
-                    totalXp: totalXp + xpForSrs,
-                    activeSession: {
-                        ...activeSession,
-                        srsXpInSession: (activeSession.srsXpInSession || 0) + xpForSrs,
-                        srsWordsToUpdate: [...(activeSession.srsWordsToUpdate || []), wordId]
-                    }
-                });
-
-                // NOTE: The network request is now batched and sent in `advanceSessionStep`.
+                
+                if (activeSession.isActive) {
+                    set({
+                        savedWordsList: newList,
+                        totalXp: totalXp + xpForSrs,
+                        activeSession: {
+                            ...activeSession,
+                            srsXpInSession: (activeSession.srsXpInSession || 0) + xpForSrs,
+                            srsWordsToUpdate: [...(activeSession.srsWordsToUpdate || []), wordId]
+                        }
+                    });
+                    // NOTE: The network request is now batched and sent in `advanceSessionStep`.
+                } else {
+                    set(state => ({
+                        savedWordsList: newList,
+                        totalXp: totalXp + xpForSrs,
+                        standaloneSrsWordsToUpdate: [...(state.standaloneSrsWordsToUpdate || []), wordId],
+                        standaloneSrsXp: (state.standaloneSrsXp || 0) + xpForSrs
+                    }));
+                }
             }
         } catch (error) {
             console.error("Error updating word progress:", error);

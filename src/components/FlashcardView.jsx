@@ -19,10 +19,18 @@ const FlashcardView = () => {
     const trainingDeck = useDecksStore((state) => state.trainingDeck);
     const updateSavedWordProgress = useDecksStore((state) => state.updateSavedWordProgress);
     const resetSavedWordProgress = useDecksStore((state) => state.resetSavedWordProgress);
+    const flushStandaloneSrsProgress = useDecksStore((state) => state.flushStandaloneSrsProgress);
 
     const [sessionCards, setSessionCards] = useState([]);
     const [isFlipped, setIsFlipped] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+
+    // Guarantee progress is flushed if the user navigates away mid-review
+    useEffect(() => {
+        return () => {
+            flushStandaloneSrsProgress();
+        };
+    }, [flushStandaloneSrsProgress]);
 
     useEffect(() => {
         if (trainingDeck && trainingDeck.cards) {
@@ -50,9 +58,14 @@ const FlashcardView = () => {
             // Common logic: move to the next card
             setIsFlipped(false);
             setTimeout(() => {
-                setSessionCards(prevCards => prevCards.slice(1));
+                setSessionCards(prevCards => {
+                    const nextCards = prevCards.slice(1);
+                    // Flush the queue when reaching the end of the deck
+                    if (nextCards.length === 0) flushStandaloneSrsProgress();
+                    return nextCards;
+                });
                 setIsProcessing(false); // Unlock the buttons for the next card
-            }, 200);
+            }, 50);
 
         } catch (error) {
             console.error("An error occurred while saving progress:", error);

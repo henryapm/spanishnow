@@ -22,12 +22,14 @@ const ReadingLibrary = () => {
     const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('reading_sortBy') || 'Free/Premium');
     const [filterLevel, setFilterLevel] = useState(() => sessionStorage.getItem('reading_filterLevel') || 'All');
     const [filterStatus, setFilterStatus] = useState(() => sessionStorage.getItem('reading_filterStatus') || 'All');
+    const [filterRead, setFilterRead] = useState(() => sessionStorage.getItem('reading_filterRead') || 'All');
      
     useEffect(() => {
         sessionStorage.setItem('reading_sortBy', sortBy);
         sessionStorage.setItem('reading_filterLevel', filterLevel);
         sessionStorage.setItem('reading_filterStatus', filterStatus);
-    }, [sortBy, filterLevel, filterStatus]);
+        sessionStorage.setItem('reading_filterRead', filterRead);
+    }, [sortBy, filterLevel, filterStatus, filterRead]);
     
     useEffect(() => {
         const lastFetch = sessionStorage.getItem('articles_last_fetch');
@@ -56,6 +58,11 @@ const ReadingLibrary = () => {
         .filter(article => {
             if (filterStatus === 'Free') return !article.premium;
             if (filterStatus === 'Premium') return article.premium;
+            return true;
+        })
+        .filter(article => {
+            if (filterRead === 'Unread') return !finishedArticles?.has(article.id);
+            if (filterRead === 'Read') return finishedArticles?.has(article.id);
             return true;
         })
         .sort((a, b) => {
@@ -136,6 +143,20 @@ const ReadingLibrary = () => {
                         <option value="All">All</option>
                         <option value="Free">Free</option>
                         <option value="Premium">Premium</option>
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label htmlFor="filter-read-select" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Status:</label>
+                    <select 
+                        id="filter-read-select"
+                        value={filterRead} 
+                        onChange={(e) => setFilterRead(e.target.value)}
+                        className="p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-custom-500 outline-none"
+                    >
+                        <option value="All">All</option>
+                        <option value="Unread">Unread</option>
+                        <option value="Read">Read</option>
                     </select>
                 </div>
             </div>
