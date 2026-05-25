@@ -94,7 +94,8 @@ export const useDecksStore = create((set, get) => ({
     interactionCount: 0,
     userProgressLoaded: false,
     speakProgressLoaded: false,
-    usersList: [],
+    userStats: { total: 0, premium: 0 },
+    userStatsLoaded: false,
     isUsersLoading: false,
     newsApiFrequency: 24,
     newsTopic: 'noticias',
@@ -210,7 +211,7 @@ export const useDecksStore = create((set, get) => ({
                     getDoc(doc(db, 'users', user.uid))
                 ]);
 
-                let userPreference = 'es-ES';
+                let userPreference = 'es-US';
                 let userXp = 0;
                 let userDailyXp = 0;
                 let userStreak = 0;
@@ -223,7 +224,9 @@ export const useDecksStore = create((set, get) => ({
                 // Check if user document exists and if timezone is missing.
                 // If so, update it with the browser's timezone. This is a one-time fix.
                 const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                if (userDocSnap.exists && !userDocSnap.data.timezone || userDocSnap.data.timezone !== browserTimezone) {
+                const userData = userDocSnap.exists() ? userDocSnap.data() : null;
+                
+                if (userData && (!userData.timezone || userData.timezone !== browserTimezone)) {
                     // --- SECURE FIX: Call a dedicated Cloud Function ---
                     const updateUserTimezoneCall = httpsCallable(functions, 'updateUserTimezone');
                     updateUserTimezoneCall({ timezone: browserTimezone }).catch(error => {
@@ -233,19 +236,19 @@ export const useDecksStore = create((set, get) => ({
                     });
                 }
 
-                if (userDocSnap.exists) {
-                    userPreference = userDocSnap.data.listeningPreference || 'es-US';
-                    userXp = userDocSnap.data.totalXp || 0;
-                    userDailyXp = userDocSnap.data.dailyXp || 0;
-                    userStreak = userDocSnap.data.streak || 0;
-                    subscriptionStatus = userDocSnap.data.hasActiveSubscription === true;
-                    isFirestoreAdmin = userDocSnap.data.isAdmin === true;
+                if (userData) {
+                    userPreference = userData.listeningPreference || 'es-US';
+                    userXp = userData.totalXp || 0;
+                    userDailyXp = userData.dailyXp || 0;
+                    userStreak = userData.streak || 0;
+                    subscriptionStatus = userData.hasActiveSubscription === true;
+                    isFirestoreAdmin = userData.isAdmin === true;
                     
                     // --- FIX: Race Condition Handling ---
                     // If we have a local record for TODAY, but server has nothing (or old date), 
                     // keep the local version. This prevents the auth listener from overwriting 
                     // our optimistic update before the server write completes.
-                    const serverAccess = userDocSnap.data.dailyFreeAccess || null;
+                    const serverAccess = userData.dailyFreeAccess || null;
                     const localAccess = get().dailyFreeAccess;
                     const now = new Date();
                     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -309,7 +312,9 @@ export const useDecksStore = create((set, get) => ({
                     speakProgress: {},
                     interactionCount: 0,
                     userProgressLoaded: false,
-                    speakProgressLoaded: false
+                    speakProgressLoaded: false,
+                    userStats: { total: 0, premium: 0 },
+                    userStatsLoaded: false
                 });
             }
         });
@@ -430,15 +435,18 @@ export const useDecksStore = create((set, get) => ({
 
     // --- NEW: Action to handle XP results and trigger streak notifications ---
     handleXpResult: (result) => {
-        if (!result || !result.streakUpdated) {
-            return; // Do nothing if the streak wasn't updated
+        if (!result) return;
+
+        // Always update the global streak value from the backend's source of truth
+        if (result.newStreak !== undefined) {
+            set({ streak: result.newStreak });
         }
 
-        const { newStreak } = result;
+        if (!result.streakUpdated) {
+            return; // Do nothing else if the streak wasn't extended today
+        }
+        
         const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
-
-        // Update the global streak value from the backend's source of truth
-        set({ streak: newStreak });
 
         // Check if we should show the notification for the first time today
         if (get().lastStreakNotificationDate !== today) {
@@ -876,6 +884,21 @@ export const useDecksStore = create((set, get) => ({
         try { await signOut(auth); } catch (error) { console.error("Error during sign-out: ", error); }
     },
 
+    deleteUserAccount: async () => {
+        const { currentUser } = get();
+        if (!currentUser) return { success: false, error: 'No user logged in.' };
+        try {
+            await deleteUser(currentUser);
+            return { success: true };
+        } catch (error) {
+            console.error("Error deleting user account:", error);
+            if (error.code === 'auth/requires-recent-login') {
+                return { success: false, requiresRecentLogin: true };
+            }
+            return { success: false, error: error.message };
+        }
+    },
+
     fetchDecks: async () => {
         // ... (function is correct, no changes)
         const { isDecksLoading, decks } = get();
@@ -895,18 +918,22 @@ export const useDecksStore = create((set, get) => ({
         }
     },
 
-    // --- NEW: Fetch all users for Admin Panel ---
-    fetchAllUsers: async () => {
-        const { isAdmin, currentUser, isUsersLoading, usersList } = get();
-        if (!isAdmin || !currentUser || isUsersLoading || usersList.length > 0) return;
+    // --- NEW: Fetch aggregated user stats for Admin Panel ---
+    fetchUserStats: async () => {
+        const { isAdmin, currentUser, isUsersLoading, userStatsLoaded } = get();
+        if (!isAdmin || !currentUser || isUsersLoading || userStatsLoaded) return;
 
         set({ isUsersLoading: true });
         try {
-            const fetchUsersCall = httpsCallable(functions, 'getAllUsers');
-            const result = await fetchUsersCall();
-            set({ usersList: result.data.users, isUsersLoading: false });
+            const fetchStatsCall = httpsCallable(functions, 'getUserStats');
+            const result = await fetchStatsCall();
+            set({ 
+                userStats: { total: result.data.totalUsers, premium: result.data.premiumUsers }, 
+                isUsersLoading: false,
+                userStatsLoaded: true
+            });
         } catch (error) {
-            console.error("Error fetching users: ", error);
+            console.error("Error fetching user stats: ", error);
             set({ isUsersLoading: false });
         }
     },

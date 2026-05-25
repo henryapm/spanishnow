@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import { CircularProgress } from './SpeakCompanion';
@@ -37,6 +37,13 @@ const AccountPage = ({ decks }) => {
     const hasActiveSubscription = useDecksStore((state) => state.hasActiveSubscription);
     const isPremium = isAdmin || hasActiveSubscription;
     const startSession = useDecksStore((state) => state.startSession);
+
+    // --- NEW: Account Deletion State ---
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteConfirmation, setDeleteConfirmation] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+    const deleteUserAccount = useDecksStore((state) => state.deleteUserAccount);
+    const signOutUser = useDecksStore((state) => state.signOutUser);
 
     {/* --- Calculate the sentences and words read on the finished articles --- */}
     const { wordsRead, sentencesRead, articlesRead } = useMemo(() => {
@@ -85,6 +92,25 @@ const AccountPage = ({ decks }) => {
     const handlePreferenceChange = (e) => {
         const newPreference = e.target.value;
         updateListeningPreference(newPreference); 
+    };
+
+    // --- NEW: Handle Account Deletion ---
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmation.toLowerCase() !== 'delete') return;
+        setIsDeleting(true);
+        const result = await deleteUserAccount();
+        
+        if (result.success) {
+            // Firebase automatically triggers onAuthStateChanged which handles the logout
+            setShowDeleteModal(false);
+        } else if (result.requiresRecentLogin) {
+            alert("For security reasons, you must have logged in recently to delete your account. You will now be logged out. Please log back in and try again.");
+            setShowDeleteModal(false);
+            signOutUser();
+        } else {
+            alert(`Error deleting account: ${result.error}`);
+            setIsDeleting(false);
+        }
     };
 
     // Fetch Scenarios and Goals from Firestore
@@ -142,6 +168,48 @@ const AccountPage = ({ decks }) => {
 
     return (
         <div className="animate-fade-in">
+            {/* --- Delete Account Confirmation Modal --- */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 relative transform transition-all">
+                        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Delete Account</h2>
+                        
+                        <div className="space-y-4">
+                            <div className="p-3 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 rounded-lg font-semibold text-sm border border-red-200 dark:border-red-800">
+                                Warning: This action is irreversible. All your progress, XP, streaks, and saved words will be permanently lost.
+                            </div>
+                            <p className="text-gray-700 dark:text-gray-300 text-sm">
+                                To confirm, please type <strong>delete</strong> in the box below:
+                            </p>
+                            <input 
+                                type="text"
+                                value={deleteConfirmation}
+                                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                                placeholder="Type 'delete' here..."
+                                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                                disabled={isDeleting}
+                            />
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button 
+                                    onClick={() => !isDeleting && setShowDeleteModal(false)}
+                                    disabled={isDeleting}
+                                    className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white font-semibold transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleDeleteAccount}
+                                    disabled={deleteConfirmation.toLowerCase() !== 'delete' || isDeleting}
+                                    className="px-6 py-2 bg-red-600 text-white font-bold rounded-xl shadow-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {isDeleting ? 'Deleting...' : 'Permanently Delete'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* --- Profile Section --- */}
             <div className="flex flex-col sm:flex-row items-center bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md my-8">
                 <img 
@@ -175,6 +243,7 @@ const AccountPage = ({ decks }) => {
                 <div className="flex flex-col bg-linear-to-b wrap-break-word from-orange-500 p-2 w-50 to-red-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
                     <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Streak</h2>
                     <p className='flex flex-row items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-orange-200'><span className="font-extrabold text-2xl">{streak}</span> <FaFire className="text-2xl" /></p>
+                    <span className='text-sm text-gray-200'>Days</span>
                 </div>
             </div>
 
@@ -197,7 +266,7 @@ const AccountPage = ({ decks }) => {
                                 }}
                                 labelStyle={{ color: theme === 'dark' ? '#E2E8F0' : '#1A202C' }}
                             />
-                            <Line type="monotone" dataKey="xp" name="XP Gained" stroke="#4F46E5" strokeWidth={2} activeDot={{ r: 8 }} />
+                            <Line type="monotone" dataKey="xp" name="XP Gained" stroke="#DC143C" strokeWidth={2} activeDot={{ r: 8 }} />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
@@ -228,6 +297,25 @@ const AccountPage = ({ decks }) => {
                         <option value="es-MX">Mexico</option>
                         <option value="es-US">United States</option>
                     </select>
+                </div>
+            </div>
+
+            {/* --- Danger Zone --- */}
+            <div className="bg-red-50 dark:bg-red-900/10 p-6 rounded-lg shadow-sm mb-8 border border-red-100 dark:border-red-900/30">
+                <h2 className="text-xl font-bold text-red-800 dark:text-red-400 mb-2">Danger Zone</h2>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <p className="text-gray-700 dark:text-gray-300 text-sm max-w-md">
+                        Permanently delete your account and all associated data. This action cannot be undone.
+                    </p>
+                    <button
+                        onClick={() => {
+                            setDeleteConfirmation('');
+                            setShowDeleteModal(true);
+                        }}
+                        className="px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg shadow hover:bg-red-700 transition-colors w-full sm:w-auto shrink-0"
+                    >
+                        Delete Account
+                    </button>
                 </div>
             </div>
 

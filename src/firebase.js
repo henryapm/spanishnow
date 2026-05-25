@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
+  import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 // The configuration object reads from the environment variables provided by Vite.
 const firebaseConfig = {
@@ -15,5 +16,18 @@ const firebaseConfig = {
 
 // Initialize Firebase and Firestore
 const app = initializeApp(firebaseConfig);
+
+// Initialize App Check
+// Ensure this only runs in the browser environment
+if (typeof window !== 'undefined') {
+  if (import.meta.env.DEV) {
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_SITE_KEY),
+    isTokenAutoRefreshEnabled: true
+  });
+}
+
 export const db = getFirestore(app);
 export const functions = getFunctions(app);

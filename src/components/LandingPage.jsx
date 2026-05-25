@@ -21,6 +21,8 @@ const LandingPage = () => {
                 setErrorMessage('Popup blocked. Please allow popups for this site.');
             } else if (error.code === 'functions/not-found') {
                 setErrorMessage(error.message); // Use the specific message thrown from our backend
+            } else if (error && error.message === 'Account not found') {
+                setErrorMessage('Account not found. Please sign up first.');  
             } else {
                 setErrorMessage('An unexpected error occurred. Please try again.');
             }

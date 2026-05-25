@@ -35,9 +35,10 @@ const TopicManager = () => {
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const topics = useMemo(() => groupDecksByTopic(decks), [decks]);
     
-    const usersList = useDecksStore((state) => state.usersList) || [];
+    const userStats = useDecksStore((state) => state.userStats);
     const isUsersLoading = useDecksStore((state) => state.isUsersLoading);
     const fetchAllUsers = useDecksStore((state) => state.fetchAllUsers);
+    const fetchUserStats = useDecksStore((state) => state.fetchUserStats);
     
     const newsApiFrequency = useDecksStore((state) => state.newsApiFrequency);
     const storedNewsTopic = useDecksStore((state) => state.newsTopic);
@@ -61,12 +62,11 @@ const TopicManager = () => {
 
     useEffect(() => {
         if (isAdmin) {
-            fetchAllUsers();
+            fetchUserStats();
         }
-    }, [isAdmin, fetchAllUsers]);
+    }, [isAdmin, fetchUserStats]);
 
-    const premiumUsersCount = usersList.filter(u => u.isAdmin || u.hasActiveSubscription).length;
-    const freeUsersCount = usersList.length - premiumUsersCount;
+    const freeUsersCount = userStats.total - userStats.premium;
 
     const handleManualFetch = async () => {
         setIsFetchingNews(true);
@@ -123,11 +123,11 @@ const TopicManager = () => {
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                         <div className="p-4 bg-blue-100 dark:bg-blue-900 rounded-lg shadow">
-                            <p className="text-3xl font-bold text-blue-800 dark:text-blue-200">{usersList.length}</p>
+                            <p className="text-3xl font-bold text-blue-800 dark:text-blue-200">{userStats.total}</p>
                             <p className="text-sm font-semibold text-blue-600 dark:text-blue-300 uppercase tracking-wide">Total Users</p>
                         </div>
                         <div className="p-4 bg-purple-100 dark:bg-purple-900 rounded-lg shadow">
-                            <p className="text-3xl font-bold text-purple-800 dark:text-purple-200">{premiumUsersCount}</p>
+                            <p className="text-3xl font-bold text-purple-800 dark:text-purple-200">{userStats.premium}</p>
                             <p className="text-sm font-semibold text-purple-600 dark:text-purple-300 uppercase tracking-wide">Premium Users</p>
                         </div>
                         <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow">

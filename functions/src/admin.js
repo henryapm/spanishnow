@@ -134,10 +134,10 @@ exports.saveArticle = onCall(async (request) => {
 });
 
 /**
- * Securely fetches all users.
+ * Securely fetches aggregated user statistics.
  * Only accessible by admins.
  */
-exports.getAllUsers = onCall(async (request) => {
+exports.getUserStats = onCall(async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
@@ -146,19 +146,24 @@ exports.getAllUsers = onCall(async (request) => {
     const uid = request.auth.uid;
     const userDoc = await db.collection('users').doc(uid).get();
     
-    // Verify admin status securely via backend checks
-    const isAdmin = request.auth.token.admin === true;
+    // Verify admin status via custom claim OR Firestore user document
+    const isAdmin = request.auth.token.admin === true || (userDoc.exists && userDoc.data().isAdmin === true);
 
     if (!isAdmin) {
-        throw new HttpsError('permission-denied', 'Only admins can view the user list.');
+        throw new HttpsError('permission-denied', 'Only admins can view user statistics.');
     }
 
     try {
-        const usersSnapshot = await db.collection('users').get();
-        const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        return { users };
+        // Use highly-efficient count() aggregations instead of downloading all documents
+        const totalUsersSnap = await db.collection('users').count().get();
+        const premiumUsersSnap = await db.collection('users').where('hasActiveSubscription', '==', true).count().get();
+        
+        return { 
+            totalUsers: totalUsersSnap.data().count, 
+            premiumUsers: premiumUsersSnap.data().count 
+        };
     } catch (error) {
-        console.error("Error fetching users:", error);
-        throw new HttpsError('internal', 'Failed to fetch the user list.');
+        console.error("Error fetching user stats:", error);
+        throw new HttpsError('internal', 'Failed to fetch user statistics.');
     }
 });
