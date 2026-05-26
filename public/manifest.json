@@ -12,9 +12,10 @@
       "type": "image/png"
     },
     {
-      "src": "/theSS512.png",
+      "src": "/theSS512.png?v=2",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
