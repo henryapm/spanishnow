@@ -7,12 +7,13 @@
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "/theSS192.png",
+      "src": "/theSS192.png?v=3",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "/theSS512.png?v=2",
+      "src": "/theSS512.png?v=3",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
