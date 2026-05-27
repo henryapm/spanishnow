@@ -200,7 +200,7 @@ const StoryReader = ({ articleId, onComplete }) => {
                         }
                     </button>
                 </div>
-                <p className="leading-loose">
+                <p className="leading-loose text-gray-700 dark:text-gray-200">
                     {sentenceObj.spanish.split(' ').map((word, wIndex) => {
                         const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
                         const cleanedWord = cleanedWordMatch ? cleanedWordMatch[0] : "";
@@ -335,8 +335,8 @@ const StoryReader = ({ articleId, onComplete }) => {
     return (
         <div className="w-full h-full overflow-y-auto p-6 pb-24 animate-fade-in bg-white dark:bg-gray-900" onClick={closePopup} onScroll={closePopup}>
             {renderPopup()}
-            <div className="max-w-xl m-auto bg-gray-700 p-5 rounded-lg shadow-lg mb-8">
-                <div className="flex items-center justify-between text-center text-md color-gray-100 dark:text-gray-800 mb-5 bg-amber-900 dark:bg-amber-100 p-3 rounded">
+            <div className="max-w-xl m-auto bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg mb-8">
+                <div className="flex items-center justify-between text-center text-md color-gray-100 dark:text-gray-800 mb-5 bg-amber-300 dark:bg-amber-100 p-3 rounded">
                     <span><FaInfoCircle /></span>
                     <p className="italic">Click on any word to see its translation and save it for later review </p>
                     <span>
@@ -353,7 +353,7 @@ const StoryReader = ({ articleId, onComplete }) => {
                         </span>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={() => handleSpeak(fullStoryText, 1.0)} className="flex justify-between items-center gap-2 text-sm px-3 py-1 bg-blue-600 text-gray-700 dark:text-gray-300 rounded hover:bg-blue-700 dark:hover:bg-blue-700 dark:bg-blue-600 transition-colors">
+                        <button onClick={() => handleSpeak(fullStoryText, 1.0)} className="flex justify-between items-center gap-2 text-sm px-3 py-1 bg-blue-600 text-gray-100 rounded hover:bg-blue-700 dark:hover:bg-blue-700 dark:bg-blue-600 transition-colors">
                             {playingState.text === fullStoryText && playingState.rate === 1.0 ? <FaRegPauseCircle /> : <FaPlayCircle />} 
                             <span>{playingState.text === fullStoryText && playingState.rate === 1.0 ? 'Pause Story' : 'Play Story'}</span>
                         </button>
