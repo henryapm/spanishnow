@@ -334,18 +334,9 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                     onMouseDown={startListening}
                     onMouseUp={stopListening}
                     onMouseLeave={stopListening}
-                    onTouchStart={(e) => {
-                        if (e.cancelable) e.preventDefault();
-                        startListening();
-                    }}
-                    onTouchEnd={(e) => {
-                        if (e.cancelable) e.preventDefault();
-                        stopListening();
-                    }}
-                    onTouchCancel={(e) => {
-                        if (e.cancelable) e.preventDefault();
-                        stopListening();
-                    }}
+                    onTouchStart={startListening}
+                    onTouchEnd={stopListening}
+                    onTouchCancel={stopListening}
                     onContextMenu={(e) => e.preventDefault()}
                     style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}
                     className={`p-5 rounded-full shadow-lg transition-all transform hover:scale-105 touch-none select-none ${
