@@ -150,6 +150,14 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
         }
     };
 
+    const toggleRecording = () => {
+        if (isRecording) {
+            stopListening();
+        } else {
+            startListening();
+        }
+    };
+
     const playMessageAudio = async (msg, index) => {
         if (playingAudioIndex === index) {
             stopAudio();
@@ -331,12 +339,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
 
             <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 mb-4 select-none">
                 <button 
-                    onMouseDown={startListening}
-                    onMouseUp={stopListening}
-                    onMouseLeave={stopListening}
-                    onTouchStart={startListening}
-                    onTouchEnd={stopListening}
-                    onTouchCancel={stopListening}
+                    onClick={toggleRecording}
                     onContextMenu={(e) => e.preventDefault()}
                     style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}
                     className={`p-5 rounded-full shadow-lg transition-all transform hover:scale-105 touch-none select-none ${
@@ -344,7 +347,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                             ? 'bg-red-500 text-white animate-pulse' 
                             : 'bg-blue-500 text-white hover:bg-blue-600'
                     }`}
-                    aria-label="Hold to record"
+                    aria-label={isRecording ? "Tap to stop recording" : "Tap to start recording"}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -353,7 +356,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                 
                 <div className="mt-4 text-center min-h-12">
                     {isRecording ? (
-                        <p className="text-red-500 font-semibold animate-pulse">Listening...</p>
+                        <p className="text-red-500 font-semibold animate-pulse">Listening... (Tap to stop)</p>
                     ) : userSpeech ? (
                         <div>
                             <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">You said:</p>
@@ -376,7 +379,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                             </div>
                         </div>
                     ) : (
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Hold the microphone to start speaking</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">Tap the microphone to start speaking</p>
                     )}
                 </div>
             </div>
