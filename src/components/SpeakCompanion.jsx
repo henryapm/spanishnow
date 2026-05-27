@@ -115,6 +115,19 @@ const SpeakCompanion = () => {
         audio.play();
     };
 
+    const handleSpeechError = (errorType) => {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
+        const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
+        
+        if (isIOS && !isSafari) {
+            alert("Voice features are restricted by Apple in third-party browsers. Please open this app in Safari.");
+        } else if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
+            alert("Microphone access was denied. Please check your browser permissions.");
+        } else if (errorType === 'not-supported') {
+            alert("Speech Recognition is not supported in this browser. Please try Chrome or Safari.");
+        }
+    };
+
     // Fetch Scenarios and Goals from Firestore
     useEffect(() => {
         fetchScenarios();
@@ -173,6 +186,9 @@ const SpeakCompanion = () => {
                 console.error("Speech recognition error", event.error);
                 shouldListenRef.current = false;
                 setIsRecording(false);
+                if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                    handleSpeechError(event.error);
+                }
             };
         }
         return () => {
@@ -199,9 +215,11 @@ const SpeakCompanion = () => {
                 recognitionRef.current.start();
             } catch (error) {
                 console.error("Error starting speech recognition:", error);
+                shouldListenRef.current = false;
+                setIsRecording(false);
             }
         } else if (!recognitionRef.current) {
-            alert("Speech Recognition is not supported in this browser.");
+            handleSpeechError('not-supported');
         }
     };
 
