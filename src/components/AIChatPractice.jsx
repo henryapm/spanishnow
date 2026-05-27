@@ -3,6 +3,7 @@ import { useDecksStore } from '../store';
 import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
+import { FaStopCircle } from "react-icons/fa";
 
 export default function AIChatPractice({ articleId, targetVocabulary, onComplete }) {
     const MAX_FREE_INTERACTIONS = 5;
@@ -24,6 +25,38 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
     const chatContainerRef = useRef(null);
     const finalTranscriptRef = useRef('');
     const shouldListenRef = useRef(false);
+    
+    // --- NEW: Audio tracking ---
+    const activeAudioRef = useRef(null);
+    const intendedAudioIndexRef = useRef(null);
+    const [playingAudioIndex, setPlayingAudioIndex] = useState(null);
+
+    useEffect(() => {
+        return () => stopAudio();
+    }, []);
+
+    const stopAudio = () => {
+        if (activeAudioRef.current) {
+            activeAudioRef.current.pause();
+            activeAudioRef.current = null;
+        }
+        setPlayingAudioIndex(null);
+        intendedAudioIndexRef.current = null;
+    };
+
+    const playAudioFromBase64 = (base64String, index) => {
+        if (intendedAudioIndexRef.current !== index) return;
+        const audio = new Audio(`data:audio/mp3;base64,${base64String}`);
+        activeAudioRef.current = audio;
+        setPlayingAudioIndex(index);
+        audio.onended = () => {
+            setPlayingAudioIndex(null);
+            activeAudioRef.current = null;
+            intendedAudioIndexRef.current = null;
+        };
+        audio.play();
+    };
+
     const interactionCount = useDecksStore((state) => state.interactionCount);
     const incrementInteractionCount = useDecksStore((state) => state.incrementInteractionCount);
     const InteractionCounts =() => {     
@@ -97,6 +130,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
     }, [chatHistory, isAiProcessing]);
 
     const startListening = () => {
+        stopAudio();
         if (recognitionRef.current && !isRecording) {
             try {
                 shouldListenRef.current = true;
@@ -116,12 +150,41 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
         }
     };
 
-    const speakText = (text) => {
-        if (!window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = listeningPreference || 'es-ES';
-        window.speechSynthesis.speak(utterance);
+    const playMessageAudio = async (msg, index) => {
+        if (playingAudioIndex === index) {
+            stopAudio();
+            return;
+        }
+        
+        stopAudio();
+        intendedAudioIndexRef.current = index;
+        setPlayingAudioIndex(index);
+
+        if (msg.audio) {
+            playAudioFromBase64(msg.audio, index);
+        } else {
+            try {
+                const functions = getFunctions(getApp());
+                const generateAudioTTS = httpsCallable(functions, 'generateAudioTTS');
+                const audioResult = await generateAudioTTS({ text: msg.text });
+                const base64Audio = audioResult.data.audioBase64;
+                
+                setChatHistory(prev => {
+                    const newHistory = [...prev];
+                    if (newHistory[index]) {
+                        newHistory[index].audio = base64Audio;
+                    }
+                    return newHistory;
+                });
+                
+                playAudioFromBase64(base64Audio, index);
+            } catch (error) {
+                console.error("Failed to generate TTS audio:", error);
+                if (intendedAudioIndexRef.current === index) {
+                    stopAudio();
+                }
+            }
+        }
     };
     
     const handleSend = async () => {
@@ -152,8 +215,34 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
             const aiResponseText = result.data.text;
 
             setChatHistory(prev => [...prev, { role: 'model', text: aiResponseText }]);
-            speakText(aiResponseText);
             if (!isPremium) incrementInteractionCount();
+
+            // Auto generate and play audio
+            try {
+                const newModelIndex = newHistory.length;
+                intendedAudioIndexRef.current = newModelIndex;
+                setPlayingAudioIndex(newModelIndex);
+
+                const generateAudioTTS = httpsCallable(functions, 'generateAudioTTS');
+                const audioResult = await generateAudioTTS({ text: aiResponseText });
+                const base64Audio = audioResult.data.audioBase64;
+                
+                setChatHistory(prev => {
+                    const updatedHistory = [...prev];
+                    const lastIndex = updatedHistory.length - 1;
+                    if (updatedHistory[lastIndex] && updatedHistory[lastIndex].role === 'model') {
+                        updatedHistory[lastIndex].audio = base64Audio;
+                    }
+                    return updatedHistory;
+                });
+                
+                playAudioFromBase64(base64Audio, newModelIndex);
+            } catch (error) {
+                console.error("Failed to generate TTS audio:", error);
+                if (intendedAudioIndexRef.current === newModelIndex) {
+                    stopAudio();
+                }
+            }
         } catch (error) {
             console.error("Error calling Gemini:", error);
             setChatHistory(prev => [...prev, { role: 'model', text: `Error: ${error.message}` }]);
@@ -221,8 +310,12 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                             {renderHighlightedSpeech(msg.text)}
                         </div>
                         {msg.role !== 'user' && (
-                            <div className="ml-2 cursor-pointer hover:text-teal-500 transition-colors flex flex-col justify-center flex-start w-10 h-10" onClick={() => speakText(msg.text)}>
-                                <CgPlayButtonR className="inline mr-1 w-8 h-8" />
+                            <div className="ml-2 cursor-pointer hover:text-teal-500 transition-colors flex flex-col justify-center flex-start w-10 h-10" onClick={() => playMessageAudio(msg, index)}>
+                                {playingAudioIndex === index ? (
+                                    <FaStopCircle className="inline mr-1 w-8 h-8" />
+                                ) : (
+                                    <CgPlayButtonR className="inline mr-1 w-8 h-8" />
+                                )}
                             </div>
                         )}
                     </div>

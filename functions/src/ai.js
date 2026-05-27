@@ -3,6 +3,10 @@ const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const axios = require("axios");
 
+// Initialize the Google Cloud TTS Client
+const textToSpeech = require('@google-cloud/text-to-speech');
+const ttsClient = new textToSpeech.TextToSpeechClient();
+
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 const scenariosInstructions = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context, if the user doesn't seem to understand what to do, and says things out of the context or doesn't attempt to complete an objective suggest a response that they could use so that the role play makes sense and is completed. If the user deviates from the scenario, gently steer them back on track by reminding them of the context and objectives. If the user completes the objectives, congratulate them and suggest they try another scenario for further practice. ";
@@ -324,5 +328,44 @@ exports.completeRolePlay = onCall(async (request) => {
         console.error("Error completing role play:", error);
         if (error.code) throw error; // Re-throw HttpsError to pass specific messages to client
         throw new HttpsError('internal', `Failed to save progress. Reason: ${error.message}`);
+    }
+});
+
+// --- NEW: Secure endpoint for generating TTS Audio ---
+exports.generateAudioTTS = onCall(async (request) => {
+    // 1. Auth check
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    // 2. Strict Input Validation to prevent API abuse/bloating
+    const { text } = request.data;
+    if (!text || typeof text !== 'string' || text.trim() === '') {
+        throw new HttpsError('invalid-argument', 'Text is required to generate audio.');
+    }
+    if (text.length > 1000) {
+        throw new HttpsError('invalid-argument', 'Text exceeds the maximum allowed length of 1000 characters.');
+    }
+
+    // 3. Admin-controlled Voice Configuration
+    // Use 'es-US-Journey-F' or 'es-US-Journey-D' for premium bilingual voices
+    // Use 'es-US-Standard-A' for the cheaper standard voice
+    const voiceName = 'es-US-Journey-F';
+
+    const requestPayload = {
+        input: { text: text },
+        voice: { languageCode: 'es-US', name: voiceName },
+        audioConfig: { audioEncoding: 'MP3' },
+    };
+
+    try {
+        const [response] = await ttsClient.synthesizeSpeech(requestPayload);
+        
+        // Convert the binary audio content to a base64 string for the frontend
+        const audioBase64 = response.audioContent.toString('base64');
+        return { audioBase64 };
+    } catch (error) {
+        console.error("Google Cloud TTS Error:", error);
+        throw new HttpsError('internal', 'Failed to generate audio from text.');
     }
 });
