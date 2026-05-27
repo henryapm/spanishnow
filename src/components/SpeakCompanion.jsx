@@ -96,6 +96,8 @@ const SpeakCompanion = () => {
     const stopAudio = () => {
         if (activeAudioRef.current) {
             activeAudioRef.current.pause();
+            activeAudioRef.current.removeAttribute('src');
+            activeAudioRef.current.load();
             activeAudioRef.current = null;
         }
         setPlayingAudioIndex(null);
@@ -108,11 +110,23 @@ const SpeakCompanion = () => {
         activeAudioRef.current = audio;
         setPlayingAudioIndex(index);
         audio.onended = () => {
+            // Aggressively release audio hardware to immediately free the microphone
+            audio.pause();
+            audio.removeAttribute('src');
+            audio.load();
+            
             setPlayingAudioIndex(null);
             activeAudioRef.current = null;
             intendedAudioIndexRef.current = null;
         };
-        audio.play();
+        audio.play().catch(err => {
+            console.error("Audio playback error:", err);
+            audio.removeAttribute('src');
+            audio.load();
+            setPlayingAudioIndex(null);
+            activeAudioRef.current = null;
+            intendedAudioIndexRef.current = null;
+        });
     };
 
     const handleSpeechError = (errorType) => {
