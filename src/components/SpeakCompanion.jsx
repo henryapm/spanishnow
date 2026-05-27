@@ -597,14 +597,26 @@ const SpeakCompanion = () => {
                 )}
             </div>
 
-            <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700">
+            <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 select-none">
                 <button 
                     onMouseDown={startListening}
                     onMouseUp={stopListening}
                     onMouseLeave={stopListening}
-                    onTouchStart={startListening}
-                    onTouchEnd={stopListening}
-                    className={`p-6 rounded-full shadow-lg transition-all transform hover:scale-105 ${
+                    onTouchStart={(e) => {
+                        if (e.cancelable) e.preventDefault();
+                        startListening();
+                    }}
+                    onTouchEnd={(e) => {
+                        if (e.cancelable) e.preventDefault();
+                        stopListening();
+                    }}
+                    onTouchCancel={(e) => {
+                        if (e.cancelable) e.preventDefault();
+                        stopListening();
+                    }}
+                    onContextMenu={(e) => e.preventDefault()}
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}
+                    className={`p-6 rounded-full shadow-lg transition-all transform hover:scale-105 touch-none select-none ${
                         isRecording 
                             ? 'bg-red-500 text-white animate-pulse' 
                             : 'bg-custom-500 text-white hover:bg-custom-600'

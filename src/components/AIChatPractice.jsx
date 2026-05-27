@@ -329,14 +329,26 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                 )}
             </div>
 
-            <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 mb-4">
+            <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 mb-4 select-none">
                 <button 
                     onMouseDown={startListening}
                     onMouseUp={stopListening}
                     onMouseLeave={stopListening}
-                    onTouchStart={startListening}
-                    onTouchEnd={stopListening}
-                    className={`p-5 rounded-full shadow-lg transition-all transform hover:scale-105 ${
+                    onTouchStart={(e) => {
+                        if (e.cancelable) e.preventDefault();
+                        startListening();
+                    }}
+                    onTouchEnd={(e) => {
+                        if (e.cancelable) e.preventDefault();
+                        stopListening();
+                    }}
+                    onTouchCancel={(e) => {
+                        if (e.cancelable) e.preventDefault();
+                        stopListening();
+                    }}
+                    onContextMenu={(e) => e.preventDefault()}
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}
+                    className={`p-5 rounded-full shadow-lg transition-all transform hover:scale-105 touch-none select-none ${
                         isRecording 
                             ? 'bg-red-500 text-white animate-pulse' 
                             : 'bg-blue-500 text-white hover:bg-blue-600'
