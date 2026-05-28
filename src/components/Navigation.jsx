@@ -20,7 +20,7 @@ const Navigation = () => {
     });
 
     return (
-        <nav className="fixed bottom-0 left-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50">
+        <nav className="fixed bottom-0 left-0 w-full bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50">
             <style>{`
                 @keyframes nav-glow {
                     0%, 100% { filter: drop-shadow(0 0 0px rgba(20, 184, 166, 0)); }
@@ -33,31 +33,51 @@ const Navigation = () => {
             <div className="max-w-2xl mx-auto flex justify-around items-center h-16">
                 <NavLink 
                     to="/reading-library" 
-                    className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
+                    className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 relative ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active bg-custom-50 dark:bg-gray-700/50' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                     aria-label="Reading practice"
                 >
-                    <h2 className="text-2xl mb-1">Read</h2>
+                    {({ isActive }) => (
+                        <>
+                            {isActive && <div className="absolute top-0 left-0 w-full h-1 bg-custom-500 dark:bg-custom-400"></div>}
+                            <FaBookOpen className="text-2xl mb-1" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Read</span>
+                        </>
+                    )}
                 </NavLink>
 
                 <NavLink 
                     to="/spaced-repetition" 
-                    className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
+                    className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 relative ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active bg-custom-50 dark:bg-gray-700/50' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                     aria-label="Spaced repetition review"
                 >
-                    <div className="relative">
-                        <h2 className="text-2xl mb-1">Review</h2>
-                        <span className="absolute -top-1 -right-3 bg-red-500 text-white text-xs rounded-full px-1">
-                            {dueWords.length}
-                        </span>
-                    </div>
+                    {({ isActive }) => (
+                        <>
+                            {isActive && <div className="absolute top-0 left-0 w-full h-1 bg-custom-500 dark:bg-custom-400"></div>}
+                            <div className="relative flex flex-col items-center">
+                                <RiBrain2Fill className="text-2xl mb-1" />
+                                {dueWords.length > 0 && (
+                                    <span className="absolute -top-2 -right-3 bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 border-2 border-white dark:border-gray-800 shadow-sm leading-none">
+                                        {dueWords.length}
+                                    </span>
+                                )}
+                                <span className="text-xs font-bold uppercase tracking-wider">Review</span>
+                            </div>
+                        </>
+                    )}
                 </NavLink>
 
                 <NavLink 
                     to="/speakCompanion" 
-                    className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300'}`}
+                    className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full transition-colors duration-200 relative ${isActive ? 'text-custom-600 dark:text-custom-400 nav-item-active bg-custom-50 dark:bg-gray-700/50' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                     aria-label="Speak with AI to learn spanish"
                 >
-                    <h2 className="text-2xl mb-1">Speak</h2>
+                    {({ isActive }) => (
+                        <>
+                            {isActive && <div className="absolute top-0 left-0 w-full h-1 bg-custom-500 dark:bg-custom-400"></div>}
+                            <IoPersonSharp className="text-2xl mb-1" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Speak</span>
+                        </>
+                    )}
                 </NavLink>
 
 {/* 
