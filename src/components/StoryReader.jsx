@@ -338,10 +338,8 @@ const StoryReader = ({ articleId, onComplete }) => {
             <div className="max-w-xl m-auto bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg mb-8">
                 <div className="flex items-center justify-between text-center text-md color-gray-100 dark:text-gray-800 mb-5 bg-amber-300 dark:bg-amber-100 p-3 rounded">
                     <span><FaInfoCircle /></span>
-                    <p className="italic">Click on any word to see its translation and save it for later review </p>
-                    <span>
-                        <BsBookmark />
-                    </span>
+                    <p className="italic flex items-center gap-2">Click on any word to see its translation and save it<span><BsBookmark /></span> for later review </p>
+                    
                 </div>
                     <div className="mb-3 max-w-2xl mx-auto">
                         <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200">{article.title}</h1>

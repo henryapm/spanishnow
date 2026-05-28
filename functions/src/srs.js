@@ -131,31 +131,29 @@ exports.updateSavedWordProgress = onCall(async (request) => {
 
             const data = docSnap.data();
             let stage = data.stage || 0;
-            let nextDate = new Date();
+            let nextReviewTime = Date.now();
+            const ONE_DAY = 24 * 60 * 60 * 1000;
 
             // SRS Logic on the server side
             if (stage === 0) {
-                nextDate.setDate(nextDate.getDate() + 1);
+                nextReviewTime += 1 * ONE_DAY;
                 stage = 1;
             } else if (stage === 1) {
-                nextDate.setDate(nextDate.getDate() + 3);
+                nextReviewTime += 3 * ONE_DAY;
                 stage = 2;
             } else if (stage === 2) {
-                nextDate.setDate(nextDate.getDate() + 7);
+                nextReviewTime += 7 * ONE_DAY;
                 stage = 3;
             } else if (stage === 3) {
-                nextDate.setDate(nextDate.getDate() + 14);
+                nextReviewTime += 14 * ONE_DAY;
                 stage = 4;
             } else if (stage >= 4) {
                 stage = 5; // Mastered
             }
 
-            // Normalize to midnight so words are due at the start of the day
-            nextDate.setHours(0, 0, 0, 0);
-
-            t.update(wordRef, { stage, nextReviewDate: nextDate.getTime() });
+            t.update(wordRef, { stage, nextReviewDate: nextReviewTime });
             
-            return { success: true, stage, nextReviewDate: nextDate.getTime() };
+            return { success: true, stage, nextReviewDate: nextReviewTime };
         });
     } catch (error) {
         console.error("Error updating word progress:", error);
@@ -205,17 +203,17 @@ exports.updateMultipleSavedWordProgress = onCall(async (request) => {
                 if (docSnap.exists) {
                     const data = docSnap.data();
                     let stage = data.stage || 0;
-                    let nextDate = new Date();
+                    let nextReviewTime = Date.now();
+                    const ONE_DAY = 24 * 60 * 60 * 1000;
 
                     // This logic should be identical to the single update function
-                    if (stage === 0) { nextDate.setDate(nextDate.getDate() + 1); stage = 1; } 
-                    else if (stage === 1) { nextDate.setDate(nextDate.getDate() + 3); stage = 2; } 
-                    else if (stage === 2) { nextDate.setDate(nextDate.getDate() + 7); stage = 3; } 
-                    else if (stage === 3) { nextDate.setDate(nextDate.getDate() + 14); stage = 4; } 
+                    if (stage === 0) { nextReviewTime += 1 * ONE_DAY; stage = 1; } 
+                    else if (stage === 1) { nextReviewTime += 3 * ONE_DAY; stage = 2; } 
+                    else if (stage === 2) { nextReviewTime += 7 * ONE_DAY; stage = 3; } 
+                    else if (stage === 3) { nextReviewTime += 14 * ONE_DAY; stage = 4; } 
                     else if (stage >= 4) { stage = 5; }
 
-                    nextDate.setHours(0, 0, 0, 0);
-                    t.update(wordRef, { stage, nextReviewDate: nextDate.getTime() });
+                    t.update(wordRef, { stage, nextReviewDate: nextReviewTime });
                 }
             });
             await Promise.all(promises);

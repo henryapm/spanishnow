@@ -759,31 +759,30 @@ export const useDecksStore = create((set, get) => ({
             
             if (wordData) {
                 let stage = wordData.stage || 0;
-                let nextDate = new Date();
-                
+                let nextReviewTime = Date.now();
+                const ONE_DAY = 24 * 60 * 60 * 1000;
+
                 // SRS Logic: 1 day -> 3 days -> 1 week -> 2 weeks -> Mastered (Stage 5)
                 if (stage === 0) {
-                    nextDate.setDate(nextDate.getDate() + 1);
+                    nextReviewTime += 1 * ONE_DAY;
                     stage = 1;
                 } else if (stage === 1) {
-                    nextDate.setDate(nextDate.getDate() + 3);
+                    nextReviewTime += 3 * ONE_DAY;
                     stage = 2;
                 } else if (stage === 2) {
-                    nextDate.setDate(nextDate.getDate() + 7);
+                    nextReviewTime += 7 * ONE_DAY;
                     stage = 3;
                 } else if (stage === 3) {
-                    nextDate.setDate(nextDate.getDate() + 14);
+                    nextReviewTime += 14 * ONE_DAY;
                     stage = 4;
                 } else if (stage >= 4) {
                     stage = 5; // Mastered
                 }
                 
-                // Normalize to midnight so words are due at the start of the day
-                nextDate.setHours(0, 0, 0, 0);
-
+                
                 // Optimistic Update: Update local state directly without re-fetching everything
                 const newList = savedWordsList.map(w => (
-                    w.id === wordId ? { ...w, stage, nextReviewDate: nextDate.getTime() } : w
+                    w.id === wordId ? { ...w, stage, nextReviewDate: nextReviewTime } : w
                 ));
 
                 const xpForSrs = 2;

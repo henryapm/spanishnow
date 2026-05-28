@@ -320,9 +320,9 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                 {!isPremium &&
                     <InteractionCounts />
                 }
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                </p>
+                <p className="text-lg text-gray-600 dark:text-gray-300 mt-1">
                     Chat with AI about <strong>{article?.title}</strong>
+                </p>
 
                 {targetVocabulary && targetVocabulary.length > 0 && (
                     <p className="text-md text-gray-500 dark:text-gray-400 mt-2">

@@ -145,22 +145,25 @@ const Review = () => {
     const due24Hours = activeWords.filter(w => {
         // Exclude words already in dueWords (due today or earlier)
         if (!w.nextReviewDate || w.nextReviewDate <= endOfToday) return false;
-        return (w.nextReviewDate - now) < oneDay;
+        return (w.nextReviewDate - now) <= oneDay;
     }).sort((a, b) => a.nextReviewDate - b.nextReviewDate);
 
     const dueSoon = activeWords.filter(w => {
         if (!w.nextReviewDate) return false;
         const diff = w.nextReviewDate - now;
-        return diff >= oneDay && diff < threeDays;
+        return diff > oneDay && diff <= threeDays;
     }).sort((a, b) => a.nextReviewDate - b.nextReviewDate);
     
     const dueWeek = activeWords.filter(w => {
+        if (!w.nextReviewDate) return false;
         const diff = w.nextReviewDate - now;
-        return diff >= threeDays && diff < sevenDays;
+        return diff > threeDays && diff <= sevenDays;
     }).sort((a, b) => a.nextReviewDate - b.nextReviewDate);
 
-    const dueTwoWeeks = activeWords.filter(w => (w.nextReviewDate - now) >= sevenDays)
-        .sort((a, b) => a.nextReviewDate - b.nextReviewDate);
+    const dueTwoWeeks = activeWords.filter(w => {
+        if (!w.nextReviewDate) return false;
+        return (w.nextReviewDate - now) > sevenDays;
+    }).sort((a, b) => a.nextReviewDate - b.nextReviewDate);
 
     const handleStartReview = async () => {
         if (dueWords.length === 0) return;
