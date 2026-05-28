@@ -116,8 +116,8 @@ const ReadingLibrary = () => {
             >
                 <p>This article is only available to Premium users. Upgrade to Premium to unlock the full library!</p>
             </Modal>
-            <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-500 mb-6 text-center">Reading Library</h1>
-            <div className="flex flex-wrap justify-end gap-4 mb-6">
+            <h1 className="text-5xl font-bold text-custom-800 dark:text-custom-500 mb-6 text-center my-4">Library</h1>
+            <div className="flex flex-wrap justify-center gap-4 mb-6">
                 <div className="flex items-center gap-2">
                     <label htmlFor="sort-select" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Sort by:</label>
                     <select 
@@ -147,18 +147,6 @@ const ReadingLibrary = () => {
                 </div>
 
             </div>
-            <div className="flex items-center justify-end gap-2 mb-4">
-                <input 
-                    type="checkbox"
-                    id="filter-read-checkbox"
-                    checked={filterRead === 'Unread'} 
-                    onChange={(e) => setFilterRead(e.target.checked ? 'Unread' : 'All')}
-                    className="w-4 h-4 invisible text-custom-600 bg-gray-100 border-gray-300 rounded focus:ring-custom-500 dark:focus:ring-custom-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
-                />
-                <label htmlFor="filter-read-checkbox" className={`text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer ${filterRead === 'Unread' ? 'bg-custom-600 p-2 rounded-lg text-white dark:bg-green-600' : 'p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white'}`}>
-                    {filterRead === 'Unread' ? 'Show' : 'Hide'} read articles
-                </label>
-            </div>
 
             <div className="flex items-end justify-end mb-6">
                 <ul 
@@ -173,8 +161,20 @@ const ReadingLibrary = () => {
                     ))}
                 </ul>
             </div>
+            <div className="flex items-center justify-end gap-2 mb-4">
+                <input 
+                    type="checkbox"
+                    id="filter-read-checkbox"
+                    checked={filterRead === 'Unread'} 
+                    onChange={(e) => setFilterRead(e.target.checked ? 'Unread' : 'All')}
+                    className="w-4 h-4 invisible text-custom-600 bg-gray-100 border-gray-300 rounded focus:ring-custom-500 dark:focus:ring-custom-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                />
+                <label htmlFor="filter-read-checkbox" className={`text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer ${filterRead === 'Unread' ? 'bg-custom-600 p-2 rounded-lg text-white dark:bg-green-600' : 'p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white'}`}>
+                    {filterRead === 'Unread' ? 'Show' : 'Hide'} read articles
+                </label>
+            </div>
 
-            <h2 className="flex py-1 items-center justify-center rounded-md text-md text-gray-700 mb-4 bg-amber-100 text-center gap-2 italic"><FaInfoCircle />Select an article to start learning</h2>
+            <h2 className="flex p-2 items-center justify-center rounded-md text-md text-gray-700 mb-4 bg-amber-100 text-center gap-2 italic"><FaInfoCircle />Select an article to start learning</h2>
             {articlesArray.length > 0 ? (
                 <div className="space-y-4">
                     {articlesArray.map((article, index) => {

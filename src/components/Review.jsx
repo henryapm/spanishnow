@@ -3,6 +3,8 @@ import { useDecksStore } from '../store';
 import { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { BsBookmarkFill } from 'react-icons/bs';
+import { FaInfoCircle } from 'react-icons/fa';
+
 
 const ReviewItem = ({ word }) => {
     const [isRevealed, setIsRevealed] = useState(false);
@@ -219,7 +221,7 @@ const Review = () => {
     };
     return (
         <div className="rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
-            <h2 className="text-3xl font-bold text-custom-800 dark:text-custom-500 mb-6 text-center">Spaced Repetition</h2>
+            <h2 className="text-5xl my-4 font-bold text-custom-800 dark:text-custom-500 mb-6 text-center">Review</h2>
             
             {!currentUser ? (
                 <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -297,7 +299,9 @@ const Review = () => {
                             </button>
                         </div>
                     )}
-
+                    <p className="flex justify-center items-center gap-2 rounded-lg p-2 bg-amber-100 text-gray-700 mb-8 text-center italic">
+                        <FaInfoCircle />Click on any of the elements below to see the words due for review.
+                    </p>
                     <div className="space-y-4">
                         <StageSection title="New / Due Now" words={dueWordsSorted} isOpen={openSections.stageZero} onToggle={() => toggleSection('stageZero')} />
                         <StageSection title="Due in less than 24 hours" words={due24Hours} isOpen={openSections.soon} onToggle={() => toggleSection('soon')} />

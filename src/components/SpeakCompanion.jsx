@@ -5,7 +5,7 @@ import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
 import { BsCheckCircleFill } from "react-icons/bs";
-import { FaStopCircle } from "react-icons/fa";
+import { FaInfoCircle, FaStopCircle } from "react-icons/fa";
 
 const MAX_FREE_INTERACTIONS = 5;
 const MAX_FREE_CHARS = 100;
@@ -437,9 +437,9 @@ const SpeakCompanion = () => {
     if (!selectedScenario) {
         return (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
-                <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-500 mb-2 text-center">Choose a Scenario</h1>
-                <p className="text-gray-600 dark:text-gray-300 mb-8 text-center">
-                    Select a real-life scenario to practice your Spanish skills.
+                <h1 className="text-5xl my-4 font-bold text-custom-800 dark:text-custom-500 text-center">Pick a Scenario</h1>
+                <p className="flex justify-center items-center gap-2 rounded-lg p-2 bg-amber-100 text-gray-700 mb-8 text-center italic">
+                    <FaInfoCircle />Select a real-life scenario to practice your Spanish speaking skills.
                 </p>
                 
                 {!isPremium &&
