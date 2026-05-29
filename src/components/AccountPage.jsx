@@ -263,7 +263,7 @@ const AccountPage = ({ decks }) => {
 
             {/* --- STATS --- */}
             <div className="flex justify-center my-8">
-                <h1 className="text-4xl font-bold  dark:bg-gray-700 p-6 shadow-lg rounded-lg text-centergray-800 dark:text-gray-200 text-center">Your Stats</h1>
+                <h1 className="text-4xl font-bold dark:bg-gray-700 p-2 shadow-lg rounded-lg text-centergray-800 dark:text-gray-200 text-center">Your Stats</h1>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-8 w-full">
                 <div className="flex flex-col justify-center items-center bg-linear-to-b from-purple-400 to-purple-700 p-4 sm:p-6 rounded-xl shadow-md w-full">

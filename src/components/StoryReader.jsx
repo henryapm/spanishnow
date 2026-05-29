@@ -163,7 +163,7 @@ const StoryReader = ({ articleId, onComplete }) => {
         setIsPaused(false);
     };
 
-    const handleWordClick = (e, word) => {
+    const handleWordClick = (e, word, sentence) => {
         e.stopPropagation();
         const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
         if (!cleanedWordMatch) return; 
@@ -196,7 +196,7 @@ const StoryReader = ({ articleId, onComplete }) => {
             y = rect.bottom + 8;
         }
         
-        setLookupResult({ word: cleanedWord, translation: translation });
+        setLookupResult({ word: cleanedWord, translation: translation, sentence: sentence });
         setPopupPosition({ x, y });
         setIsEditing(false); 
         setEditText((translation === "No translation found." || translation === "Loading...") ? "" : translation);
@@ -229,26 +229,8 @@ const StoryReader = ({ articleId, onComplete }) => {
 
     // --- Component Renders ---
     const renderedContent = (article.sentences || []).map((sentenceObj, sIndex) => (
-        <div key={sIndex}>
-            <div className="flex gap-4 items-start">
-                <div className="flex flex-col gap-4 items-center">
-                    <button 
-                        onClick={() => handleSpeak(sentenceObj.spanish, 1.0)}
-                        className="h-6 w-6 text-gray-400 hover:text-blue-500 transition-colors"
-                        title="Read paragraph aloud"
-                    >
-                        {playingState.text === sentenceObj.spanish && playingState.rate === 1.0 ? <FaRegPauseCircle className="w-full h-full" /> : <CiPlay1 className="w-full h-full" />}
-                    </button>
-                    <button 
-                        onClick={() => handleSpeak(sentenceObj.spanish, 0.5)}
-                        className={"h-6 w-6 transition-colors text-gray-400 hover:text-blue-500"}
-                        title="Read paragraph slowly"
-                    >
-                        {playingState.text === sentenceObj.spanish && playingState.rate === 0.5 ? <FaRegPauseCircle className="w-full h-full"/> : <LuTurtle className="w-full h-full" />
-                        }
-                    </button>
-                </div>
-                <p className="leading-loose text-gray-700 dark:text-gray-200">
+        <div key={sIndex} className="mb-2">
+            <p className="leading-loose text-gray-700 dark:text-gray-200">
                     {sentenceObj.spanish.split(' ').map((word, wIndex) => {
                         const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
                         const cleanedWord = cleanedWordMatch ? cleanedWordMatch[0] : "";
@@ -275,14 +257,13 @@ const StoryReader = ({ articleId, onComplete }) => {
                             <span 
                                 key={wIndex} 
                                 className={`${baseClass} ${adminClass}`}
-                                onClick={(e) => handleWordClick(e, word)}
+                            onClick={(e) => handleWordClick(e, word, sentenceObj.spanish)}
                             >
                                 {word}{' '}
                             </span>
                         );
                     })}
                 </p>
-            </div>
             {showTranslations && (
                 <p className="leading-loose text-blue-600 dark:text-blue-400 mt-2 italic pl-10">
                     &rarr; {sentenceObj.english}
@@ -379,7 +360,7 @@ const StoryReader = ({ articleId, onComplete }) => {
         };
 
     return (
-        <div className="w-full h-full overflow-y-auto p-6 pb-24 animate-fade-in bg-white dark:bg-gray-900" onClick={closePopup} onScroll={closePopup}>
+        <div className="w-full h-full overflow-y-auto pb-24 animate-fade-in bg-white dark:bg-gray-900" onClick={closePopup} onScroll={closePopup}>
             {toastMessage && (
                 <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
                     <div className="bg-linear-to-r from-blue-500 to-teal-500 text-white px-4 py-2 rounded-lg shadow-lg font-semibold text-sm text-center whitespace-nowrap">
@@ -388,7 +369,7 @@ const StoryReader = ({ articleId, onComplete }) => {
                 </div>
             )}
             {renderPopup()}
-            <div className="max-w-xl m-auto rounded-lg shadow-lg mb-8">
+            <div className="max-w-xl m-auto p-6 rounded-lg shadow-lg mb-8">
                 <p className="flex justify-center items-center gap-2 rounded-lg p-2 bg-amber-100 text-gray-700 mb-5 text-left italic text-md">
                     <FaInfoCircle className="shrink-0" /><BsBookmark className="inline" />  Click on any word to see its translation and save it for later review
                 </p>
@@ -421,19 +402,40 @@ const StoryReader = ({ articleId, onComplete }) => {
                     </button>
                 </div>
             
-                {/* Sticky Bottom Control Bar */}
-                <div className="fixed bottom-0 left-0 w-full bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40 p-4 flex justify-center items-center gap-8">
-                    <button 
+            </div>
+            {/* Sticky Bottom Control Bar */}
+            <div className="fixed bottom-0 w-full max-w-2xl bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40 p-2 flex justify-end items-center gap-6">
+                {lookupResult && lookupResult.sentence && (
+                    <button
+                        onClick={() => handleSpeak(lookupResult.sentence, 1.0)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-transform transform hover:scale-105 text-sm font-bold focus:outline-none"
+                        title="Play Selected Sentence"
+                    >
+                        <CiPlay1 className="text-xl" />
+                        Sentence
+                    </button>
+                ) || (
+                    <button
+                        onClick={() => handleSpeak(lookupResult.sentence, 1.0)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-white/50 rounded-full shadow-lg text-sm font-bold cursor-not-allowed focus:outline-none"
+                        title="Play Selected Sentence"
+                    >
+                        <CiPlay1 className="text-xl" />
+                        Sentence
+                    </button>
+                )}
+                <div className="flex gap-4 w-full justify-end">
+                    <button
                         onClick={handlePlayPauseFullStory}
-                        className="text-5xl text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-transform transform hover:scale-110 focus:outline-none"
+                        className="text-3xl text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-transform transform hover:scale-110 focus:outline-none z-10"
                         title={playingState.text === fullStoryText && !isPaused ? "Pause Story" : "Play Story"}
                     >
                         {playingState.text === fullStoryText && !isPaused ? <FaRegPauseCircle /> : <FaPlayCircle />}
                     </button>
-                    <button 
+                    <button
                         onClick={handleStopFullStory}
                         disabled={playingState.text !== fullStoryText}
-                        className={`text-5xl transition-transform focus:outline-none ${playingState.text === fullStoryText ? 'text-red-500 hover:text-red-600 hover:scale-110' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                        className={`text-3xl transition-transform focus:outline-none ${playingState.text === fullStoryText ? 'text-red-500 hover:text-red-600 hover:scale-110' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
                         title="Stop Story"
                     >
                         <FaStopCircle />
