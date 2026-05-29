@@ -36,6 +36,8 @@ const AppLayout = () => {
     // Define routes that require decks to be loaded
     const deckRoutes = ['/flashcards', '/create', '/review', '/account', '/listen', '/deck', '/edit', '/admin', '/lesson'];
     const shouldLoadDecks = deckRoutes.some(route => location.pathname.startsWith(route));
+    
+    const isLessonRoute = location.pathname.startsWith('/lesson');
 
     useEffect(() => {
         if (shouldLoadDecks) {
@@ -51,13 +53,13 @@ const AppLayout = () => {
     return (
         <div className="w-full dark:text-gray-200 max-w-2xl">
             <StreakNotification />
-            <Header />
-            <main className="w-full text-gray-800 dark:bg-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner pb-24">
+            {!isLessonRoute && <Header />}
+            <main className={`w-full text-gray-800 dark:bg-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner ${isLessonRoute ? '' : 'pb-24'}`}>
                 <div className="w-full max-w-xl mx-auto">
                     <Suspense fallback={<div className="text-center p-8">Loading...</div>}>
                         <Routes>
-                            <Route path="/account" element={<AccountPage decks={decks} />} />
-                            <Route path="/" element={<ReadingLibrary/>} />
+                            <Route path="/" element={<AccountPage decks={decks} />} />
+                            <Route path="/reading-library" element={<ReadingLibrary/>} />
                             <Route path="/create" element={<DeckForm decks={decks} />} />
                             <Route path="/review/:deckId" element={<FlashcardView />} />
                             <Route path="/spaced-repetition" element={<Review />} />
@@ -77,7 +79,7 @@ const AppLayout = () => {
                     </Suspense>
                 </div>
             </main>
-            <Navigation />
+            {!isLessonRoute && <Navigation />}
         </div>
     );
 };
