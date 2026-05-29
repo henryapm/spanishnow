@@ -5,6 +5,7 @@ import { IoPersonSharp } from 'react-icons/io5';
 import { PiCardsFill } from 'react-icons/pi';
 import { RiBrain2Fill } from 'react-icons/ri';
 import { useDecksStore } from '../store';
+import { MdHome } from 'react-icons/md';
 
 const Navigation = () => {
     const savedWordsList = useDecksStore(state => state.savedWordsList);
@@ -30,8 +31,22 @@ const Navigation = () => {
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute top-0 left-0 w-full h-1 bg-custom-500 dark:bg-custom-400"></div>}
+                            <MdHome className="text-2xl mb-1" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Home</span>
+                        </>
+                    )}
+                </NavLink>
+
+                <NavLink 
+                    to="/reading-library" 
+                    className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full relative ${isActive ? 'text-custom-600 dark:text-custom-400 bg-custom-50 dark:bg-gray-700/50' : 'text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-300 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                    aria-label="Reading practice"
+                >
+                    {({ isActive }) => (
+                        <>
+                            {isActive && <div className="absolute top-0 left-0 w-full h-1 bg-custom-500 dark:bg-custom-400"></div>}
                             <FaBookOpen className="text-2xl mb-1" />
-                            <span className="text-xs font-bold uppercase tracking-wider">Read</span>
+                            <span className="text-xs font-bold uppercase tracking-wider">Learn</span>
                         </>
                     )}
                 </NavLink>
@@ -51,7 +66,7 @@ const Navigation = () => {
                                         {dueWords.length}
                                     </span>
                                 )}
-                                <span className="text-xs font-bold uppercase tracking-wider">Review</span>
+                                <span className="text-xs font-bold uppercase tracking-wider">Deck</span>
                             </div>
                         </>
                     )}
@@ -66,7 +81,7 @@ const Navigation = () => {
                         <>
                             {isActive && <div className="absolute top-0 left-0 w-full h-1 bg-custom-500 dark:bg-custom-400"></div>}
                             <IoPersonSharp className="text-2xl mb-1" />
-                            <span className="text-xs font-bold uppercase tracking-wider">Speak</span>
+                            <span className="text-xs font-bold uppercase tracking-wider">SandBox</span>
                         </>
                     )}
                 </NavLink>

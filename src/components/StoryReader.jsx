@@ -40,6 +40,22 @@ const StoryReader = ({ articleId, onComplete }) => {
     const POPUP_HEIGHT_ESTIMATE = 120;
 
     const sessionWords = activeSession?.wordsSavedInSession || [];
+    const [toastMessage, setToastMessage] = useState(null);
+    const prevSessionWordsLength = useRef(sessionWords.length);
+
+    useEffect(() => {
+        if (sessionWords.length > prevSessionWordsLength.current) {
+            setToastMessage(`Word saved! ${sessionWords.length} added in this session`);
+            const timer = setTimeout(() => setToastMessage(null), 2000);
+            prevSessionWordsLength.current = sessionWords.length;
+            return () => clearTimeout(timer);
+        } else if (sessionWords.length < prevSessionWordsLength.current) {
+            setToastMessage(`Word removed! ${sessionWords.length} left in this session`);
+            const timer = setTimeout(() => setToastMessage(null), 2000);
+            prevSessionWordsLength.current = sessionWords.length;
+            return () => clearTimeout(timer);
+        }
+    }, [sessionWords.length]);
 
     useEffect(() => {
         if (articleId) {
@@ -334,6 +350,13 @@ const StoryReader = ({ articleId, onComplete }) => {
 
     return (
         <div className="w-full h-full overflow-y-auto p-6 pb-24 animate-fade-in bg-white dark:bg-gray-900" onClick={closePopup} onScroll={closePopup}>
+            {toastMessage && (
+                <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+                    <div className="bg-linear-to-r from-blue-500 to-teal-500 text-white px-4 py-2 rounded-lg shadow-lg font-semibold text-sm text-center whitespace-nowrap">
+                        {toastMessage}
+                    </div>
+                </div>
+            )}
             {renderPopup()}
             <div className="max-w-xl m-auto bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg mb-8">
                 <div className="flex items-center justify-between text-center text-md color-gray-100 dark:text-gray-800 mb-5 bg-amber-300 dark:bg-amber-100 p-3 rounded">
@@ -345,11 +368,6 @@ const StoryReader = ({ articleId, onComplete }) => {
                         <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200">{article.title}</h1>
                     </div>
                 <div className="grid grid-rows items-start max-w-2xl mb-4">
-                    <div className="flex items-center justify-between mb-4">
-                        <span className="text-sm font-bold text-blue-700 bg-blue-100 dark:bg-blue-900 dark:text-blue-300 px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
-                            {sessionWords.length}/10 Words
-                        </span>
-                    </div>
                     <div className="flex gap-2">
                         <button onClick={() => handleSpeak(fullStoryText, 1.0)} className="flex justify-between items-center gap-2 text-sm px-3 py-1 bg-blue-600 text-gray-100 rounded hover:bg-blue-700 dark:hover:bg-blue-700 dark:bg-blue-600 transition-colors">
                             {playingState.text === fullStoryText && playingState.rate === 1.0 ? <FaRegPauseCircle /> : <FaPlayCircle />} 

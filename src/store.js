@@ -674,6 +674,10 @@ export const useDecksStore = create((set, get) => ({
             newSavedWordsSet.delete(spanishWord);
             const newList = savedWordsList.filter(w => w.id !== spanishWord);
             set({ savedWordsSet: newSavedWordsSet, savedWordsList: newList });
+            
+            if (get().activeSession.isActive) {
+                set(state => ({ activeSession: { ...state.activeSession, wordsSavedInSession: state.activeSession.wordsSavedInSession.filter(w => w !== spanishWord) } }));
+            }
         } else {
             newSavedWordsSet.add(spanishWord);
             const newWordData = { 
@@ -706,7 +710,7 @@ export const useDecksStore = create((set, get) => ({
             
             // 3. Rollback the UI if the server fails
             set({ savedWordsSet: previousSavedWordsSet, savedWordsList: previousSavedWordsList });
-            if (!isRemoving && get().activeSession.isActive) {
+            if (get().activeSession.isActive) {
                 set(state => ({ activeSession: { ...state.activeSession, wordsSavedInSession: previousActiveSessionWords } }));
             }
             

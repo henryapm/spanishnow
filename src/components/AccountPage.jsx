@@ -228,10 +228,8 @@ const AccountPage = ({ decks }) => {
             )}
 
             {/* --- Profile Section --- */}
-            <div className="flex flex-col sm:flex-row items-center bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md my-8">
-                <div className="text-center sm:text-left">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200">Hi {currentUser.displayName}!</h1>
-                </div>
+            <div className="flex flex-col sm:flex-row items-center bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md my-8 xs:text-left md:text-center m-auto">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200">Hi {currentUser.displayName.split(' ')[0]}!</h1>
             </div>
             
             {nextArticle && (
