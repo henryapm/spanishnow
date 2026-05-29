@@ -228,12 +228,22 @@ const AccountPage = ({ decks }) => {
             )}
 
             {/* --- Profile Section --- */}
-            <div className="flex flex-col sm:flex-row items-center bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md my-8 xs:text-left md:text-center m-auto">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200">Hi {currentUser.displayName.split(' ')[0]}!</h1>
+            <div className="inline-flex items-center bg-white dark:bg-gray-700 p-2 shadow-lg rounded-full my-8 text-left">
+                {/* add profile image */}
+                <div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600 shrink-0 mr-4">
+                    {currentUser.photoURL ? (
+                        <img src={currentUser.photoURL} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full rounded-full bg-gray-400 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold">
+                            {currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                    )}
+                </div>
+                <h1 className="text-3xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 pr-2">Hi {currentUser.displayName.split(' ')[0]}!</h1>
             </div>
             
             {nextArticle && (
-                <div className="bg-linear-to-r from-blue-500 to-teal-500 rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="bg-linear-to-r from-red-500 to-purple-500 rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="text-center md:text-left">
                         <h2 className="text-2xl font-bold mb-2">Ready to learn?</h2>
                         <p className="mb-1 text-blue-100">Your next recommended article is waiting:</p>
@@ -252,7 +262,27 @@ const AccountPage = ({ decks }) => {
             )}
 
             {/* --- STATS --- */}
-            <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200 text-center mb-8">Your Stats</h1>
+            <div className="flex justify-center my-8">
+                <h1 className="text-4xl font-bold  dark:bg-gray-700 p-6 shadow-lg rounded-lg text-centergray-800 dark:text-gray-200 text-center">Your Stats</h1>
+            </div>
+            <div className="grid grid-cols-2 place-items-center gap-3 items-center justify-center mb-4 ">
+                <div className="flex flex-col bg-linear-to-b wrap-break-word from-purple-400 w-50 p-2 to-purple-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
+                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Learning</h2>
+                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-100'><span className="font-extrabold text-2xl">{dueForReviewWords.length}</span> <span className='text-sm text-gray-200'>Words</span></p>
+                </div>
+                <div className="flex flex-col bg-linear-to-b wrap-break-word from-sky-500 p-2 w-50 to-blue-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
+                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Read</h2>
+                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-100'><span className="font-extrabold text-2xl">{wordsRead}</span> <span className='text-sm text-gray-200'>Words</span></p>
+                </div>
+                <div className="flex flex-col bg-linear-to-b wrap-break-word from-green-500 p-2 w-50 to-green-900 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
+                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Completed</h2>
+                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-200'><span className="font-extrabold text-2xl">{scenariosCompleted}</span> <span className='text-sm text-gray-200'>Roles</span></p>
+                </div>
+                <div className="flex flex-col bg-linear-to-b wrap-break-word from-orange-500 p-2 w-50 to-red-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
+                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Streak</h2>
+                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-orange-200'><span className="inline-flex items-center font-extrabold text-2xl">{streak}<FaFire className="text-2xl" /></span> <span className='text-sm text-gray-200'>Days</span> </p>
+                </div>
+            </div>
             {/* --- Weekly XP Chart --- */}
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Weekly Activity</h2>
@@ -275,28 +305,6 @@ const AccountPage = ({ decks }) => {
                             <Line type="monotone" dataKey="xp" name="XP Gained" stroke="#DC143C" strokeWidth={2} activeDot={{ r: 8 }} />
                         </LineChart>
                     </ResponsiveContainer>
-                </div>
-            </div>
-            <div className="flex flex-row gap-3  items-center align-center justify-center mb-4 ">
-                <div className="flex flex-col bg-linear-to-b wrap-break-word from-purple-400 w-50 p-2 to-purple-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
-                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Learning</h2>
-                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-100'><span className="font-extrabold text-2xl">{dueForReviewWords.length}</span> <span className='text-sm text-gray-200'>Words</span></p>
-                </div>
-                                    
-                <div className="flex flex-col bg-linear-to-b wrap-break-word from-sky-500 p-2 w-50 to-blue-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
-                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Read</h2>
-                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-100'><span className="font-extrabold text-2xl">{wordsRead}</span> <span className='text-sm text-gray-200'>Words</span></p>
-                </div>
-            </div>
-            <div className="flex flex-row gap-3 items-center align-center justify-center mb-8">
-                <div className="flex flex-col bg-linear-to-b wrap-break-word from-green-500 p-2 w-50 to-green-900 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
-                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Completed</h2>
-                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-200'><span className="font-extrabold text-2xl">{scenariosCompleted}</span> <span className='text-sm text-gray-200'>Roles</span></p>
-                </div>
-                <div className="flex flex-col bg-linear-to-b wrap-break-word from-orange-500 p-2 w-50 to-red-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
-                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Streak</h2>
-                    <p className='flex flex-row items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-orange-200'><span className="font-extrabold text-2xl">{streak}</span> <FaFire className="text-2xl" /></p>
-                    <span className='text-sm text-gray-200'>Days</span>
                 </div>
             </div>
 

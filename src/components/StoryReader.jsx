@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDecksStore } from '../store.js';
 import { LuTurtle } from "react-icons/lu";
 import { BsBookmark, BsBookmarkFill, BsFillVolumeUpFill } from "react-icons/bs";
-import { FaInfoCircle, FaPlayCircle, FaRegPauseCircle } from 'react-icons/fa';
+import { FaInfoCircle, FaPlayCircle, FaRegPauseCircle, FaStopCircle } from 'react-icons/fa';
 import { CiPlay1 } from 'react-icons/ci';
 
 const StoryReader = ({ articleId, onComplete }) => {
@@ -35,6 +35,7 @@ const StoryReader = ({ articleId, onComplete }) => {
     const [playingState, setPlayingState] = useState({ text: null, rate: null });
     const currentSpeechRef = useRef({ text: null, rate: null });
     const [isCompleting, setIsCompleting] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     
     const POPUP_WIDTH = 220; 
     const POPUP_HEIGHT_ESTIMATE = 120;
@@ -85,6 +86,8 @@ const StoryReader = ({ articleId, onComplete }) => {
         );
     }
 
+    const fullStoryText = article ? article.sentences.map(s => s.spanish).join(' ') : '';
+
     // --- Event Handlers ---
     const handleSpeak = (textToSpeak, rate = 1.0) => {
         if (!textToSpeak || !window.speechSynthesis) return;
@@ -97,12 +100,14 @@ const StoryReader = ({ articleId, onComplete }) => {
             window.speechSynthesis.cancel();
             currentSpeechRef.current = { text: null, rate: null };
             setPlayingState({ text: null, rate: null });
+                setIsPaused(false);
             return;
         }
 
         window.speechSynthesis.cancel(); 
         currentSpeechRef.current = { text: textToSpeak, rate };
         setPlayingState({ text: textToSpeak, rate });
+            setIsPaused(false);
 
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.lang = listeningPreference;
@@ -115,6 +120,7 @@ const StoryReader = ({ articleId, onComplete }) => {
             ) {
                 currentSpeechRef.current = { text: null, rate: null };
                 setPlayingState({ text: null, rate: null });
+                    setIsPaused(false);
             }
         };
 
@@ -125,10 +131,36 @@ const StoryReader = ({ articleId, onComplete }) => {
             ) {
                 currentSpeechRef.current = { text: null, rate: null };
                 setPlayingState({ text: null, rate: null });
+                    setIsPaused(false);
             }
         };
 
         window.speechSynthesis.speak(utterance);
+    };
+
+    const handlePlayPauseFullStory = () => {
+        if (!window.speechSynthesis) return;
+
+        if (playingState.text === fullStoryText) {
+            if (isPaused) {
+                window.speechSynthesis.resume();
+                setIsPaused(false);
+            } else {
+                window.speechSynthesis.pause();
+                setIsPaused(true);
+            }
+        } else {
+            handleSpeak(fullStoryText, 1.0);
+            setIsPaused(false);
+        }
+    };
+
+    const handleStopFullStory = () => {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        currentSpeechRef.current = { text: null, rate: null };
+        setPlayingState({ text: null, rate: null });
+        setIsPaused(false);
     };
 
     const handleWordClick = (e, word) => {
@@ -346,8 +378,6 @@ const StoryReader = ({ articleId, onComplete }) => {
             );
         };
 
-    const fullStoryText = article ? article.sentences.map(s => s.spanish).join(' ') : '';
-
     return (
         <div className="w-full h-full overflow-y-auto p-6 pb-24 animate-fade-in bg-white dark:bg-gray-900" onClick={closePopup} onScroll={closePopup}>
             {toastMessage && (
@@ -358,21 +388,15 @@ const StoryReader = ({ articleId, onComplete }) => {
                 </div>
             )}
             {renderPopup()}
-            <div className="max-w-xl m-auto bg-white dark:bg-gray-900 p-5 rounded-lg shadow-lg mb-8">
-                <div className="flex items-center justify-between text-center text-md color-gray-100 dark:text-gray-800 mb-5 bg-amber-300 dark:bg-amber-100 p-3 rounded">
-                    <span><FaInfoCircle /></span>
-                    <p className="italic flex items-center gap-2">Click on any word to see its translation and save it<span><BsBookmark /></span> for later review </p>
-                    
-                </div>
+            <div className="max-w-xl m-auto rounded-lg shadow-lg mb-8">
+                <p className="flex justify-center items-center gap-2 rounded-lg p-2 bg-amber-100 text-gray-700 mb-5 text-left italic text-md">
+                    <FaInfoCircle className="shrink-0" /><BsBookmark className="inline" />  Click on any word to see its translation and save it for later review
+                </p>
                     <div className="mb-3 max-w-2xl mx-auto">
                         <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200">{article.title}</h1>
                     </div>
                 <div className="grid grid-rows items-start max-w-2xl mb-4">
                     <div className="flex gap-2">
-                        <button onClick={() => handleSpeak(fullStoryText, 1.0)} className="flex justify-between items-center gap-2 text-sm px-3 py-1 bg-blue-600 text-gray-100 rounded hover:bg-blue-700 dark:hover:bg-blue-700 dark:bg-blue-600 transition-colors">
-                            {playingState.text === fullStoryText && playingState.rate === 1.0 ? <FaRegPauseCircle /> : <FaPlayCircle />} 
-                            <span>{playingState.text === fullStoryText && playingState.rate === 1.0 ? 'Pause Story' : 'Play Story'}</span>
-                        </button>
                         <button onClick={() => {setShowTranslations(!showTranslations)
                                                 setIsTranslationsOn(!isTranslationsOn);
                                                 }
@@ -388,12 +412,31 @@ const StoryReader = ({ articleId, onComplete }) => {
                 <div className="mt-12 flex justify-center pb-12">
                     <button
                         onClick={() => handleFinishArticle(articleId)}
-                        className="px-10 py-4 bg-linear-to-r from-blue-500 to-teal-500 text-white font-bold rounded-lg shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 flex items-center justify-center w-64"
+                        className="px-10 py-4 bg-linear-to-r from-red-500 to-purple-500 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 flex items-center justify-center w-64"
                         disabled={isCompleting}
                     >
                         {isCompleting ? (
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                         ) : 'Continue to Review ➔'}
+                    </button>
+                </div>
+            
+                {/* Sticky Bottom Control Bar */}
+                <div className="fixed bottom-0 left-0 w-full bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40 p-4 flex justify-center items-center gap-8">
+                    <button 
+                        onClick={handlePlayPauseFullStory}
+                        className="text-5xl text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-transform transform hover:scale-110 focus:outline-none"
+                        title={playingState.text === fullStoryText && !isPaused ? "Pause Story" : "Play Story"}
+                    >
+                        {playingState.text === fullStoryText && !isPaused ? <FaRegPauseCircle /> : <FaPlayCircle />}
+                    </button>
+                    <button 
+                        onClick={handleStopFullStory}
+                        disabled={playingState.text !== fullStoryText}
+                        className={`text-5xl transition-transform focus:outline-none ${playingState.text === fullStoryText ? 'text-red-500 hover:text-red-600 hover:scale-110' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                        title="Stop Story"
+                    >
+                        <FaStopCircle />
                     </button>
                 </div>
             </div>

@@ -134,7 +134,7 @@ export default function FlashcardReview({ wordsToReview, onComplete }) {
             {/* Add a navigation encouraging button to hop straight to the ai practice session */}
             <button 
                 onClick={onComplete}
-                className="mt-8 px-6 py-3 bg-linear-to-r from-blue-500 to-teal-500 text-white font-bold rounded-lg shadow-md"
+                className="mt-8 px-6 py-3 bg-linear-to-r from-red-500 to-purple-500 text-white font-bold rounded-full shadow-md"
             >
                 Skip to AI Chat Practice ➔
             </button>

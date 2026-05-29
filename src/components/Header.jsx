@@ -88,16 +88,16 @@ const Header = () => {
                     <div className="relative" ref={menuRef}>
                         {/* --- Dropdown Toggle Button --- */}
                         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <img 
-                                src={currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`} 
-                                alt="Profile" 
-                                className="w-8 h-8 rounded-full"
-                                referrerPolicy="no-referrer"
-                            />
-                            <span className="font-semibold text-gray-700 dark:text-gray-200 hidden sm:block">{currentUser.displayName.split(' ')[0]}</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 text-gray-500 dark:text-gray-400 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
+                            {/* hamburger icon that become x when menu is open */}
+                            {isMenuOpen ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            )}
                         </button>
 
                         {/* --- Dropdown Menu --- */}
@@ -115,12 +115,7 @@ const Header = () => {
                                     onClick={() => handleNavigate('/account')}
                                     className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                    <img 
-                                        src={currentUser.photoURL || `https://i.pravatar.cc/150?u=${currentUser.uid}`} 
-                                        alt="Profile" 
-                                        className="w-8 h-8 rounded-full"
-                                        referrerPolicy="no-referrer"
-                                    />
+                                    <IoPersonSharp />
                                     <span className="ml-2">My Account</span>
                                 </button>
                                 <button
