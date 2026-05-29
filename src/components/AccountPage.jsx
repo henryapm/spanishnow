@@ -265,22 +265,36 @@ const AccountPage = ({ decks }) => {
             <div className="flex justify-center my-8">
                 <h1 className="text-4xl font-bold  dark:bg-gray-700 p-6 shadow-lg rounded-lg text-centergray-800 dark:text-gray-200 text-center">Your Stats</h1>
             </div>
-            <div className="grid grid-cols-2 place-items-center gap-3 items-center justify-center mb-4 ">
-                <div className="flex flex-col bg-linear-to-b wrap-break-word from-purple-400 w-50 p-2 to-purple-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
-                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Learning</h2>
-                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-100'><span className="font-extrabold text-2xl">{dueForReviewWords.length}</span> <span className='text-sm text-gray-200'>Words</span></p>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-8 w-full">
+                <div className="flex flex-col justify-center items-center bg-linear-to-b from-purple-400 to-purple-700 p-4 sm:p-6 rounded-xl shadow-md w-full">
+                    <h2 className="text-xs sm:text-sm md:text-base font-bold text-gray-800 tracking-widest uppercase mb-2">Learning</h2>
+                    <div className="flex flex-col items-center gap-1 text-blue-100">
+                        <span className="font-extrabold text-3xl sm:text-4xl leading-none">{dueForReviewWords.length}</span> 
+                        <span className="text-xs sm:text-sm font-medium text-purple-100 uppercase tracking-wide">Words</span>
+                    </div>
                 </div>
-                <div className="flex flex-col bg-linear-to-b wrap-break-word from-sky-500 p-2 w-50 to-blue-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
-                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Read</h2>
-                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-100'><span className="font-extrabold text-2xl">{wordsRead}</span> <span className='text-sm text-gray-200'>Words</span></p>
+                <div className="flex flex-col justify-center items-center bg-linear-to-b from-sky-500 to-blue-700 p-4 sm:p-6 rounded-xl shadow-md w-full">
+                    <h2 className="text-xs sm:text-sm md:text-base font-bold text-gray-800 tracking-widest uppercase mb-2">Read</h2>
+                    <div className="flex flex-col items-center gap-1 text-blue-100">
+                        <span className="font-extrabold text-3xl sm:text-4xl leading-none">{wordsRead}</span> 
+                        <span className="text-xs sm:text-sm font-medium text-blue-100 uppercase tracking-wide">Words</span>
+                    </div>
                 </div>
-                <div className="flex flex-col bg-linear-to-b wrap-break-word from-green-500 p-2 w-50 to-green-900 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
-                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Completed</h2>
-                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-blue-200'><span className="font-extrabold text-2xl">{scenariosCompleted}</span> <span className='text-sm text-gray-200'>Roles</span></p>
+                <div className="flex flex-col justify-center items-center bg-linear-to-b from-green-500 to-green-900 p-4 sm:p-6 rounded-xl shadow-md w-full">
+                    <h2 className="text-xs sm:text-sm md:text-base font-bold text-gray-800 tracking-widest uppercase mb-2">Completed</h2>
+                    <div className="flex flex-col items-center gap-1 text-green-100">
+                        <span className="font-extrabold text-3xl sm:text-4xl leading-none">{scenariosCompleted}</span> 
+                        <span className="text-xs sm:text-sm font-medium text-green-100 uppercase tracking-wide">Roles</span>
+                    </div>
                 </div>
-                <div className="flex flex-col bg-linear-to-b wrap-break-word from-orange-500 p-2 w-50 to-red-700 md:p-6 sm:p-6 text-center rounded-lg shadow-md">
-                    <h2 className="md:text-2xl sm:text-xl text-gray-800 tracking-widest">Streak</h2>
-                    <p className='flex flex-col items-center gap-1 justify-center md:text-6xl sm:text-2xl xs:text-lg bold text-orange-200'><span className="inline-flex items-center font-extrabold text-2xl">{streak}<FaFire className="text-2xl" /></span> <span className='text-sm text-gray-200'>Days</span> </p>
+                <div className="flex flex-col justify-center items-center bg-linear-to-b from-orange-500 to-red-700 p-4 sm:p-6 rounded-xl shadow-md w-full">
+                    <h2 className="text-xs sm:text-sm md:text-base font-bold text-gray-800 tracking-widest uppercase mb-2">Streak</h2>
+                    <div className="flex flex-col items-center gap-1 text-orange-100">
+                        <span className="inline-flex items-center font-extrabold text-3xl sm:text-4xl leading-none gap-2">
+                            {streak} <FaFire className="text-2xl sm:text-3xl text-orange-300" />
+                        </span> 
+                        <span className="text-xs sm:text-sm font-medium text-orange-100 uppercase tracking-wide">Days</span> 
+                    </div>
                 </div>
             </div>
             {/* --- Weekly XP Chart --- */}
