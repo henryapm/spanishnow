@@ -388,7 +388,7 @@ const StoryReader = ({ articleId, onComplete }) => {
                 <div className="mt-12 flex justify-center pb-12">
                     <button
                         onClick={() => handleFinishArticle(articleId)}
-                        className="px-10 py-4 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 flex items-center justify-center w-64"
+                        className="px-10 py-4 bg-linear-to-r from-blue-500 to-teal-500 text-white font-bold rounded-lg shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 flex items-center justify-center w-64"
                         disabled={isCompleting}
                     >
                         {isCompleting ? (
