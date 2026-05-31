@@ -36,6 +36,7 @@ const StoryReader = ({ articleId, onComplete }) => {
     const currentSpeechRef = useRef({ text: null, rate: null });
     const [isCompleting, setIsCompleting] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
+    const [playbackRate, setPlaybackRate] = useState(1.0);
     
     const POPUP_WIDTH = 220; 
     const POPUP_HEIGHT_ESTIMATE = 120;
@@ -138,19 +139,32 @@ const StoryReader = ({ articleId, onComplete }) => {
         window.speechSynthesis.speak(utterance);
     };
 
+    const togglePlaybackRate = () => {
+        const newRate = playbackRate === 1.0 ? 0.5 : playbackRate === 0.5 ? 0.75 : 1.0;
+        setPlaybackRate(newRate);
+        
+        if (playingState.text && window.speechSynthesis && window.speechSynthesis.speaking && !isPaused) {
+            handleSpeak(playingState.text, newRate);
+        }
+    };
+
     const handlePlayPauseFullStory = () => {
         if (!window.speechSynthesis) return;
 
         if (playingState.text === fullStoryText) {
             if (isPaused) {
-                window.speechSynthesis.resume();
-                setIsPaused(false);
+                if (playingState.rate !== playbackRate) {
+                    handleSpeak(fullStoryText, playbackRate);
+                } else {
+                    window.speechSynthesis.resume();
+                    setIsPaused(false);
+                }
             } else {
                 window.speechSynthesis.pause();
                 setIsPaused(true);
             }
         } else {
-            handleSpeak(fullStoryText, 1.0);
+            handleSpeak(fullStoryText, playbackRate);
             setIsPaused(false);
         }
     };
@@ -407,7 +421,7 @@ const StoryReader = ({ articleId, onComplete }) => {
             <div className="fixed bottom-0 w-full max-w-2xl bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40 p-2 flex justify-end items-center gap-6">
                 {lookupResult && lookupResult.sentence && (
                     <button
-                        onClick={() => handleSpeak(lookupResult.sentence, 1.0)}
+                        onClick={() => handleSpeak(lookupResult.sentence, playbackRate)}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-transform transform hover:scale-105 text-sm font-bold focus:outline-none"
                         title="Play Selected Sentence"
                     >
@@ -416,7 +430,7 @@ const StoryReader = ({ articleId, onComplete }) => {
                     </button>
                 ) || (
                     <button
-                        onClick={() => handleSpeak(lookupResult.sentence, 1.0)}
+                        onClick={() => handleSpeak(lookupResult.sentence, playbackRate)}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-white/50 rounded-full shadow-lg text-sm font-bold cursor-not-allowed focus:outline-none"
                         title="Play Selected Sentence"
                     >
@@ -424,7 +438,16 @@ const StoryReader = ({ articleId, onComplete }) => {
                         Sentence
                     </button>
                 )}
-                <div className="flex gap-4 w-full justify-end">
+                <div className="flex gap-4 w-full justify-end items-center">
+                    {/* Speed Toggle Button */}
+                    <button
+                        onClick={togglePlaybackRate}
+                        className="flex items-center justify-center w-11 h-11 shrink-0 rounded-full border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-bold text-xs transition-transform transform hover:scale-105 focus:outline-none"
+                        title="Adjust Reading Speed"
+                    >
+                        {playbackRate}x
+                    </button>
+
                     <button
                         onClick={handlePlayPauseFullStory}
                         className="text-3xl text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-transform transform hover:scale-110 focus:outline-none z-10"

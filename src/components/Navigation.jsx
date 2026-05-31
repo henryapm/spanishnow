@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { FaBookOpen } from 'react-icons/fa';
 import { IoPersonSharp } from 'react-icons/io5';
 import { PiCardsFill } from 'react-icons/pi';
-import { RiBrain2Fill } from 'react-icons/ri';
+import { RiBrain2Fill, RiSpeakFill } from 'react-icons/ri';
 import { useDecksStore } from '../store';
 import { MdHome } from 'react-icons/md';
 
@@ -80,7 +80,7 @@ const Navigation = () => {
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute top-0 left-0 w-full h-1 bg-custom-500 dark:bg-custom-400"></div>}
-                            <IoPersonSharp className="text-2xl mb-1" />
+                            <RiSpeakFill className="text-2xl mb-1" />
                             <span className="text-xs font-bold uppercase tracking-wider">SandBox</span>
                         </>
                     )}

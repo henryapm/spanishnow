@@ -97,6 +97,7 @@ export const useDecksStore = create((set, get) => ({
     userStats: { total: 0, premium: 0 },
     userStatsLoaded: false,
     isUsersLoading: false,
+    userDataFetched: false,
     newsApiFrequency: 24,
     newsTopic: 'noticias',
     // --- NEW: Global state for streak notifications ---
@@ -243,9 +244,19 @@ export const useDecksStore = create((set, get) => ({
         
         set({ isAuthListenerSet: true });
         
-        onAuthStateChanged(auth, async (user) => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
 
             if (user) {
+                const { currentUser, userDataFetched } = get();
+                
+                // --- OPTIMIZATION: Prevent redundant reads ---
+                // Firebase Auth fires this event multiple times during sign-in or token refresh.
+                // If it's the same user, just update the auth object and skip the database read!
+                if (currentUser?.uid === user.uid && userDataFetched) {
+                    set({ currentUser: user });
+                    return;
+                }
+
                 const tokenResult = await user.getIdTokenResult();
                 
                 // --- OPTIMIZATION: Fetch critical user data in parallel ---
@@ -319,6 +330,7 @@ export const useDecksStore = create((set, get) => ({
 
                 set({ 
                     currentUser: user, 
+                    userDataFetched: true,
                     isAdmin: isTrueAdmin, // FIX: Only real admins get admin privileges
                     hasActiveSubscription: subscriptionStatus,
                     listeningPreference: userPreference,
@@ -338,6 +350,7 @@ export const useDecksStore = create((set, get) => ({
             } else {
                 set({ 
                     currentUser: null, 
+                    userDataFetched: false,
                     isAdmin: false, 
                     progress: {}, 
                     deckProgress: {},
@@ -360,6 +373,11 @@ export const useDecksStore = create((set, get) => ({
                 });
             }
         });
+
+        return () => {
+            unsubscribe();
+            set({ isAuthListenerSet: false });
+        };
     },
 
     fetchNewsConfig: async () => {

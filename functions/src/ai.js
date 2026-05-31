@@ -11,6 +11,8 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 const scenariosInstructions = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context, if the user doesn't seem to understand what to do, and says things out of the context or doesn't attempt to complete an objective suggest a response that they could use so that the role play makes sense and is completed. If the user deviates from the scenario, gently steer them back on track by reminding them of the context and objectives. If the user completes the objectives, congratulate them and suggest they try another scenario for further practice. ";
 
+const lessonInstructions = "You are a friendly and encouraging Spanish tutor. Your objective is to help the user practice their Spanish reading comprehension and use the new vocabulary they just learned from a story. Keep the conversation entirely in Spanish unless they ask for English. Be concise, supportive, and guide the conversation strictly around the provided story and vocabulary.";
+
 const MAX_FREE_INTERACTIONS = 5; // Maximum free interactions per day for non-premium users
 const { addXp, XP_FOR_CHAT, XP_FOR_SCENARIO, addXpInTransaction } = require("./xp.js");
 
@@ -58,10 +60,13 @@ exports.chatWithGemini = onCall({
     // Fetch scenario and instructions from Firestore
     let selectedScenario;
     let fetchedAiInstructions;
+    let aiModelName = 'gemini-2.5-flash'; // Fallback default
 
     try {
-        const scenarioDoc = await db.collection('scenarios').doc(personaId).get();
-        const promptsDoc = await db.collection('appInfo').doc('aiPrompts').get();
+        const [scenarioDoc, promptsDoc] = await Promise.all([
+            db.collection('scenarios').doc(personaId).get(),
+            db.collection('appInfo').doc('aiPrompts').get()
+        ]);
 
         if (!scenarioDoc.exists) {
             throw new HttpsError('not-found', 'Scenario not found.');
@@ -69,6 +74,7 @@ exports.chatWithGemini = onCall({
         
         selectedScenario = { id: scenarioDoc.id, ...scenarioDoc.data() };
         fetchedAiInstructions = promptsDoc.exists ? promptsDoc.data().scenariosAiInstructions : scenariosInstructions; // Fallback to hardcoded if missing
+        if (promptsDoc.exists && promptsDoc.data().modelName) aiModelName = promptsDoc.data().modelName;
 
     } catch (error) {
         console.error("Error fetching data:", error);
@@ -126,7 +132,7 @@ exports.chatWithGemini = onCall({
     
     try {
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${aiModelName}:generateContent?key=${apiKey}`,
             {
                 system_instruction: {
                     parts: [{ text: systemInstruction }]
@@ -223,15 +229,16 @@ exports.chatForLesson = onCall({
     const articleDoc = await db.collection('articles').doc(articleId).get();
     const articleData = articleDoc.data() || {};
     
+    // We still fetch this document strictly to get the dynamic modelName for future-proofing!
     const promptsDoc = await db.collection('appInfo').doc('aiPrompts').get();
-    const globalInstructions = promptsDoc.exists ? promptsDoc.data().scenariosAiInstructions : "You are a helpful Spanish tutor and conversation partner.";
+    const aiModelName = promptsDoc.exists && promptsDoc.data().modelName ? promptsDoc.data().modelName : 'gemini-2.5-flash';
 
     // 3. Build the context and objectives securely!
     const context = `The user just finished reading a Spanish story/article titled "${articleData.title || 'Unknown'}". The overall topic is "${articleData.topic || 'General'}". They want to practice having a conversation about it.`;
     
     const vocabInstruction = targetVocabulary && targetVocabulary.length > 0 
         ? `Encourage the user to use the following vocabulary words they just learned: ${targetVocabulary.join(', ')}.`
-        : `Encourage the user to use vocabulary related to the story.`;
+        : `Encourage the user to use only the words they saved from the story.`;
         
     const objectives = [
         "if the user starts by giving you an example of one of the vocabulary words in a sentence, respond by praising their effort and continue by moving on to the next word in the next vocabulary word they just learned. If they don't start with a vocab word, gently prompt them to try using one of the new words they learned from the story.",
@@ -243,13 +250,13 @@ exports.chatForLesson = onCall({
         "ask the user to finish the lesson once they've gone through all the vocabulary, or if they indicate they want to finish, by saying something like 'Great job practicing! When you're ready, click the Finish Lesson button to complete.'"
     ];
 
-    const systemInstruction = `${globalInstructions}\n\nContext: ${context}\n\nObjectives:\n${objectives.map(o => "- " + o).join('\n')}`;
+    const systemInstruction = `${lessonInstructions}\n\nContext: ${context}\n\nObjectives:\n${objectives.map(o => "- " + o).join('\n')}`;
 
     // 4. Call Gemini API
     const apiKey = geminiApiKey.value();
     try {
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${aiModelName}:generateContent?key=${apiKey}`,
             {
                 system_instruction: { parts: [{ text: systemInstruction }] },
                 contents: history.map(msg => ({
@@ -350,10 +357,13 @@ exports.generateAudioTTS = onCall(async (request) => {
     // 3. Admin-controlled Voice Configuration
     // Use 'es-US-Journey-F' or 'es-US-Journey-D' for premium bilingual voices
     // Use 'es-US-Standard-A' for the cheaper standard voice
-    const voiceName = 'es-US-Journey-F';
+    const voiceName = 'es-US-Standard-A'; // Default voice
+
+    // Remove common markdown characters so the TTS engine doesn't read them aloud
+    const cleanTextForAudio = text.replace(/[*_#~`]/g, '');
 
     const requestPayload = {
-        input: { text: text },
+        input: { text: cleanTextForAudio },
         voice: { languageCode: 'es-US', name: voiceName },
         audioConfig: { audioEncoding: 'MP3' },
     };

@@ -4,7 +4,7 @@ import { useDecksStore } from '../store.js';
 import { MdCalendarToday } from 'react-icons/md';
 import { FaBookOpen } from 'react-icons/fa';
 import { IoPersonSharp } from 'react-icons/io5';
-import { RiBrain2Fill } from 'react-icons/ri';
+import { RiBrain2Fill, RiSpeakFill } from 'react-icons/ri';
 import { PiCardsFill } from 'react-icons/pi';
 
 const Header = () => {
@@ -123,22 +123,22 @@ const Header = () => {
                                     className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
                                     <FaBookOpen />
-                                    <span className="ml-2">Reading Library</span>
+                                    <span className="ml-2">Learn</span>
                                 </button>
                                 <button
                                     onClick={() => handleNavigate('/spaced-repetition')}
                                     className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
                                     <RiBrain2Fill />
-                                    <span className="ml-2">Spaced Repetition</span>
+                                    <span className="ml-2">Deck</span>
                                     <span className="ml-2 text-xs bg-teal-500 text-white px-2 py-1 rounded-full">{dueWords.length}</span>
                                 </button>
                                 <button
                                     onClick={() => handleNavigate('/speakCompanion')}
                                     className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                    <IoPersonSharp />
-                                    <span className="ml-2">Speak Companion</span>
+                                    <RiSpeakFill />
+                                    <span className="ml-2">SandBox</span>
                                 </button>
                                 <button
                                     onClick={() => { toggleTheme(); setIsMenuOpen(false); }}

@@ -5,7 +5,7 @@ import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
 import { BsCheckCircleFill } from "react-icons/bs";
-import { FaInfoCircle, FaStopCircle } from "react-icons/fa";
+import { FaInfoCircle, FaStopCircle, FaKeyboard, FaMicrophone } from "react-icons/fa";
 
 const MAX_FREE_INTERACTIONS = 5;
 const MAX_FREE_CHARS = 100;
@@ -71,6 +71,7 @@ const SpeakCompanion = () => {
     const [isAiProcessing, setIsAiProcessing] = useState(false);
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [limitMessage, setLimitMessage] = useState('');
+    const [inputMode, setInputMode] = useState('voice'); // 'voice' or 'text'
     
     const speakProgress = useDecksStore((state) => state.speakProgress);
     const updateSpeakProgressLocal = useDecksStore((state) => state.updateSpeakProgressLocal);
@@ -588,25 +589,25 @@ const SpeakCompanion = () => {
                 }
             </div>
 
-            <div className="mb-4 p-4 bg-custom-50 dark:bg-custom-900/30 rounded-lg border border-custom-100 dark:border-custom-800/50">
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{selectedScenario.emoji}</span>
-                    <h2 className="font-bold text-custom-900 dark:text-custom-100">{selectedContextAndObjectives.name}</h2>
-                </div>
-                <p className="text-sm text-custom-800 dark:text-custom-200">
-                    {selectedContextAndObjectives.description}
-                </p>
-                <ul className="list-disc list-inside text-sm text-custom-700 dark:text-custom-300">
-                    {selectedContextAndObjectives.objectives.map((obj, i) => (
-                        <li key={i}>{obj}</li>
-                    ))}
-                </ul>
-            </div>
-
             {/* Chat History */}
             <div ref={chatContainerRef} className="mb-6 h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 space-y-4">
+                <div className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">{selectedScenario.emoji}</span>
+                    <h2 className="font-bold text-custom-900 dark:text-custom-100">{selectedContextAndObjectives.name}</h2>
+                    </div>
+                    <p className="text-sm text-custom-800 dark:text-custom-200">
+                        {selectedContextAndObjectives.description}
+                    </p>
+                    <ul className="list-disc list-inside text-sm text-custom-700 dark:text-custom-300">
+                        {selectedContextAndObjectives.objectives.map((obj, i) => (
+                            <li key={i}>{obj}</li>
+                        ))}
+                    </ul>
+                </div>
+                
                 {chatHistory.length === 0 && (
-                    <p className="text-center text-gray-400 mt-20">Start the conversation! Try saying "Hola" to the {selectedContextAndObjectives.role.toLowerCase()}.</p>
+                    <p className="text-center text-gray-400 mt-5">Start the conversation! Try saying "Hola" to the {selectedContextAndObjectives.role.toLowerCase()}.</p>
                 )}
                 {chatHistory.map((msg, index) => (
                     <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -615,7 +616,7 @@ const SpeakCompanion = () => {
                                 ? 'bg-custom-500 text-white rounded-br-none' 
                                 : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-bl-none'
                         }`}>
-                            {msg.text}
+                            {msg.text ? msg.text.replace(/[*_#~`]/g, '') : ''}
                         </div>
                         {msg.role !== 'user' && (
                             <div className="ml-2 cursor-pointer hover:text-custom-500 transition-colors flex flex-col justify-center flex-start w-10 h-10" onClick={() => playMessageAudio(msg, index)}>
@@ -637,49 +638,100 @@ const SpeakCompanion = () => {
                 )}
             </div>
 
-            <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 select-none">
-                <button 
-                    onClick={toggleRecording}
-                    onContextMenu={(e) => e.preventDefault()}
-                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}
-                    className={`p-6 rounded-full shadow-lg transition-all transform hover:scale-105 touch-none select-none ${
-                        isRecording 
-                            ? 'bg-red-500 text-white animate-pulse' 
-                            : 'bg-custom-500 text-white hover:bg-custom-600'
-                    }`}
-                    aria-label={isRecording ? "Tap to stop recording" : "Tap to start recording"}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
-                </button>
-                
-                <div className="mt-6 text-center min-h-12">
-                    {isRecording ? (
-                        <p className="text-red-500 font-semibold animate-pulse">Listening... (Tap to stop)</p>
-                    ) : userSpeech ? (
-                        <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">You said:</p>
-                            <p className="text-xl font-medium text-gray-800 dark:text-gray-200">"{userSpeech}"</p>
-                            <div className="mt-4 flex gap-2 justify-center">
-                                <button 
-                                    onClick={handleSend}
-                                    className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
+            <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 select-none relative">
+                {inputMode === 'voice' ? (
+                    <>
+                        <div className="flex items-center justify-center gap-6">
+                            <button 
+                                onClick={toggleRecording}
+                                onContextMenu={(e) => e.preventDefault()}
+                                style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}
+                                className={`p-5 rounded-full shadow-lg transition-all transform hover:scale-105 touch-none select-none ${
+                                    isRecording 
+                                        ? 'bg-red-500 text-white animate-pulse' 
+                                        : 'bg-custom-500 text-white hover:bg-custom-600'
+                                }`}
+                                aria-label={isRecording ? "Tap to stop recording" : "Tap to start recording"}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                            </button>
+                            {!isRecording && (
+                                <button
+                                    onClick={() => setInputMode('text')}
+                                    className="p-4 rounded-full shadow-md bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500 transition-all touch-none select-none"
+                                    title="Type your message"
                                 >
-                                    Send Response
+                                    <FaKeyboard size={24} />
                                 </button>
-                                <button 
-                                    onClick={() => setUserSpeech('')}
-                                    className="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg shadow hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
-                                >
-                                    Clear
-                                </button>
-                            </div>
+                            )}
                         </div>
-                    ) : (
-                        <p className="text-gray-500 dark:text-gray-400">Tap the microphone to start speaking</p>
-                    )}
-                </div>
+                        
+                        <div className="mt-6 text-center min-h-12 w-full">
+                            {isRecording ? (
+                                <p className="text-red-500 font-semibold animate-pulse">Listening... (Tap to stop)</p>
+                            ) : userSpeech ? (
+                                <div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">You said:</p>
+                                    <p className="text-xl font-medium text-gray-800 dark:text-gray-200 break-words">"{userSpeech}"</p>
+                                    <div className="mt-4 flex gap-2 justify-center">
+                                        <button 
+                                            onClick={handleSend}
+                                            className="px-6 py-1 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
+                                        >
+                                            Send Response
+                                        </button>
+                                        <button 
+                                            onClick={() => setUserSpeech('')}
+                                            className="px-6 py-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg shadow hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                                        >
+                                            Clear
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-gray-500 dark:text-gray-400">Tap the microphone to start speaking</p>
+                            )}
+                        </div>
+                    </>
+                ) : (
+                    <div className="w-full relative px-2">
+                        <button 
+                            onClick={() => setInputMode('voice')} 
+                            className="absolute -top-4 right-0 text-gray-500 dark:text-gray-400 hover:text-custom-500 dark:hover:text-custom-400 transition-colors z-10"
+                            title="Switch to voice"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 6 6 18" />
+                                <path d="m6 6 12 12" />
+                            </svg>
+                        </button>
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 text-left">Type your message:</label>
+                        <textarea
+                            value={userSpeech}
+                            onChange={(e) => setUserSpeech(e.target.value)}
+                            className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-custom-500 resize-none shadow-inner"
+                            rows="3"
+                            placeholder="Escribe tu mensaje aquí..."
+                        ></textarea>
+                        <div className="mt-4 flex gap-2 justify-center">
+                            <button 
+                                onClick={handleSend}
+                                disabled={!userSpeech.trim() || isAiProcessing}
+                                className="px-6 py-1 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Send Response
+                            </button>
+                            <button 
+                                onClick={() => setUserSpeech('')}
+                                className="px-6 py-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg shadow hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                            >
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
             {/* --- NEW: Complete Button --- */}
             <div className="mt-8 text-center">
