@@ -16,9 +16,9 @@ const lessonInstructions = "You are a friendly and encouraging Spanish tutor. Yo
 const MAX_FREE_INTERACTIONS = 5; // Maximum free interactions per day for non-premium users
 const { addXp, XP_FOR_CHAT, XP_FOR_SCENARIO, addXpInTransaction } = require("./xp.js");
 
-exports.chatWithGemini = onCall({ 
+exports.chatWithGemini = onCall({
     secrets: [geminiApiKey],
-    cors: true 
+    cors: true
 }, async (request) => {
     // 1. Authentication Check
     if (!request.auth) {
@@ -32,11 +32,11 @@ exports.chatWithGemini = onCall({
     if (!history || !Array.isArray(history) || history.length > 40) {
         throw new HttpsError('invalid-argument', 'History must be an array with a maximum of 40 messages.');
     }
-    
-    const hasInvalidMessage = history.some(msg => 
-        !msg || 
-        (msg.role !== 'user' && msg.role !== 'model') || 
-        typeof msg.text !== 'string' || 
+
+    const hasInvalidMessage = history.some(msg =>
+        !msg ||
+        (msg.role !== 'user' && msg.role !== 'model') ||
+        typeof msg.text !== 'string' ||
         msg.text.length > 1000
     );
     if (hasInvalidMessage) {
@@ -71,7 +71,7 @@ exports.chatWithGemini = onCall({
         if (!scenarioDoc.exists) {
             throw new HttpsError('not-found', 'Scenario not found.');
         }
-        
+
         selectedScenario = { id: scenarioDoc.id, ...scenarioDoc.data() };
         fetchedAiInstructions = promptsDoc.exists ? promptsDoc.data().scenariosAiInstructions : scenariosInstructions; // Fallback to hardcoded if missing
         if (promptsDoc.exists && promptsDoc.data().modelName) aiModelName = promptsDoc.data().modelName;
@@ -85,19 +85,19 @@ exports.chatWithGemini = onCall({
     // 2. Premium/Limit Check
     const userDoc = await db.collection('users').doc(uid).get();
     const userData = userDoc.data() || {};
-    
+
     // Check if user is admin or has active subscription
     const isPremium = userData.isAdmin === true || userData.hasActiveSubscription === true || request.auth.token.admin === true;
 
     if (!isPremium) {
         const today = date || new Date().toLocaleDateString('en-CA'); // Use user's local date or fallback to server date
         const limitRef = db.collection('users').doc(uid).collection('daily_limits').doc('speak');
-        
+
         // Run a transaction to ensure atomic increment
         await db.runTransaction(async (t) => {
             const limitDoc = await t.get(limitRef);
             let currentCount = 0;
-            
+
             if (limitDoc.exists && limitDoc.data().date === today) {
                 currentCount = limitDoc.data().count || 0;
             }
@@ -129,7 +129,7 @@ exports.chatWithGemini = onCall({
     Role: ${role}
     Context: ${rolePlay.context}
     Objectives: ${rolePlay.objectives.join(', ')}`;
-    
+
     try {
         const response = await axios.post(
             `https://generativelanguage.googleapis.com/v1beta/models/${aiModelName}:generateContent?key=${apiKey}`,
@@ -167,9 +167,9 @@ exports.chatWithGemini = onCall({
 });
 
 // --- NEW: Dedicated function for the Lesson Flow AI Chat ---
-exports.chatForLesson = onCall({ 
+exports.chatForLesson = onCall({
     secrets: [geminiApiKey],
-    cors: true 
+    cors: true
 }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
@@ -204,7 +204,7 @@ exports.chatForLesson = onCall({
     }
 
     const db = admin.firestore();
-    
+
     // 1. Premium / Limit Check (same as chatWithGemini)
     const userDoc = await db.collection('users').doc(uid).get();
     const userData = userDoc.data() || {};
@@ -228,18 +228,18 @@ exports.chatForLesson = onCall({
     // 2. Fetch the Article and Global AI Instructions securely on the server
     const articleDoc = await db.collection('articles').doc(articleId).get();
     const articleData = articleDoc.data() || {};
-    
+
     // We still fetch this document strictly to get the dynamic modelName for future-proofing!
     const promptsDoc = await db.collection('appInfo').doc('aiPrompts').get();
     const aiModelName = promptsDoc.exists && promptsDoc.data().modelName ? promptsDoc.data().modelName : 'gemini-2.5-flash';
 
     // 3. Build the context and objectives securely!
     const context = `The user just finished reading a Spanish story/article titled "${articleData.title || 'Unknown'}". The overall topic is "${articleData.topic || 'General'}". They want to practice having a conversation about it.`;
-    
-    const vocabInstruction = targetVocabulary && targetVocabulary.length > 0 
+
+    const vocabInstruction = targetVocabulary && targetVocabulary.length > 0
         ? `Encourage the user to use the following vocabulary words they just learned: ${targetVocabulary.join(', ')}.`
         : `Encourage the user to use only the words they saved from the story.`;
-        
+
     const objectives = [
         "if the user starts by giving you an example of one of the vocabulary words in a sentence, respond by praising their effort and continue by moving on to the next word in the next vocabulary word they just learned. If they don't start with a vocab word, gently prompt them to try using one of the new words they learned from the story.",
         "Mention to the user the first word they saved, then tell the user what that word translates to in English with the english word wrapped in quotation marks, explain how to use it using english to explain, create a sentence in Spanish using that word, and ask them to do the same with that word. Then move on to the next word and do the same, until you have gone through all the words they saved.",
@@ -268,7 +268,7 @@ exports.chatForLesson = onCall({
         );
 
         const aiResponseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no entendí.";
-        
+
         // Award XP for chatting and get streak info
         const xpResult = await addXp(db, uid, XP_FOR_CHAT).catch(err => {
             console.error("Non-fatal error awarding XP for lesson chat:", err);
@@ -357,7 +357,7 @@ exports.generateAudioTTS = onCall(async (request) => {
     // 3. Admin-controlled Voice Configuration
     // Use 'es-US-Journey-F' or 'es-US-Journey-D' for premium bilingual voices
     // Use 'es-US-Standard-A' for the cheaper standard voice
-    const voiceName = 'es-US-Standard-A'; // Default voice
+    const voiceName = 'es-US-Journey-F'; // Premium bilingual voice
 
     // Remove common markdown characters so the TTS engine doesn't read them aloud
     const cleanTextForAudio = text.replace(/[*_#~`]/g, '');
@@ -370,7 +370,7 @@ exports.generateAudioTTS = onCall(async (request) => {
 
     try {
         const [response] = await ttsClient.synthesizeSpeech(requestPayload);
-        
+
         // Convert the binary audio content to a base64 string for the frontend
         const audioBase64 = response.audioContent.toString('base64');
         return { audioBase64 };

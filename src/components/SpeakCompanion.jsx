@@ -508,7 +508,7 @@ const SpeakCompanion = () => {
                         <button 
                             key={index}
                             onClick={() => setSelectedContextAndObjectives(rolePlay)}
-                            className="flex flex-col text-left p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-custom-500 dark:hover:border-custom-500 hover:shadow-lg transition-all bg-gray-50 dark:bg-gray-900 group"
+                            className="flex flex-col items-center text-left p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-custom-500 dark:hover:border-custom-500 hover:shadow-lg transition-all bg-gray-50 dark:bg-gray-900 group"
                             >
                             <div className="w-full">
                                 <div className="flex justify-between items-center mb-2">
@@ -561,7 +561,7 @@ const SpeakCompanion = () => {
             </Modal>
             
             <div className="flex justify-between items-center mb-4">
-                <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-300">Speak Companion</h1>
+                <h1 className="text-3xl font-bold text-custom-800 dark:text-custom-300 mb-4">Speak Companion</h1>
                 <button 
                     onClick={() => {
                         stopAudio();
@@ -590,7 +590,7 @@ const SpeakCompanion = () => {
             </div>
 
             {/* Chat History */}
-            <div ref={chatContainerRef} className="mb-6 h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 space-y-4">
+            <div ref={chatContainerRef} className="mb-6 h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
                 <div className="p-4">
                     <div className="flex items-center gap-2 mb-2">
                     <span className="text-2xl">{selectedScenario.emoji}</span>
@@ -607,7 +607,7 @@ const SpeakCompanion = () => {
                 </div>
                 
                 {chatHistory.length === 0 && (
-                    <p className="text-center text-gray-400 mt-5">Start the conversation! Try saying "Hola" to the {selectedContextAndObjectives.role.toLowerCase()}.</p>
+                    <p className="text-center text-gray-400 mt-2">Start the conversation! Try saying "Hola" to the {selectedContextAndObjectives.role.toLowerCase()}.</p>
                 )}
                 {chatHistory.map((msg, index) => (
                     <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -712,7 +712,7 @@ const SpeakCompanion = () => {
                             value={userSpeech}
                             onChange={(e) => setUserSpeech(e.target.value)}
                             className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-custom-500 resize-none shadow-inner"
-                            rows="3"
+                            rows="2"
                             placeholder="Escribe tu mensaje aquí..."
                         ></textarea>
                         <div className="mt-4 flex gap-2 justify-center">

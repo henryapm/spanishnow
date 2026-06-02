@@ -89,7 +89,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
     const incrementInteractionCount = useDecksStore((state) => state.incrementInteractionCount);
     const InteractionCounts =() => {     
         return (
-        <div className="my-6 text-center">
+        <div className="my-2 text-center">
             <span className="text-sm font-semibold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
                 Free Interactions: {interactionCount}/{MAX_FREE_INTERACTIONS}
             </span>
@@ -317,23 +317,23 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
 
     return (
         <div className="flex flex-col h-full w-full max-w-3xl mx-auto p-4 animate-fade-in pb-24">
-            <div className="text-center mb-4">
+            <div className="text-center mb-2">
                 <h2 className="text-2xl font-bold text-teal-600 dark:text-teal-400">Put it into Practice</h2>
                 {!isPremium &&
                     <InteractionCounts />
                 }
             </div>
 
-            <div ref={chatContainerRef} className="flex-1 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 space-y-4 mb-4">
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 mb-4">
                 <div className="text-center mb-4">
                     <p className="text-lg text-gray-600 dark:text-gray-300 mt-1">
                         Chat with AI about <strong>{article?.title}</strong>
                     </p>
 
                     {targetVocabulary && targetVocabulary.length > 0 && (
-                        <p className="text-md text-gray-500 dark:text-gray-400 mt-2">
+                        <p className="flex flex-wrap gap-1 text-md text-gray-500 dark:text-gray-400 mt-2">
                             Try to use: {targetVocabulary.map(word => (
-                                <span key={word} className='text-white bg-blue-700 mx-1 px-2 py-1 rounded'>
+                                <span key={word} className='gap-1 text-white bg-blue-700 mx-1 px-2 py-1 rounded'>
                                     {word}
                                 </span>
                             ))}
@@ -341,7 +341,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                     )}
                 </div>
                 {chatHistory.length === 0 && (
-                    <div className="text-center text-gray-500 dark:text-gray-400 mt-5">
+                    <div className="text-center text-gray-500 dark:text-gray-400 mt-2">
                         <p>Start the conversation!</p>
                         <p className="text-sm mt-2">Try saying: <i>"Hola, acabo de leer la historia."</i></p>
                     </div>
