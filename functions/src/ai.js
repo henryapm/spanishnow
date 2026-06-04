@@ -238,7 +238,7 @@ exports.chatForLesson = onCall({
 
     const vocabInstruction = targetVocabulary && targetVocabulary.length > 0
         ? `Encourage the user to use the following vocabulary words they just learned: ${targetVocabulary.join(', ')}.`
-        : `Encourage the user to use only the words they saved from the story.`;
+        : `if no target vocabulary is left, encourage the user to finish the lesson.`;
 
     const objectives = [
         "if the user starts by giving you an example of one of the vocabulary words in a sentence, respond by praising their effort and continue by moving on to the next word in the next vocabulary word they just learned. If they don't start with a vocab word, gently prompt them to try using one of the new words they learned from the story.",

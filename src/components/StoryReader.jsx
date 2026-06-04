@@ -16,7 +16,7 @@ const StoryReader = ({ articleId, onComplete }) => {
     const isAdmin = useDecksStore((state) => state.isAdmin);
     const currentUser = useDecksStore((state) => state.currentUser);
     const fetchSavedWords = useDecksStore((state) => state.fetchSavedWords);
-    
+
     const savedWords = useDecksStore((state) => state.savedWordsSet);
     const toggleSavedWord = useDecksStore((state) => state.toggleSavedWord);
     const saveWordTranslation = useDecksStore((state) => state.saveWordTranslation);
@@ -24,7 +24,7 @@ const StoryReader = ({ articleId, onComplete }) => {
     const fetchArticleTranslationsForAdmin = useDecksStore((state) => state.fetchArticleTranslationsForAdmin);
     const markArticleAsFinished = useDecksStore((state) => state.markArticleAsFinished);
     const activeSession = useDecksStore((state) => state.activeSession);
-    
+
     // --- UI State ---
     const [lookupResult, setLookupResult] = useState(null);
     const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
@@ -37,8 +37,8 @@ const StoryReader = ({ articleId, onComplete }) => {
     const [isCompleting, setIsCompleting] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [playbackRate, setPlaybackRate] = useState(1.0);
-    
-    const POPUP_WIDTH = 220; 
+
+    const POPUP_WIDTH = 220;
     const POPUP_HEIGHT_ESTIMATE = 120;
 
     const sessionWords = activeSession?.wordsSavedInSession || [];
@@ -61,7 +61,7 @@ const StoryReader = ({ articleId, onComplete }) => {
 
     useEffect(() => {
         if (articleId) {
-          fetchArticleById(articleId);
+            fetchArticleById(articleId);
         }
     }, [articleId, fetchArticleById]);
 
@@ -101,14 +101,14 @@ const StoryReader = ({ articleId, onComplete }) => {
             window.speechSynthesis.cancel();
             currentSpeechRef.current = { text: null, rate: null };
             setPlayingState({ text: null, rate: null });
-                setIsPaused(false);
+            setIsPaused(false);
             return;
         }
 
-        window.speechSynthesis.cancel(); 
+        window.speechSynthesis.cancel();
         currentSpeechRef.current = { text: textToSpeak, rate };
         setPlayingState({ text: textToSpeak, rate });
-            setIsPaused(false);
+        setIsPaused(false);
 
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.lang = listeningPreference;
@@ -116,23 +116,23 @@ const StoryReader = ({ articleId, onComplete }) => {
 
         utterance.onend = () => {
             if (
-                currentSpeechRef.current.text === textToSpeak && 
+                currentSpeechRef.current.text === textToSpeak &&
                 currentSpeechRef.current.rate === rate
             ) {
                 currentSpeechRef.current = { text: null, rate: null };
                 setPlayingState({ text: null, rate: null });
-                    setIsPaused(false);
+                setIsPaused(false);
             }
         };
 
         utterance.onerror = () => {
             if (
-                currentSpeechRef.current.text === textToSpeak && 
+                currentSpeechRef.current.text === textToSpeak &&
                 currentSpeechRef.current.rate === rate
             ) {
                 currentSpeechRef.current = { text: null, rate: null };
                 setPlayingState({ text: null, rate: null });
-                    setIsPaused(false);
+                setIsPaused(false);
             }
         };
 
@@ -142,7 +142,7 @@ const StoryReader = ({ articleId, onComplete }) => {
     const togglePlaybackRate = () => {
         const newRate = playbackRate === 1.0 ? 0.5 : playbackRate === 0.5 ? 0.75 : 1.0;
         setPlaybackRate(newRate);
-        
+
         if (playingState.text && window.speechSynthesis && window.speechSynthesis.speaking && !isPaused) {
             handleSpeak(playingState.text, newRate);
         }
@@ -180,39 +180,39 @@ const StoryReader = ({ articleId, onComplete }) => {
     const handleWordClick = (e, word, sentence) => {
         e.stopPropagation();
         const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
-        if (!cleanedWordMatch) return; 
-        
+        if (!cleanedWordMatch) return;
+
         const cleanedWord = cleanedWordMatch[0];
         const rect = e.target.getBoundingClientRect();
-        
+
         if (!translations.has(cleanedWord)) {
             fetchTranslationForWord(cleanedWord);
         }
         const translation = translations.get(cleanedWord) || "Loading...";
-        
+
         // Smart Popup Positioning
         const screenWidth = window.innerWidth;
         const screenHeight = window.innerHeight;
-        
+
         // Adjusting Y coordinate to not use window.scrollY because we are in an overflow container
         let x = rect.left;
         if (x + POPUP_WIDTH > screenWidth) {
-            x = screenWidth - POPUP_WIDTH - 16; 
+            x = screenWidth - POPUP_WIDTH - 16;
         }
         if (x < 16) {
             x = 16;
         }
-        
+
         let y;
         if (rect.bottom + POPUP_HEIGHT_ESTIMATE > screenHeight) {
             y = rect.top - POPUP_HEIGHT_ESTIMATE - 8;
         } else {
             y = rect.bottom + 8;
         }
-        
+
         setLookupResult({ word: cleanedWord, translation: translation, sentence: sentence });
         setPopupPosition({ x, y });
-        setIsEditing(false); 
+        setIsEditing(false);
         setEditText((translation === "No translation found." || translation === "Loading...") ? "" : translation);
     };
 
@@ -222,15 +222,18 @@ const StoryReader = ({ articleId, onComplete }) => {
     };
 
     const handleSaveEdit = (e) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         if (!lookupResult) return;
-        
+
         saveWordTranslation(lookupResult.word, editText);
         setLookupResult(prev => ({ ...prev, translation: editText }));
         setIsEditing(false);
     };
 
     const handleFinishArticle = async (articleId) => {
+        if (sessionWords.length > 5) {
+            alert(`You have saved ${sessionWords.length} words. Only the first 5 words will be included in the flashcard review.`);
+        }
         setIsCompleting(true);
         try {
             await markArticleAsFinished(articleId);
@@ -245,39 +248,39 @@ const StoryReader = ({ articleId, onComplete }) => {
     const renderedContent = (article.sentences || []).map((sentenceObj, sIndex) => (
         <div key={sIndex} className="mb-2">
             <p className="leading-loose text-gray-700 dark:text-gray-200">
-                    {sentenceObj.spanish.split(' ').map((word, wIndex) => {
-                        const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
-                        const cleanedWord = cleanedWordMatch ? cleanedWordMatch[0] : "";
-                        const isSessionWord = sessionWords.includes(cleanedWord);
-                        const baseClass = `cursor-pointer rounded transition-colors duration-150 ${isSessionWord ? 'bg-yellow-300 dark:bg-yellow-700 text-gray-900 dark:text-white font-medium hover:bg-yellow-400 dark:hover:bg-yellow-600' : 'hover:bg-yellow-200 dark:hover:bg-yellow-600'}`;
-                        let adminClass = "";
+                {sentenceObj.spanish.split(' ').map((word, wIndex) => {
+                    const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
+                    const cleanedWord = cleanedWordMatch ? cleanedWordMatch[0] : "";
+                    const isSessionWord = sessionWords.includes(cleanedWord);
+                    const baseClass = `cursor-pointer rounded transition-colors duration-150 ${isSessionWord ? 'bg-yellow-300 dark:bg-yellow-700 text-gray-900 dark:text-white font-medium hover:bg-yellow-400 dark:hover:bg-yellow-600' : 'hover:bg-yellow-200 dark:hover:bg-yellow-600'}`;
+                    let adminClass = "";
 
-                        // Check if admin is logged in and if word is missing translation
-                        if (isAdmin && word.length > 0) {
-                            const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
-                            if (cleanedWordMatch) {
-                                const cleanedWord = cleanedWordMatch[0];
-                                if (translations.has(cleanedWord)) {
-                                    const translation = translations.get(cleanedWord);
-                                    
-                                    // If no translation is found, apply the admin highlight class
-                                    if (!translation || translation === "No translation found") {
-                                        adminClass = "bg-red-200 dark:bg-red-700 opacity-75"; // Highlight missing words
-                                    }
+                    // Check if admin is logged in and if word is missing translation
+                    if (isAdmin && word.length > 0) {
+                        const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
+                        if (cleanedWordMatch) {
+                            const cleanedWord = cleanedWordMatch[0];
+                            if (translations.has(cleanedWord)) {
+                                const translation = translations.get(cleanedWord);
+
+                                // If no translation is found, apply the admin highlight class
+                                if (!translation || translation === "No translation found") {
+                                    adminClass = "bg-red-200 dark:bg-red-700 opacity-75"; // Highlight missing words
                                 }
                             }
                         }
-                        return (
-                            <span 
-                                key={wIndex} 
-                                className={`${baseClass} ${adminClass}`}
+                    }
+                    return (
+                        <span
+                            key={wIndex}
+                            className={`${baseClass} ${adminClass}`}
                             onClick={(e) => handleWordClick(e, word, sentenceObj.spanish)}
-                            >
-                                {word}{' '}
-                            </span>
-                        );
-                    })}
-                </p>
+                        >
+                            {word}{' '}
+                        </span>
+                    );
+                })}
+            </p>
             {showTranslations && (
                 <p className="leading-loose text-blue-600 dark:text-blue-400 mt-2 italic pl-10">
                     &rarr; {sentenceObj.english}
@@ -286,92 +289,93 @@ const StoryReader = ({ articleId, onComplete }) => {
         </div>
     ));
     const renderPopup = () => {
-            if (!lookupResult) return null;
-    
-            // Check if the current word is in the user's savedWords Set
-            const isSaved = savedWords.has(lookupResult.word);
-            const liveTranslation = translations.get(lookupResult.word) || lookupResult.translation;
-    
-            return (
-                <div 
-                    style={{ top: `${popupPosition.y}px`, left: `${popupPosition.x}px` }}
-                    // --- MODIFIED: Changed 'fixed' to 'absolute' to scroll with the page ---
-                    className={`fixed w-55 bg-gray-800 text-white text-sm font-semibold px-4 py-3 rounded-lg shadow-lg z-50`}
-                    onClick={(e) => e.stopPropagation()} // Prevents popup from closing when clicking inside it
-                >
-                    <div className="flex justify-between items-center mb-2">
-                        <div className="flex items-center gap-2">
-                            <p className="font-bold capitalize text-base">{lookupResult.word}</p>
-                            <button 
-                                onClick={() => handleSpeak(lookupResult.word)}
-                                className="text-gray-400 hover:text-custom-400 transition-colors"
-                                title="Listen"
-                            >
-                                <BsFillVolumeUpFill size={16} />
-                            </button>
-                        </div>
-                        
-                        {/* --- NEW: Save Word Button --- */}
-                        <button 
-                            onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    toggleSavedWord(lookupResult.word, {
-                                        translation: liveTranslation,
-                                        source: `Library (${article.title})`
-                                    })}}
-                            className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors`}
-                            title={isSaved ? "Remove from saved words" : "Save word for training"}
+        if (!lookupResult) return null;
+
+        // Check if the current word is in the user's savedWords Set
+        const isSaved = savedWords.has(lookupResult.word);
+        const liveTranslation = translations.get(lookupResult.word) || lookupResult.translation;
+
+        return (
+            <div
+                style={{ top: `${popupPosition.y}px`, left: `${popupPosition.x}px` }}
+                // --- MODIFIED: Changed 'fixed' to 'absolute' to scroll with the page ---
+                className={`fixed w-55 bg-gray-800 text-white text-sm font-semibold px-4 py-3 rounded-lg shadow-lg z-50`}
+                onClick={(e) => e.stopPropagation()} // Prevents popup from closing when clicking inside it
+            >
+                <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center gap-2">
+                        <p className="font-bold capitalize text-base">{lookupResult.word}</p>
+                        <button
+                            onClick={() => handleSpeak(lookupResult.word)}
+                            className="text-gray-400 hover:text-custom-400 transition-colors"
+                            title="Listen"
                         >
-                            {isSaved ? <BsBookmarkFill /> : <BsBookmark />}
+                            <BsFillVolumeUpFill size={16} />
                         </button>
                     </div>
-                    
-                    {/* Admin Editing UI */}
-                    {isEditing ? (
-                        <div>
-                            <textarea
-                                className="w-full bg-gray-700 text-white rounded p-2 text-sm"
-                                value={editText}
-                                onChange={(e) => setEditText(e.target.value)}
-                                rows={2}
-                            />
-                            <button
-                                onClick={handleSaveEdit}
-                                className="w-full mt-2 px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-white font-bold"
-                            >
-                                Save
-                            </button>
-                        </div>
-                    ) : (
-                        // Standard Translation View
-                        <div>
-                            <p className="font-normal">&rarr; {liveTranslation}</p>
-                            {liveTranslation === "No translation found" && (
-                                <a 
-                                    href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(lookupResult.word)}&op=translate`}
-                                    className="text-custom-300 hover:underline text-xs"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    Translate with Google.
-                                </a>
-                            )}
-                            {isAdmin && (
-                                <button
-                                    onClick={() => {
-                                        setIsEditing(true);
-                                        setEditText((liveTranslation === "No translation found." || liveTranslation === "Loading...") ? "" : liveTranslation);
-                                    }}
-                                    className="w-full mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white font-bold text-xs"
-                                >
-                                    {liveTranslation === "No translation found." ? "Add" : "Edit"} Translation
-                                </button>
-                            )}
-                        </div>
-                    )}
+
+                    {/* --- NEW: Save Word Button --- */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSavedWord(lookupResult.word, {
+                                translation: liveTranslation,
+                                source: `Library (${article.title})`
+                            })
+                        }}
+                        className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors`}
+                        title={isSaved ? "Remove from saved words" : "Save word for training"}
+                    >
+                        {isSaved ? <BsBookmarkFill /> : <BsBookmark />}
+                    </button>
                 </div>
-            );
-        };
+
+                {/* Admin Editing UI */}
+                {isEditing ? (
+                    <div>
+                        <textarea
+                            className="w-full bg-gray-700 text-white rounded p-2 text-sm"
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            rows={2}
+                        />
+                        <button
+                            onClick={handleSaveEdit}
+                            className="w-full mt-2 px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-white font-bold"
+                        >
+                            Save
+                        </button>
+                    </div>
+                ) : (
+                    // Standard Translation View
+                    <div>
+                        <p className="font-normal">&rarr; {liveTranslation}</p>
+                        {liveTranslation === "No translation found" && (
+                            <a
+                                href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(lookupResult.word)}&op=translate`}
+                                className="text-custom-300 hover:underline text-xs"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Translate with Google.
+                            </a>
+                        )}
+                        {isAdmin && (
+                            <button
+                                onClick={() => {
+                                    setIsEditing(true);
+                                    setEditText((liveTranslation === "No translation found." || liveTranslation === "Loading...") ? "" : liveTranslation);
+                                }}
+                                className="w-full mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white font-bold text-xs"
+                            >
+                                {liveTranslation === "No translation found." ? "Add" : "Edit"} Translation
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="w-full h-full overflow-y-auto pb-24 animate-fade-in bg-white dark:bg-gray-900" onClick={closePopup} onScroll={closePopup}>
@@ -387,20 +391,21 @@ const StoryReader = ({ articleId, onComplete }) => {
                 <p className="flex justify-center items-center gap-2 rounded-lg p-2 bg-amber-100 text-gray-700 mb-5 text-left italic text-md">
                     <FaInfoCircle className="shrink-0" /><BsBookmark className="inline" />  Click on any word to see its translation and save it for later review
                 </p>
-                    <div className="mb-3 max-w-2xl mx-auto">
-                        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200">{article.title}</h1>
-                    </div>
+                <div className="mb-3 max-w-2xl mx-auto">
+                    <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200">{article.title}</h1>
+                </div>
                 <div className="grid grid-rows items-start max-w-2xl mb-4">
                     <div className="flex gap-2">
-                        <button onClick={() => {setShowTranslations(!showTranslations)
-                                                setIsTranslationsOn(!isTranslationsOn);
-                                                }
+                        <button onClick={() => {
+                            setShowTranslations(!showTranslations)
+                            setIsTranslationsOn(!isTranslationsOn);
+                        }
                         } className={`text-sm px-3 py-1 text-gray-100 rounded hover:bg-gray-300 dark:hover:bg-green-600 transition-colors ` + (isTranslationsOn ? 'bg-green-800' : 'bg-green-500')}>
                             {showTranslations ? 'ES' : 'ES/EN'}
                         </button>
                     </div>
                 </div>
-                
+
                 <div className="text-lg text-gray-700 dark:text-gray-200 space-y-6 max-w-2xl mx-auto">
                     {isDictionaryLoading ? <p>Loading...</p> : renderedContent}
                 </div>
@@ -415,54 +420,55 @@ const StoryReader = ({ articleId, onComplete }) => {
                         ) : 'Continue to Review ➔'}
                     </button>
                 </div>
-            
+
             </div>
             {/* Sticky Bottom Control Bar */}
-            <div className="fixed bottom-0 w-full max-w-2xl bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40 p-2 flex justify-end items-center gap-6">
-                {lookupResult && lookupResult.sentence && (
-                    <button
-                        onClick={() => handleSpeak(lookupResult.sentence, playbackRate)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-transform transform hover:scale-105 text-sm font-bold focus:outline-none"
-                        title="Play Selected Sentence"
-                    >
-                        <CiPlay1 className="text-xl" />
-                        Sentence
-                    </button>
-                ) || (
-                    <button
-                        onClick={() => handleSpeak(lookupResult.sentence, playbackRate)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-white/50 rounded-full shadow-lg text-sm font-bold cursor-not-allowed focus:outline-none"
-                        title="Play Selected Sentence"
-                    >
-                        <CiPlay1 className="text-xl" />
-                        Sentence
-                    </button>
-                )}
-                <div className="flex gap-4 w-full justify-end items-center">
-                    {/* Speed Toggle Button */}
-                    <button
-                        onClick={togglePlaybackRate}
-                        className="flex items-center justify-center w-11 h-11 shrink-0 rounded-full border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-bold text-xs transition-transform transform hover:scale-105 focus:outline-none"
-                        title="Adjust Reading Speed"
-                    >
-                        {playbackRate}x
-                    </button>
-
-                    <button
-                        onClick={handlePlayPauseFullStory}
-                        className="text-3xl text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-transform transform hover:scale-110 focus:outline-none z-10"
-                        title={playingState.text === fullStoryText && !isPaused ? "Pause Story" : "Play Story"}
-                    >
-                        {playingState.text === fullStoryText && !isPaused ? <FaRegPauseCircle /> : <FaPlayCircle />}
-                    </button>
-                    <button
-                        onClick={handleStopFullStory}
-                        disabled={playingState.text !== fullStoryText}
-                        className={`text-3xl transition-transform focus:outline-none ${playingState.text === fullStoryText ? 'text-red-500 hover:text-red-600 hover:scale-110' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
-                        title="Stop Story"
-                    >
-                        <FaStopCircle />
-                    </button>
+            <div className="fixed bottom-0 left-0 w-full bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40 p-2 gap-6">
+                <div className="max-w-2xl mx-auto flex justify-around items-center">
+                    {lookupResult && lookupResult.sentence && (
+                        <button
+                            onClick={() => handleSpeak(lookupResult.sentence, playbackRate)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-transform transform hover:scale-105 text-sm font-bold focus:outline-none"
+                            title="Play Selected Sentence"
+                        >
+                            <CiPlay1 className="text-xl" />
+                            Sentence
+                        </button>
+                    ) || (
+                            <button
+                                onClick={() => handleSpeak(lookupResult.sentence, playbackRate)}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-white/50 rounded-full shadow-lg text-sm font-bold cursor-not-allowed focus:outline-none"
+                                title="Play Selected Sentence"
+                            >
+                                <CiPlay1 className="text-xl" />
+                                Sentence
+                            </button>
+                        )}
+                    <div className="flex gap-4 w-full justify-end items-center">
+                        {/* Speed Toggle Button */}
+                        <button
+                            onClick={togglePlaybackRate}
+                            className="flex items-center justify-center w-11 h-11 shrink-0 rounded-full border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-bold text-xs transition-transform transform hover:scale-105 focus:outline-none"
+                            title="Adjust Reading Speed"
+                        >
+                            {playbackRate}x
+                        </button>
+                        <button
+                            onClick={handlePlayPauseFullStory}
+                            className="text-3xl text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-transform transform hover:scale-110 focus:outline-none z-10"
+                            title={playingState.text === fullStoryText && !isPaused ? "Pause Story" : "Play Story"}
+                        >
+                            {playingState.text === fullStoryText && !isPaused ? <FaRegPauseCircle /> : <FaPlayCircle />}
+                        </button>
+                        <button
+                            onClick={handleStopFullStory}
+                            disabled={playingState.text !== fullStoryText}
+                            className={`text-3xl transition-transform focus:outline-none ${playingState.text === fullStoryText ? 'text-red-500 hover:text-red-600 hover:scale-110' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                            title="Stop Story"
+                        >
+                            <FaStopCircle />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

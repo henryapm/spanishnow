@@ -24,12 +24,15 @@ export default function FlashcardReview({ wordsToReview, onComplete }) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [deckPrepared, setDeckPrepared] = useState(false);
 
+    // Stable dependency key for wordsToReview array reference changes
+    const wordsKey = wordsToReview ? wordsToReview.join(',') : '';
+
     // On mount, generate the deck of the words the user just saved
     useEffect(() => {
         if (wordsToReview && wordsToReview.length > 0) {
             prepareTrainingDeck(wordsToReview).then(() => setDeckPrepared(true));
         }
-    }, [wordsToReview, prepareTrainingDeck]);
+    }, [wordsKey, prepareTrainingDeck]);
 
     // Once the deck is ready in the store, load it into our local state
     useEffect(() => {
@@ -84,7 +87,7 @@ export default function FlashcardReview({ wordsToReview, onComplete }) {
     const handleAnswer = async (knewIt) => {
         if (isProcessing || !currentCard) return;
         setIsProcessing(true);
-        
+
         try {
             if (knewIt) {
                 await updateSavedWordProgress(currentCard.id);
@@ -106,24 +109,24 @@ export default function FlashcardReview({ wordsToReview, onComplete }) {
         <div className="flex flex-col items-center h-full overflow-y-auto pb-24 p-6 max-w-2xl mx-auto w-full animate-fade-in">
             <h2 className="text-2xl font-bold text-teal-600 dark:text-teal-400 mb-2">Review Saved Words</h2>
             <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-8 uppercase tracking-wide">{sessionCards.length} {sessionCards.length === 1 ? 'card' : 'cards'} remaining</p>
-            
+
             <div className="w-full relative mb-8">
-                <Flashcard 
-                    cardData={currentCard} 
-                    isFlipped={isFlipped} 
-                    onFlip={() => setIsFlipped(!isFlipped)} 
+                <Flashcard
+                    cardData={currentCard}
+                    isFlipped={isFlipped}
+                    onFlip={() => setIsFlipped(!isFlipped)}
                 />
             </div>
 
             <div className="flex justify-around w-full max-w-sm mt-4">
-                <button 
+                <button
                     onClick={() => handleAnswer(false)}
                     disabled={isProcessing}
                     className="px-6 py-3 bg-yellow-500 text-gray-900 font-bold rounded-lg shadow-md hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     Forgot
                 </button>
-                <button 
+                <button
                     onClick={() => handleAnswer(true)}
                     disabled={isProcessing}
                     className="px-6 py-3 bg-green-500 text-white font-bold rounded-lg shadow-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -132,7 +135,7 @@ export default function FlashcardReview({ wordsToReview, onComplete }) {
                 </button>
             </div>
             {/* Add a navigation encouraging button to hop straight to the ai practice session */}
-            <button 
+            <button
                 onClick={onComplete}
                 className="mt-8 px-6 py-3 bg-linear-to-r from-red-500 to-purple-500 text-white font-bold rounded-full shadow-md"
             >
