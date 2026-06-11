@@ -5,9 +5,10 @@ const onSchedule = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const axios = require("axios");
 const { getFirestore } = require("firebase-admin/firestore");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const gnewsApiKey = defineSecret("GNEWS_API_KEY");
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 // exports.fetchNewsScheduled = onSchedule({ schedule: "every 1 hours", secrets: [gnewsApiKey, geminiApiKey] }, async (event) => {
 //     const db = getFirestore();
@@ -40,7 +41,11 @@ const gnewsApiKey = defineSecret("GNEWS_API_KEY");
 //     await fetchAndSaveNews(db, config, configRef);
 // });
 
-exports.manualFetchNews = onCall({ cors: true, secrets: [gnewsApiKey, geminiApiKey] }, async (request) => {
+exports.manualFetchNews = onCall({ 
+    region: "us-central1",
+    cors: true, 
+    secrets: [gnewsApiKey, geminiApiKey] 
+}, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
@@ -99,27 +104,20 @@ async function fetchAndSaveNews(db, config, configRef) {
         const rawContent = newsItem.content || newsItem.description || newsItem.title || "No content available";
 
         // 2. Call Gemini API to translate and format the text
-        const geminiKey = geminiApiKey.value();
         const prompt = `You are an expert Spanish to English translator. I will provide you with a Spanish news article. Please split the text into logical sentences. For each sentence, provide the original Spanish text and its English translation. Return the result STRICTLY as a JSON array of objects with the keys "spanish" and "english". Do not include any markdown formatting, code blocks, or extra text.\n\nText to translate:\n${rawContent}`;
 
         let translatedSentences = [];
         try {
-            const geminiResponse = await axios.post(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`,
-                {
-                    contents: [{ role: 'user', parts: [{ text: prompt }] }]
-                },
-                { headers: { 'Content-Type': 'application/json' } }
-            );
+            const genAI = new GoogleGenerativeAI(geminiApiKey.value());
+            const model = genAI.getGenerativeModel({ 
+                model: 'gemini-1.5-flash',
+                generationConfig: { responseMimeType: "application/json" }
+            });
 
-            let responseText = geminiResponse.data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-            
-            // Clean up potential markdown code block formatting returned by Gemini
-            responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-            
-            translatedSentences = JSON.parse(responseText);
+            const result = await model.generateContent(prompt);
+            translatedSentences = JSON.parse(result.response.text() || "[]");
         } catch (geminiError) {
-            console.error("Error formatting with Gemini:", geminiError.message);
+            console.error("Error formatting with Gemini:", geminiError);
             // Fallback if Gemini fails to respond or parse correctly
             translatedSentences = [
                 { spanish: newsItem.title, english: "Failed to translate title." },

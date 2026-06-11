@@ -635,7 +635,7 @@ export const useDecksStore = create((set, get) => ({
             const fetchPromises = wordsNeedingFetch.map(async (wordId) => {
                 const wordSnap = await getDoc(doc(db, 'dictionary', wordId));
                 if (wordSnap.exists()) {
-                    cachedDictionary[wordSnap.id] = wordSnap.data().translation;
+                    cachedDictionary[wordSnap.id] = wordSnap.data().english || wordSnap.data().translation;
                 }
             });
             await Promise.all(fetchPromises);
@@ -652,7 +652,7 @@ export const useDecksStore = create((set, get) => ({
                 return {
                     id: wordId, // This is the Spanish word
                     // Prefer translation in savedWord doc, fallback to dictionary
-                    translation: data.translation || cachedDictionary[wordId] || "No translation",
+                    translation: data.translation || data.english || cachedDictionary[wordId] || "No translation",
                     vocab: data.vocab || null,
                     source: data.source || null,
                     addedAt: data.addedAt,
@@ -1112,7 +1112,7 @@ export const useDecksStore = create((set, get) => ({
             const wordRef = doc(db, 'dictionary', normalizedWord);
             const wordSnap = await getDoc(wordRef);
             
-            const translation = wordSnap.exists() ? wordSnap.data().translation : "No translation found";
+            const translation = wordSnap.exists() ? (wordSnap.data().english || wordSnap.data().translation) : "No translation found";
 
             set(state => {
                 const newMap = new Map(state.activeArticleTranslations);
@@ -1154,7 +1154,7 @@ export const useDecksStore = create((set, get) => ({
             
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach((doc) => {
-                newTranslations.set(doc.id, doc.data().translation);
+                newTranslations.set(doc.id, doc.data().english || doc.data().translation);
             });
         }
         

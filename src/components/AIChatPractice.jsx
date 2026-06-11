@@ -411,7 +411,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                             ) : userSpeech ? (
                                 <div>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">You said:</p>
-                                    <p className="text-lg font-medium text-gray-800 dark:text-gray-200 break-words">
+                                    <p className="text-lg font-medium text-gray-800 dark:text-gray-200 wrap-break-words">
                                         {renderHighlightedSpeech(userSpeech)}
                                     </p>
                                     <div className="mt-3 flex gap-2 justify-center">

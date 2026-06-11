@@ -2,12 +2,14 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https"); // Make s
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const axios = require("axios");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+// Define the secret for the API Key
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 // Initialize the Google Cloud TTS Client
 const textToSpeech = require('@google-cloud/text-to-speech');
 const ttsClient = new textToSpeech.TextToSpeechClient();
-
-const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 const scenariosInstructions = "since this is a language learning experience for the user, focus on getting the user to complete the objectives listed for the scenario in as few exchanges as possible. Keep your responses concise and to the point, avoiding unnecessary elaboration. Encourage the user to speak and respond in Spanish, providing corrections or suggestions only when necessary to help them improve their language skills. Always respond in Spanish, unless the user specifically asks for a translation or explanation in English. If the user seems stuck or unsure, offer gentle prompts or hints to guide them towards the correct phrases or vocabulary. Maintain a friendly and supportive tone throughout the conversation to create a positive learning environment. Remember, the primary goal is to help the user practice and improve their Spanish speaking skills in a realistic context, if the user doesn't seem to understand what to do, and says things out of the context or doesn't attempt to complete an objective suggest a response that they could use so that the role play makes sense and is completed. If the user deviates from the scenario, gently steer them back on track by reminding them of the context and objectives. If the user completes the objectives, congratulate them and suggest they try another scenario for further practice. ";
 
@@ -18,6 +20,7 @@ const { addXp, XP_FOR_CHAT, XP_FOR_SCENARIO, addXpInTransaction } = require("./x
 
 exports.chatWithGemini = onCall({
     secrets: [geminiApiKey],
+    region: "us-central1",
     cors: true
 }, async (request) => {
     // 1. Authentication Check
@@ -60,7 +63,6 @@ exports.chatWithGemini = onCall({
     // Fetch scenario and instructions from Firestore
     let selectedScenario;
     let fetchedAiInstructions;
-    let aiModelName = 'gemini-2.5-flash'; // Fallback default
 
     try {
         const [scenarioDoc, promptsDoc] = await Promise.all([
@@ -74,7 +76,6 @@ exports.chatWithGemini = onCall({
 
         selectedScenario = { id: scenarioDoc.id, ...scenarioDoc.data() };
         fetchedAiInstructions = promptsDoc.exists ? promptsDoc.data().scenariosAiInstructions : scenariosInstructions; // Fallback to hardcoded if missing
-        if (promptsDoc.exists && promptsDoc.data().modelName) aiModelName = promptsDoc.data().modelName;
 
     } catch (error) {
         console.error("Error fetching data:", error);
@@ -111,12 +112,6 @@ exports.chatWithGemini = onCall({
     }
 
     // 3. Call Gemini API
-    const apiKey = geminiApiKey.value();
-    if (!apiKey) {
-        throw new HttpsError('failed-precondition', 'Gemini API key is missing. Make sure to set it via "firebase functions:secrets:set GEMINI_API_KEY".');
-    }
-
-    // Find the specific roleplay by name on the backend
     const rolePlay = selectedScenario.rolePlays ? selectedScenario.rolePlays.find(rp => rp.name === rolePlayName) : null;
     if (!rolePlay) {
         throw new HttpsError('not-found', 'Role play not found.');
@@ -126,28 +121,25 @@ exports.chatWithGemini = onCall({
     const systemInstruction = `${fetchedAiInstructions}
 
     Scenario: ${selectedScenario.name}
-    Role: ${role}
+    AI Role: ${role}
     Context: ${rolePlay.context}
     Objectives: ${rolePlay.objectives.join(', ')}`;
 
     try {
-        const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/${aiModelName}:generateContent?key=${apiKey}`,
-            {
-                system_instruction: {
-                    parts: [{ text: systemInstruction }]
-                },
-                contents: history.map(msg => ({
-                    role: msg.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: msg.text }]
-                }))
-            },
-            {
-                headers: { 'Content-Type': 'application/json' }
-            }
-        );
+        const genAI = new GoogleGenerativeAI(geminiApiKey.value());
+        const model = genAI.getGenerativeModel({ 
+            model: 'gemini-flash-latest',
+            systemInstruction: systemInstruction 
+        });
 
-        const aiResponseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no entendí.";
+        const result = await model.generateContent({
+            contents: history.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.text }]
+            }))
+        });
+
+        const aiResponseText = result.response.text() || "Lo siento, no pude generar una respuesta.";
 
         // Award XP for chatting and get streak info
         const xpResult = await addXp(db, uid, XP_FOR_CHAT).catch(err => {
@@ -157,18 +149,18 @@ exports.chatWithGemini = onCall({
         return { text: aiResponseText, ...xpResult };
 
     } catch (error) {
-        console.error("Gemini API Error:", error.response?.data || error.message);
-        let errorMessage = error.response?.data?.error?.message || error.message;
-        if (errorMessage.includes("referer")) {
-            errorMessage += " (Action Required: Go to Google Cloud Console > Credentials. Edit this API Key and set 'Application restrictions' to 'None'.)";
-        }
-        throw new HttpsError('internal', `Gemini Error: ${errorMessage}`);
+        console.error("Gemini Chat Error:", error);
+        const message = error.message || "An unexpected error occurred with the AI service.";
+        if (error.status === 429) throw new HttpsError('resource-exhausted', 'Gemini quota exceeded.');
+        if (error.status === 400) throw new HttpsError('invalid-argument', `Gemini request error: ${message}`);
+        throw new HttpsError('internal', `AI Error: ${message}`);
     }
 });
 
 // --- NEW: Dedicated function for the Lesson Flow AI Chat ---
 exports.chatForLesson = onCall({
     secrets: [geminiApiKey],
+    region: "us-central1",
     cors: true
 }, async (request) => {
     if (!request.auth) {
@@ -229,10 +221,6 @@ exports.chatForLesson = onCall({
     const articleDoc = await db.collection('articles').doc(articleId).get();
     const articleData = articleDoc.data() || {};
 
-    // We still fetch this document strictly to get the dynamic modelName for future-proofing!
-    const promptsDoc = await db.collection('appInfo').doc('aiPrompts').get();
-    const aiModelName = promptsDoc.exists && promptsDoc.data().modelName ? promptsDoc.data().modelName : 'gemini-2.5-flash';
-
     // 3. Build the context and objectives securely!
     const context = `The user just finished reading a Spanish story/article titled "${articleData.title || 'Unknown'}". The overall topic is "${articleData.topic || 'General'}". They want to practice having a conversation about it.`;
 
@@ -252,33 +240,35 @@ exports.chatForLesson = onCall({
 
     const systemInstruction = `${lessonInstructions}\n\nContext: ${context}\n\nObjectives:\n${objectives.map(o => "- " + o).join('\n')}`;
 
-    // 4. Call Gemini API
-    const apiKey = geminiApiKey.value();
     try {
-        const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/${aiModelName}:generateContent?key=${apiKey}`,
-            {
-                system_instruction: { parts: [{ text: systemInstruction }] },
-                contents: history.map(msg => ({
-                    role: msg.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: msg.text }]
-                }))
-            },
-            { headers: { 'Content-Type': 'application/json' } }
-        );
+        const genAI = new GoogleGenerativeAI(geminiApiKey.value());
+        const model = genAI.getGenerativeModel({ 
+            model: 'gemini-flash-latest',
+            systemInstruction: systemInstruction 
+        });
 
-        const aiResponseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text || "Lo siento, no entendí.";
+        const result = await model.generateContent({
+            contents: history.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.text }]
+            }))
+        });
+
+        const aiResponseText = result.response.text() || "Lo siento, no pude generar una respuesta.";
 
         // Award XP for chatting and get streak info
         const xpResult = await addXp(db, uid, XP_FOR_CHAT).catch(err => {
-            console.error("Non-fatal error awarding XP for lesson chat:", err);
+            console.error("Non-fatal error awarding XP for chat:", err);
             return null;
         });
 
         return { text: aiResponseText, ...xpResult };
     } catch (error) {
-        console.error("Gemini API Error:", error.response?.data || error.message);
-        throw new HttpsError('internal', 'Failed to communicate with AI service.');
+        console.error("Gemini Lesson Error:", error);
+        const message = error.message || "An unexpected error occurred during the lesson chat.";
+        if (error.status === 429) throw new HttpsError('resource-exhausted', 'Gemini quota exceeded.');
+        if (error.status === 400) throw new HttpsError('invalid-argument', `Gemini request error: ${message}`);
+        throw new HttpsError('internal', `AI Error: ${message}`);
     }
 });
 

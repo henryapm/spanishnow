@@ -37,8 +37,9 @@ const AppLayout = () => {
     const deckRoutes = ['/flashcards', '/create', '/review', '/account', '/listen', '/deck', '/edit', '/admin', '/lesson'];
     const shouldLoadDecks = deckRoutes.some(route => location.pathname.startsWith(route));
     
-    const isLessonRoute = location.pathname.startsWith('/lesson');
-
+    const isSpeakActive = location.pathname.includes('/speakCompanion/session');
+    const isLessonRoute = location.pathname.startsWith('/lesson') || isSpeakActive;
+    
     useEffect(() => {
         if (shouldLoadDecks) {
             fetchDecks();
@@ -66,6 +67,8 @@ const AppLayout = () => {
                             <Route path="/listen/:deckId" element={<ListeningView decks={decks} />} />
                             <Route path="/reading/:articleId" element={<ReaderView />} />
                             <Route path="/speakCompanion" element={<SpeakCompanion />} />
+                            <Route path="/speakCompanion/:scenarioId" element={<SpeakCompanion />} />
+                            <Route path="/speakCompanion/session/:scenarioId/:roleIndex" element={<SpeakCompanion />} />
                             <Route path="/deck/:deckId" element={<SessionManager />} />
                             {/* --- NEW: Admin Route --- */}
                             <Route path="/admin" element={<TopicManager decks={decks} />} />
