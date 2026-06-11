@@ -22,11 +22,11 @@ export default function LessonFlow() {
         return (
             <div className="flex flex-col items-center justify-center h-full p-4">
                 <p className="text-lg text-gray-700 dark:text-gray-300">No active lesson. Go back to the dashboard.</p>
-                <button 
+                <button
                     onClick={endSession}
                     className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                 >
-                    <NavLink 
+                    <NavLink
                         to="/"
                         aria-label="Home"
                     >
@@ -52,7 +52,7 @@ export default function LessonFlow() {
         <div className="flex flex-col h-screen w-full bg-white dark:bg-gray-900 fixed inset-0 z-50">
             {/* Progress Bar Header */}
             <header className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-                <button 
+                <button
                     onClick={() => {
                         if (window.confirm("Are you sure you want to quit? Your progress won't be saved.")) {
                             endSession();
@@ -69,15 +69,15 @@ export default function LessonFlow() {
 
                 <div className="flex-1 mx-4 max-w-2xl">
                     <div className="h-3 w-full bg-gray-200 rounded-full overflow-hidden dark:bg-gray-700">
-                        {activeSession.step === 'review' && activeSession.wordsSavedInSession.length === 0 ? 
-                            <div 
-                            className="h-full bg-blue-500 transition-all duration-500 ease-in-out" 
-                            style={{ width: `100%` }}
+                        {activeSession.step === 'review' && activeSession.wordsSavedInSession.length === 0 ?
+                            <div
+                                className="h-full bg-blue-500 transition-all duration-500 ease-in-out"
+                                style={{ width: `100%` }}
                             ></div>
-                        :
-                            <div 
-                            className="h-full bg-blue-500 transition-all duration-500 ease-in-out" 
-                            style={{ width: `${getProgress()}%` }}
+                            :
+                            <div
+                                className="h-full bg-blue-500 transition-all duration-500 ease-in-out"
+                                style={{ width: `${getProgress()}%` }}
                             ></div>
                         }
                     </div>
@@ -91,26 +91,26 @@ export default function LessonFlow() {
             {/* Render Current Step */}
             <main className="flex-1 overflow-hidden relative">
                 {activeSession.step === 'reading' && (
-                    <StoryReader 
-                        articleId={activeSession.articleId} 
-                        onComplete={() => advanceSessionStep('review')} 
+                    <StoryReader
+                        articleId={activeSession.articleId}
+                        onComplete={() => advanceSessionStep('review')}
                     />
                 )}
-                
+
                 {activeSession.step === 'review' && activeSession.wordsSavedInSession.length === 0 ? (
                     <SessionComplete onFinish={endSession} />
                 ) : activeSession.step === 'review' &&
-                    <FlashcardReview 
-                        wordsToReview={activeSession.wordsSavedInSession}
-                        onComplete={() => advanceSessionStep('practice')} 
-                    />
+                <FlashcardReview
+                    wordsToReview={activeSession.wordsSavedInSession.filter((_, idx) => idx < 5)}
+                    onComplete={() => advanceSessionStep('practice')}
+                />
                 }
-                
+
                 {activeSession.step === 'practice' && (
-                    <AIChatPractice 
+                    <AIChatPractice
                         articleId={activeSession.articleId}
-                        targetVocabulary={activeSession.wordsSavedInSession}
-                        onComplete={() => advanceSessionStep('completed')} 
+                        targetVocabulary={activeSession.wordsSavedInSession.filter((_, idx) => idx < 5)}
+                        onComplete={() => advanceSessionStep('completed')}
                     />
                 )}
 

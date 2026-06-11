@@ -21,12 +21,12 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
     const [chatHistory, setChatHistory] = useState([]);
     const [isAiProcessing, setIsAiProcessing] = useState(false);
     const [inputMode, setInputMode] = useState('voice');
-    
+
     const recognitionRef = useRef(null);
     const chatContainerRef = useRef(null);
     const finalTranscriptRef = useRef('');
     const shouldListenRef = useRef(false);
-    
+
     // --- NEW: Audio tracking ---
     const activeAudioRef = useRef(null);
     const intendedAudioIndexRef = useRef(null);
@@ -57,7 +57,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
             audio.pause();
             audio.removeAttribute('src');
             audio.load();
-            
+
             setPlayingAudioIndex(null);
             activeAudioRef.current = null;
             intendedAudioIndexRef.current = null;
@@ -75,7 +75,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
     const handleSpeechError = (errorType) => {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
         const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
-        
+
         if (isIOS && !isSafari) {
             alert("Voice features are restricted by Apple in third-party browsers. Please open this app in Safari.");
         } else if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
@@ -87,13 +87,13 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
 
     const interactionCount = useDecksStore((state) => state.interactionCount);
     const incrementInteractionCount = useDecksStore((state) => state.incrementInteractionCount);
-    const InteractionCounts =() => {     
+    const InteractionCounts = () => {
         return (
-        <div className="my-2 text-center">
-            <span className="text-sm font-semibold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
-                Free Interactions: {interactionCount}/{MAX_FREE_INTERACTIONS}
-            </span>
-        </div>
+            <div className="my-2 text-center">
+                <span className="text-sm font-semibold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
+                    Free Interactions: {interactionCount}/{MAX_FREE_INTERACTIONS}
+                </span>
+            </div>
         )
     }
 
@@ -104,11 +104,11 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
 
     useEffect(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        
+
         if (SpeechRecognition) {
             recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = false; 
-            recognitionRef.current.interimResults = true; 
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = true;
             recognitionRef.current.lang = listeningPreference || 'es-ES';
 
             recognitionRef.current.onstart = () => setIsRecording(true);
@@ -127,7 +127,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
             recognitionRef.current.onresult = (event) => {
                 let interimTranscript = '';
                 let finalChunk = '';
-                
+
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
                         finalChunk += event.results[i][0].transcript.trim() + ' ';
@@ -135,7 +135,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                         interimTranscript += event.results[i][0].transcript;
                     }
                 }
-                
+
                 if (finalChunk) finalTranscriptRef.current += finalChunk;
                 setUserSpeech(finalTranscriptRef.current + interimTranscript);
             };
@@ -165,7 +165,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
         if (recognitionRef.current && !isRecording) {
             try {
                 shouldListenRef.current = true;
-                setUserSpeech(''); 
+                setUserSpeech('');
                 finalTranscriptRef.current = '';
                 recognitionRef.current.start();
             } catch (error) {
@@ -198,7 +198,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
             stopAudio();
             return;
         }
-        
+
         stopAudio();
         intendedAudioIndexRef.current = index;
         setPlayingAudioIndex(index);
@@ -211,7 +211,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                 const generateAudioTTS = httpsCallable(functions, 'generateAudioTTS');
                 const audioResult = await generateAudioTTS({ text: msg.text });
                 const base64Audio = audioResult.data.audioBase64;
-                
+
                 setChatHistory(prev => {
                     const newHistory = [...prev];
                     if (newHistory[index]) {
@@ -219,7 +219,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                     }
                     return newHistory;
                 });
-                
+
                 playAudioFromBase64(base64Audio, index);
             } catch (error) {
                 console.error("Failed to generate TTS audio:", error);
@@ -229,10 +229,10 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
             }
         }
     };
-    
+
     const handleSend = async () => {
         if (!userSpeech.trim()) return;
-        
+
         if (!isPremium && interactionCount >= MAX_FREE_INTERACTIONS) {
             alert(`You've reached the limit of ${MAX_FREE_INTERACTIONS} free interactions. Please upgrade to Premium to continue.`);
             return;
@@ -247,7 +247,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
         try {
             const functions = getFunctions(getApp());
             const chatForLesson = httpsCallable(functions, 'chatForLesson');
-            
+
             const result = await chatForLesson({
                 history: newHistory,
                 articleId: articleId,
@@ -269,7 +269,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                 const generateAudioTTS = httpsCallable(functions, 'generateAudioTTS');
                 const audioResult = await generateAudioTTS({ text: aiResponseText });
                 const base64Audio = audioResult.data.audioBase64;
-                
+
                 setChatHistory(prev => {
                     const updatedHistory = [...prev];
                     const lastIndex = updatedHistory.length - 1;
@@ -278,7 +278,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                     }
                     return updatedHistory;
                 });
-                
+
                 playAudioFromBase64(base64Audio, newModelIndex);
             } catch (error) {
                 console.error("Failed to generate TTS audio:", error);
@@ -297,17 +297,17 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
     const renderHighlightedSpeech = (speech) => {
         const cleanSpeech = speech ? speech.replace(/[*_#~`]/g, '') : '';
         if (!targetVocabulary || targetVocabulary.length === 0) return cleanSpeech;
-        
+
         const escapedVocab = targetVocabulary.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
         // Uses Unicode boundaries so it only highlights isolated words (ignoring punctuation/spaces) but supports Spanish accents
         const regex = new RegExp(`(?<![\\p{L}\\p{M}\\p{N}_])(${escapedVocab})(?![\\p{L}\\p{M}\\p{N}_])`, 'giu');
         const parts = cleanSpeech.split(regex);
-        
+
         return (
             <>
                 {parts.map((part, i) => {
                     const isVocab = targetVocabulary.some(v => v.toLowerCase() === part.toLowerCase());
-                    return isVocab 
+                    return isVocab
                         ? <span key={i} className="text-white bg-yellow-600 mx-1 px-1 rounded">{part}</span>
                         : part;
                 })}
@@ -348,11 +348,10 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                 )}
                 {chatHistory.map((msg, index) => (
                     <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] p-3 rounded-lg shadow-sm ${
-                            msg.role === 'user' 
-                                ? 'bg-blue-600 text-white rounded-br-none' 
-                                : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-bl-none'
-                        }`}>
+                        <div className={`max-w-[80%] my-2 p-3 rounded-lg shadow-sm ${msg.role === 'user'
+                            ? 'bg-blue-600 text-white rounded-br-none'
+                            : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-bl-none'
+                            }`}>
                             {renderHighlightedSpeech(msg.text)}
                         </div>
                         {msg.role !== 'user' && (
@@ -379,15 +378,14 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                 {inputMode === 'voice' ? (
                     <>
                         <div className="flex items-center justify-center gap-6">
-                            <button 
+                            <button
                                 onClick={toggleRecording}
                                 onContextMenu={(e) => e.preventDefault()}
                                 style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}
-                                className={`p-5 rounded-full shadow-lg transition-all transform hover:scale-105 touch-none select-none ${
-                                    isRecording 
-                                        ? 'bg-red-500 text-white animate-pulse' 
-                                        : 'bg-blue-500 text-white hover:bg-blue-600'
-                                }`}
+                                className={`p-5 rounded-full shadow-lg transition-all transform hover:scale-105 touch-none select-none ${isRecording
+                                    ? 'bg-red-500 text-white animate-pulse'
+                                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                                    }`}
                                 aria-label={isRecording ? "Tap to stop recording" : "Tap to start recording"}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -404,7 +402,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                                 </button>
                             )}
                         </div>
-                        
+
                         <div className="mt-4 text-center min-h-12 w-full">
                             {isRecording ? (
                                 <p className="text-red-500 font-semibold animate-pulse">Listening... (Tap to stop)</p>
@@ -415,13 +413,13 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                                         {renderHighlightedSpeech(userSpeech)}
                                     </p>
                                     <div className="mt-3 flex gap-2 justify-center">
-                                        <button 
+                                        <button
                                             onClick={handleSend}
                                             className="px-6 py-1 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
                                         >
                                             Send
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => setUserSpeech('')}
                                             className="px-6 py-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg shadow hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
                                         >
@@ -436,8 +434,8 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                     </>
                 ) : (
                     <div className="w-full relative px-2">
-                        <button 
-                            onClick={() => setInputMode('voice')} 
+                        <button
+                            onClick={() => setInputMode('voice')}
                             className="absolute -top-2 right-0 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors z-10"
                             title="Switch to voice"
                         >
@@ -455,14 +453,14 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                             placeholder="Escribe tu mensaje aquí..."
                         ></textarea>
                         <div className="mt-4 flex gap-2 justify-center">
-                            <button 
+                            <button
                                 onClick={handleSend}
                                 disabled={!userSpeech.trim() || isAiProcessing}
                                 className="px-6 py-1 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Send
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setUserSpeech('')}
                                 className="px-6 py-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg shadow hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
                             >
@@ -475,8 +473,8 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
 
 
             <div className="flex justify-center mt-2">
-                <button 
-                    onClick={onComplete} 
+                <button
+                    onClick={onComplete}
                     className="px-8 py-3 bg-green-600 text-white font-bold rounded-full shadow-lg hover:bg-green-700 transition-transform transform hover:scale-105 w-full max-w-sm flex justify-center items-center gap-2"
                 >
                     Finish Lesson ➔

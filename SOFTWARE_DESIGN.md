@@ -163,3 +163,12 @@ Stores reading materials for the library.
     *   *Agreements:* Includes a mandatory checkbox for Terms & Conditions and Privacy Policy. The "Create Account" button is disabled until checked.
     *   *Modals:* Clicking the legal links opens the existing `Modal.jsx` component containing the respective text.
 *   **Post-Signup Flow (Soft Verification):** Upon successful registration (Google or Email), the user is immediately authenticated and redirected to `/dashboard`. Strict email verification is *not* required to access the app, but a banner may be shown later prompting them to verify.
+
+## 11. Feature: Lesson Session Word Limit
+
+**Objective:** Enforce a limit on the number of words reviewed and practiced per lesson session to maintain a high-quality focused practice, while allowing users to bookmark/save as many words as they want for their general vocabulary.
+
+**Behavior:**
+1.  **Reading Phase:** Users can save/bookmark an unlimited number of words. All of them are successfully saved to Firestore.
+2.  **Transition to Review:** When the user clicks the "Continue to Review" button, if they have saved more than 5 words in the current session, an alert is shown notifying them that only the first 5 words will be included in the review session.
+3.  **Review and Practice Phases:** The application slices the saved session words to the first 5 (`activeSession.wordsSavedInSession.slice(0, 5)`) and passes only these 5 words to the Flashcard Review and AI Chat Practice components.
