@@ -96,6 +96,7 @@ const Flashcard = ({ cardData, isFlipped, onFlip }) => {
                     {cardData.english === "No translation found" && (
                         <a href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(cardData.spanish)}&op=translate`} className="text-teal-200 hover:underline" target="_blank" rel="noopener noreferrer">Translate with Google.</a>
                     )}
+
                     <hr className="w-4/5 my-4 border-teal-300" />
                     {cardData.vocab && cardData.vocab.length > 0 && 
                         

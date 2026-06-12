@@ -635,7 +635,11 @@ export const useDecksStore = create((set, get) => ({
             const fetchPromises = wordsNeedingFetch.map(async (wordId) => {
                 const wordSnap = await getDoc(doc(db, 'dictionary', wordId));
                 if (wordSnap.exists()) {
-                    cachedDictionary[wordSnap.id] = wordSnap.data().english || wordSnap.data().translation;
+                    const dictData = wordSnap.data();
+                    cachedDictionary[wordSnap.id] = {
+                        translation: dictData.english || dictData.translation,
+                        examples: dictData.examples || []
+                    };
                 }
             });
             await Promise.all(fetchPromises);
@@ -649,10 +653,12 @@ export const useDecksStore = create((set, get) => ({
             // 4. Combine the data into the final list
             const fullWordsList = wordsToTranslate.map(wordId => {
                 const data = savedWordDataMap.get(wordId);
+                const dictEntry = cachedDictionary[wordId];
                 return {
                     id: wordId, // This is the Spanish word
                     // Prefer translation in savedWord doc, fallback to dictionary
-                    translation: data.translation || data.english || cachedDictionary[wordId] || "No translation",
+                    translation: data.translation || data.english || (typeof dictEntry === 'object' ? dictEntry.translation : dictEntry) || "No translation",
+                    examples: (typeof dictEntry === 'object' ? dictEntry.examples : []),
                     vocab: data.vocab || null,
                     source: data.source || null,
                     addedAt: data.addedAt,
@@ -890,16 +896,22 @@ export const useDecksStore = create((set, get) => ({
             
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach((doc) => {
-                translations.set(doc.id, doc.data().translation);
+                const dictData = doc.data();
+                translations.set(doc.id, {
+                    translation: dictData.english || dictData.translation,
+                    examples: dictData.examples || []
+                });
             });
         }
         
         // Build the deck object in the format your LessonsView expects
         const trainingCards = wordsToStudy.map(word => {
             const savedData = savedMap.get(word);
+            const dictEntry = translations.get(word);
             return {
                 spanish: word,
-                english: savedData?.translation || translations.get(word) || "No translation found",
+                english: savedData?.translation || (typeof dictEntry === 'object' ? dictEntry.translation : dictEntry) || "No translation found",
+                examples: (typeof dictEntry === 'object' ? dictEntry.examples : []),
                 vocab: savedData?.vocab,
                 source: savedData?.source,
                 id: word
@@ -1112,7 +1124,13 @@ export const useDecksStore = create((set, get) => ({
             const wordRef = doc(db, 'dictionary', normalizedWord);
             const wordSnap = await getDoc(wordRef);
             
-            const translation = wordSnap.exists() ? (wordSnap.data().english || wordSnap.data().translation) : "No translation found";
+            const dictData = wordSnap.data();
+            const translation = wordSnap.exists() 
+                ? { 
+                    translation: dictData.english || dictData.translation,
+                    examples: dictData.examples || []
+                  } 
+                : "No translation found";
 
             set(state => {
                 const newMap = new Map(state.activeArticleTranslations);
@@ -1154,7 +1172,11 @@ export const useDecksStore = create((set, get) => ({
             
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach((doc) => {
-                newTranslations.set(doc.id, doc.data().english || doc.data().translation);
+                const dictData = doc.data();
+                newTranslations.set(doc.id, {
+                    translation: dictData.english || dictData.translation,
+                    examples: dictData.examples || []
+                });
             });
         }
         

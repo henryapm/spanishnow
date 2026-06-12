@@ -38,7 +38,9 @@ const AppLayout = () => {
     const shouldLoadDecks = deckRoutes.some(route => location.pathname.startsWith(route));
     
     const isSpeakActive = location.pathname.includes('/speakCompanion/session');
-    const isLessonRoute = location.pathname.startsWith('/lesson') || isSpeakActive;
+    const isReviewTraining = location.pathname.startsWith('/review/training');
+    // hides navgation and header for lesson flow, speak companion practice sessions, and review training sessions
+    const isLessonRoute = location.pathname.startsWith('/lesson') || isSpeakActive || isReviewTraining;
     
     useEffect(() => {
         if (shouldLoadDecks) {

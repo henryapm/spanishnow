@@ -262,7 +262,8 @@ const StoryReader = ({ articleId, onComplete }) => {
                         if (cleanedWordMatch) {
                             const cleanedWord = cleanedWordMatch[0];
                             if (translations.has(cleanedWord)) {
-                                const translation = translations.get(cleanedWord);
+                                const transData = translations.get(cleanedWord);
+                                const translation = typeof transData === 'object' ? transData.translation : transData;
 
                                 // If no translation is found, apply the admin highlight class
                                 if (!translation || translation === "No translation found") {
@@ -294,7 +295,8 @@ const StoryReader = ({ articleId, onComplete }) => {
 
         // Check if the current word is in the user's savedWords Set
         const isSaved = savedWords.has(lookupResult.word);
-        const liveTranslation = translations.get(lookupResult.word) || lookupResult.translation;
+        const transData = translations.get(lookupResult.word);
+        const liveTranslation = (typeof transData === 'object' ? transData.translation : transData) || lookupResult.translation;
 
         return (
             <div

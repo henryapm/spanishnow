@@ -374,95 +374,103 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                 )}
             </div>
 
-            <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 mb-4 select-none relative">
+            <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 mb-4 select-none relative transition-all duration-300">
+                {/* Segmented Mode Toggle */}
+                <div className="flex bg-gray-200 dark:bg-gray-800 p-1 rounded-xl mb-8 w-full max-w-[220px] shadow-inner relative z-10 border dark:border-gray-700">
+                    <button
+                        disabled={isRecording || isAiProcessing}
+                        onClick={() => setInputMode('voice')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all duration-200 ${
+                            inputMode === 'voice' 
+                            ? 'bg-white dark:bg-gray-700 shadow-md text-custom-600 dark:text-custom-400 font-bold' 
+                            : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-30'
+                        }`}
+                    >
+                        <FaMicrophone size={14} />
+                        <span className="text-[10px] uppercase tracking-widest">Voice</span>
+                    </button>
+                    <button
+                        disabled={isRecording || isAiProcessing}
+                        onClick={() => setInputMode('text')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all duration-200 ${
+                            inputMode === 'text' 
+                            ? 'bg-white dark:bg-gray-700 shadow-md text-custom-600 dark:text-custom-400 font-bold' 
+                            : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-30'
+                        }`}
+                    >
+                        <FaKeyboard size={14} />
+                        <span className="text-[10px] uppercase tracking-widest">Text</span>
+                    </button>
+                </div>
+
                 {inputMode === 'voice' ? (
                     <>
-                        <div className="flex items-center justify-center gap-6">
+                        <div className="flex items-center justify-center">
                             <button
                                 onClick={toggleRecording}
                                 onContextMenu={(e) => e.preventDefault()}
                                 style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}
-                                className={`p-5 rounded-full shadow-lg transition-all transform hover:scale-105 touch-none select-none ${isRecording
-                                    ? 'bg-red-500 text-white animate-pulse'
-                                    : 'bg-blue-500 text-white hover:bg-blue-600'
-                                    }`}
+                                className={`p-5 rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95 touch-none select-none ${
+                                    isRecording 
+                                        ? 'bg-red-500 text-white animate-pulse ring-8 ring-red-500/20 shadow-red-500/40' 
+                                        : 'bg-custom-500 text-white hover:bg-custom-600 shadow-custom-500/40'
+                                }`}
                                 aria-label={isRecording ? "Tap to stop recording" : "Tap to start recording"}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                                 </svg>
                             </button>
-                            {!isRecording && (
-                                <button
-                                    onClick={() => setInputMode('text')}
-                                    className="p-4 rounded-full shadow-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all touch-none select-none"
-                                    title="Type your message"
-                                >
-                                    <FaKeyboard size={24} />
-                                </button>
-                            )}
                         </div>
 
-                        <div className="mt-4 text-center min-h-12 w-full">
+                        <div className="mt-8 text-center min-h-12 w-full px-4">
                             {isRecording ? (
-                                <p className="text-red-500 font-semibold animate-pulse">Listening... (Tap to stop)</p>
+                                <p className="text-red-500 font-bold animate-pulse tracking-wide uppercase text-xs">Listening... (Tap to stop)</p>
                             ) : userSpeech ? (
                                 <div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">You said:</p>
-                                    <p className="text-lg font-medium text-gray-800 dark:text-gray-200 wrap-break-words">
-                                        {renderHighlightedSpeech(userSpeech)}
-                                    </p>
-                                    <div className="mt-3 flex gap-2 justify-center">
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-2">Speech Preview:</p>
+                                    <p className="text-lg font-medium text-gray-800 dark:text-gray-200 italic mb-6">"{renderHighlightedSpeech(userSpeech)}"</p>
+                                    <div className="flex gap-3 justify-center">
                                         <button
                                             onClick={handleSend}
-                                            className="px-6 py-1 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
+                                            className="px-10 py-2.5 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-all transform active:scale-95"
                                         >
                                             Send
                                         </button>
                                         <button
                                             onClick={() => setUserSpeech('')}
-                                            className="px-6 py-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg shadow hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                                            className="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
                                         >
                                             Clear
                                         </button>
                                     </div>
                                 </div>
                             ) : (
-                                <p className="text-gray-500 dark:text-gray-400 text-sm">Tap the microphone to start speaking</p>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium tracking-wide">Tap the microphone to start speaking</p>
                             )}
                         </div>
                     </>
                 ) : (
                     <div className="w-full relative px-2">
-                        <button
-                            onClick={() => setInputMode('voice')}
-                            className="absolute -top-2 right-0 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors z-10"
-                            title="Switch to voice"
-                        >
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M18 6 6 18" />
-                                <path d="m6 6 12 12" />
-                            </svg>
-                        </button>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 text-left">Type your message:</label>
+                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-3 text-left">Your Message:</label>
                         <textarea
                             value={userSpeech}
                             onChange={(e) => setUserSpeech(e.target.value)}
                             className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none shadow-inner"
                             rows="2"
-                            placeholder="Escribe tu mensaje aquí..."
+                            placeholder="Escribe algo en español..."
                         ></textarea>
-                        <div className="mt-4 flex gap-2 justify-center">
+                        <div className="mt-6 flex gap-3 justify-center">
                             <button
                                 onClick={handleSend}
                                 disabled={!userSpeech.trim() || isAiProcessing}
-                                className="px-6 py-1 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-10 py-2.5 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Send
                             </button>
                             <button
                                 onClick={() => setUserSpeech('')}
-                                className="px-6 py-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold rounded-lg shadow hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                                className="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
                             >
                                 Clear
                             </button>

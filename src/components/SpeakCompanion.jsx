@@ -681,7 +681,7 @@ const SpeakCompanion = () => {
                                 onClick={toggleRecording}
                                 onContextMenu={(e) => e.preventDefault()}
                                 style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}
-                                className={`p-8 rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95 touch-none select-none ${
+                                className={`p-5 rounded-full shadow-2xl transition-all transform hover:scale-105 active:scale-95 touch-none select-none ${
                                     isRecording 
                                         ? 'bg-red-500 text-white animate-pulse ring-8 ring-red-500/20 shadow-red-500/40' 
                                         : 'bg-custom-500 text-white hover:bg-custom-600 shadow-custom-500/40'
