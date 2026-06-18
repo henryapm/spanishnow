@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { useDecksStore } from '../store';
-import { CircularProgress } from './SpeakCompanion';
+import { CircularProgress } from './SpeakCompanion'; // Assuming CircularProgress is still used elsewhere or will be.
 import { BsCheckCircleFill } from 'react-icons/bs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { FaArrowCircleRight, FaFire } from 'react-icons/fa';
@@ -27,6 +27,7 @@ const AccountPage = ({ decks }) => {
     
     {/* fetch SRS */}
     const savedWordsList = useDecksStore((state) => state.savedWordsList);
+    const prepareTrainingDeck = useDecksStore((state) => state.prepareTrainingDeck);
     {/* Fetch settings */}
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
     const updateListeningPreference = useDecksStore((state) => state.updateListeningPreference);
@@ -170,14 +171,25 @@ const AccountPage = ({ decks }) => {
     today.setHours(23, 59, 59, 999); // End of today
     const endOfToday = today.getTime();
 
-    const masteredWords = savedWordsList.filter(w => {
-        return w.stage === 5; // Mastered words are done
+    const dueWords = savedWordsList.filter(w => {
+        if (w.stage >= 5) return false; // Mastered words are done
+        if (!w.nextReviewDate) return true; // Legacy/New words are due
+        return w.nextReviewDate <= endOfToday;
     });
 
-    let count = 0;
-    const dueForReviewWords = savedWordsList.filter(w => {
-        return w.stage < 5;
-    });
+    const handleStartReview = async () => {
+        if (dueWords.length === 0) return;
+        // Take up to 5 words for the quick review session
+        const wordsToReview = dueWords.slice(0, 5).map(w => w.id);
+        await prepareTrainingDeck(wordsToReview);
+        navigate('/review/training');
+    };
+
+     // Determine if there are any words due for review to enable/disable the button
+    const hasDueWords = dueWords.length > 0;
+
+    // Calculate total words being learned (not mastered)
+    const learningWordsCount = savedWordsList.filter(w => w.stage < 5).length;
 
     if (!currentUser) {
         return <div className="text-center dark:text-gray-300">Loading user data...</div>;
@@ -261,6 +273,25 @@ const AccountPage = ({ decks }) => {
                 </div>
             )}
 
+            {/* --- Words Due for Review Section --- */}
+            <div className={`rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4 ${hasDueWords ? 'bg-linear-to-r from-blue-500 to-teal-500' : 'bg-gray-400 dark:bg-gray-700'}`}>
+                <div className="text-center md:text-left">
+                    <h2 className="text-2xl font-bold mb-2">Time to Review!</h2>
+                    {hasDueWords ? (
+                        <p className="mb-1 text-blue-100">You have <span className="font-semibold">{dueWords.length} words</span> due for review.</p>
+                    ) : (
+                        <p className="mb-1 text-gray-200">No words currently due for review. Keep reading!</p>
+                    )}
+                </div>
+                <button 
+                    onClick={handleStartReview}
+                    disabled={!hasDueWords}
+                    className="px-6 py-3 bg-white text-blue-600 font-bold rounded-full shadow-md hover:bg-gray-100 transition-transform transform hover:scale-105 flex items-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Review Now ({Math.min(dueWords.length, 5)}) <FaArrowCircleRight />
+                </button>
+            </div>
+
             {/* --- STATS --- */}
             <div className="flex justify-center my-8">
                 <h1 className="text-4xl font-bold dark:bg-gray-700 p-2 shadow-lg rounded-lg text-centergray-800 dark:text-gray-200 text-center">Your Stats</h1>
@@ -269,7 +300,7 @@ const AccountPage = ({ decks }) => {
                 <div className="flex flex-col justify-center items-center bg-linear-to-b from-purple-400 to-purple-700 p-4 sm:p-6 rounded-xl shadow-md w-full">
                     <h2 className="text-xs sm:text-sm md:text-base font-bold text-gray-800 tracking-widest uppercase mb-2">Learning</h2>
                     <div className="flex flex-col items-center gap-1 text-blue-100">
-                        <span className="font-extrabold text-3xl sm:text-4xl leading-none">{dueForReviewWords.length}</span> 
+                        <span className="font-extrabold text-3xl sm:text-4xl leading-none">{learningWordsCount}</span> 
                         <span className="text-xs sm:text-sm font-medium text-purple-100 uppercase tracking-wide">Words</span>
                     </div>
                 </div>
@@ -297,6 +328,8 @@ const AccountPage = ({ decks }) => {
                     </div>
                 </div>
             </div>
+
+            
             {/* --- Weekly XP Chart --- */}
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Weekly Activity</h2>
