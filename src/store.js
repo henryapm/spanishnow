@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { db, functions } from './firebase';
-import { collection, getDocs, addDoc, doc, updateDoc, getFirestore, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion } from "firebase/firestore";
+import { collection, getDocs, addDoc, doc, updateDoc, getFirestore, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, getAdditionalUserInfo, deleteUser } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 
@@ -16,47 +16,47 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // 1 day
  * Gets the entire cache object from localStorage.
  */
 function getCache() {
-  const cachedData = localStorage.getItem(CACHE_KEY);
-  if (!cachedData) {
-    // Return a default structure if no cache exists
-    return { articles: null, articleDetail: {}, articlesVersion: 0, dictionary: {} };
-  }
-  return JSON.parse(cachedData);
+    const cachedData = localStorage.getItem(CACHE_KEY);
+    if (!cachedData) {
+        // Return a default structure if no cache exists
+        return { articles: null, articleDetail: {}, articlesVersion: 0, dictionary: {} };
+    }
+    return JSON.parse(cachedData);
 }
 
 /**
  * Saves the provided data object to localStorage.
  */
 function setCache(data) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error("Error saving to cache:", error);
-    // This can happen if localStorage is full
-  }
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+    } catch (error) {
+        console.error("Error saving to cache:", error);
+        // This can happen if localStorage is full
+    }
 }
 
 /**
  * Checks if a timestamp is still valid (less than 24 hours old).
  */
 function isCacheValid(timestamp) {
-  if (!timestamp) return false;
-  return (Date.now() - timestamp) < CACHE_DURATION;
+    if (!timestamp) return false;
+    return (Date.now() - timestamp) < CACHE_DURATION;
 }
 
 /**
  * Converts a Map to a JSON-safe string.
  */
 function serializeMap(map) {
-  return JSON.stringify(Array.from(map.entries()));
+    return JSON.stringify(Array.from(map.entries()));
 }
 
 /**
  * Converts a JSON-safe string back into a Map.
  */
 function deserializeMap(jsonString) {
-  if (!jsonString) return new Map();
-  return new Map(JSON.parse(jsonString));
+    if (!jsonString) return new Map();
+    return new Map(JSON.parse(jsonString));
 }
 
 export const useDecksStore = create((set, get) => ({
@@ -68,6 +68,8 @@ export const useDecksStore = create((set, get) => ({
     isAdmin: false,
     tab: 'lessons',
     hasActiveSubscription: false,
+    stripeProducts: [],
+    isProductsLoading: false,
     articles: {},
     isArticlesLoading: false,
     loadingArticleId: null,
@@ -179,8 +181,8 @@ export const useDecksStore = create((set, get) => ({
                 alert("There was a problem saving your review progress. Please try again.");
             }
         } else {
-             // Default behavior for other step transitions
-             set((state) => ({
+            // Default behavior for other step transitions
+            set((state) => ({
                 activeSession: { ...state.activeSession, step: nextStep }
             }));
         }
@@ -211,7 +213,7 @@ export const useDecksStore = create((set, get) => ({
             }
 
             const updateProgressCall = httpsCallable(functions, 'updateMultipleSavedWordProgress');
-            
+
             for (const chunk of chunks) {
                 await updateProgressCall({ wordIds: chunk });
             }
@@ -241,16 +243,21 @@ export const useDecksStore = create((set, get) => ({
 
     listenForAuthChanges: () => {
         if (get().isAuthListenerSet) return;
-        
+
         set({ isAuthListenerSet: true });
-        
+
+        let userDocUnsubscribe = null;
+
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (userDocUnsubscribe) {
+                userDocUnsubscribe();
+                userDocUnsubscribe = null;
+            }
 
             if (user) {
                 const { currentUser, userDataFetched } = get();
-                
+
                 // --- OPTIMIZATION: Prevent redundant reads ---
-                // Firebase Auth fires this event multiple times during sign-in or token refresh.
                 // If it's the same user, just update the auth object and skip the database read!
                 if (currentUser?.uid === user.uid && userDataFetched) {
                     set({ currentUser: user });
@@ -258,11 +265,30 @@ export const useDecksStore = create((set, get) => ({
                 }
 
                 const tokenResult = await user.getIdTokenResult();
-                
-                // --- OPTIMIZATION: Fetch critical user data in parallel ---
-                const [userDocSnap] = await Promise.all([
-                    getDoc(doc(db, 'users', user.uid))
-                ]);
+                const userDocRef = doc(db, 'users', user.uid);
+
+                // Set up realtime sync for user document to catch subscription upgrades instantly
+                userDocUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const userData = docSnap.data();
+                        const subscriptionStatus = userData.hasActiveSubscription === true;
+                        const isFirestoreAdmin = userData.isAdmin === true;
+                        const isTrueAdmin = tokenResult.claims.admin === true || isFirestoreAdmin;
+
+                        set({
+                            hasActiveSubscription: subscriptionStatus,
+                            isAdmin: isTrueAdmin,
+                            listeningPreference: userData.listeningPreference || 'es-US',
+                            totalXp: userData.totalXp || 0,
+                            dailyXp: userData.dailyXp || 0,
+                            streak: userData.streak || 0,
+                            dailyFreeAccess: userData.dailyFreeAccess || null,
+                        });
+                    }
+                });
+
+                // Fetch initial critical user data
+                const userDocSnap = await getDoc(userDocRef);
 
                 let userPreference = 'es-US';
                 let userXp = 0;
@@ -278,7 +304,7 @@ export const useDecksStore = create((set, get) => ({
                 // If so, update it with the browser's timezone. This is a one-time fix.
                 const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 const userData = userDocSnap.exists() ? userDocSnap.data() : null;
-                
+
                 if (userData && (!userData.timezone || userData.timezone !== browserTimezone)) {
                     // --- SECURE FIX: Call a dedicated Cloud Function ---
                     const updateUserTimezoneCall = httpsCallable(functions, 'updateUserTimezone');
@@ -296,7 +322,7 @@ export const useDecksStore = create((set, get) => ({
                     userStreak = userData.streak || 0;
                     subscriptionStatus = userData.hasActiveSubscription === true;
                     isFirestoreAdmin = userData.isAdmin === true;
-                    
+
                     // --- FIX: Race Condition Handling ---
                     // If we have a local record for TODAY, but server has nothing (or old date), 
                     // keep the local version. This prevents the auth listener from overwriting 
@@ -315,7 +341,7 @@ export const useDecksStore = create((set, get) => ({
 
                 const isTrueAdmin = tokenResult.claims.admin === true || isFirestoreAdmin;
                 const isPremium = isTrueAdmin || subscriptionStatus;
-                
+
                 if (!isPremium) {
                     const today = new Date().toLocaleDateString('en-CA');
                     const limitRef = doc(db, 'users', user.uid, 'daily_limits', 'speak');
@@ -328,8 +354,8 @@ export const useDecksStore = create((set, get) => ({
                     });
                 }
 
-                set({ 
-                    currentUser: user, 
+                set({
+                    currentUser: user,
                     userDataFetched: true,
                     isAdmin: isTrueAdmin, // FIX: Only real admins get admin privileges
                     hasActiveSubscription: subscriptionStatus,
@@ -348,21 +374,26 @@ export const useDecksStore = create((set, get) => ({
                 // --- ADDED: Trigger fetch for subcollections after user is set ---
                 get().fetchFinishedArticles();
             } else {
-                set({ 
-                    currentUser: null, 
+                if (userDocUnsubscribe) {
+                    userDocUnsubscribe();
+                    userDocUnsubscribe = null;
+                }
+                set({
+                    currentUser: null,
                     userDataFetched: false,
-                    isAdmin: false, 
-                    progress: {}, 
+                    isAdmin: false,
+                    hasActiveSubscription: false,
+                    progress: {},
                     deckProgress: {},
-                    listeningPreference: 'es-ES', 
+                    listeningPreference: 'es-ES',
                     totalXp: 0,
                     dailyXp: 0,
-                    streak: 0, 
+                    streak: 0,
                     xpHistory: {}, // Clear on logout
-                    dailyFreeAccess: null, 
-                    finishedArticles: new Set(), 
-                    savedWordsLoaded: false, 
-                    savedWordsSet: new Set(), 
+                    dailyFreeAccess: null,
+                    finishedArticles: new Set(),
+                    savedWordsLoaded: false,
+                    savedWordsSet: new Set(),
                     savedWordsList: [],
                     speakProgress: {},
                     interactionCount: 0,
@@ -375,6 +406,10 @@ export const useDecksStore = create((set, get) => ({
         });
 
         return () => {
+            if (userDocUnsubscribe) {
+                userDocUnsubscribe();
+                userDocUnsubscribe = null;
+            }
             unsubscribe();
             set({ isAuthListenerSet: false });
         };
@@ -384,7 +419,7 @@ export const useDecksStore = create((set, get) => ({
         if (!get().isAdmin) return; // Only admins can fetch/update news config 
         try {
             const configDoc = await getDoc(doc(db, 'settings', 'newsApi'));
-            if (configDoc.exists()) { 
+            if (configDoc.exists()) {
                 const data = configDoc.data();
                 const frequency = data.frequency !== undefined ? parseInt(data.frequency, 10) : 24;
                 const topic = data.topic || 'noticias';
@@ -394,7 +429,7 @@ export const useDecksStore = create((set, get) => ({
             console.error("Error fetching news config: ", error);
         }
     },
-    
+
     // --- NEW: Lazy Load Actions ---
     fetchUserProgress: async () => {
         const { currentUser, userProgressLoaded } = get();
@@ -404,7 +439,7 @@ export const useDecksStore = create((set, get) => ({
             const progressSnapshot = await getDocs(collection(db, 'users', currentUser.uid, 'progress'));
             const progressData = {};
             progressSnapshot.forEach(d => { progressData[d.id] = d.data(); });
-            
+
             set({ progress: progressData, deckProgress: progressData, userProgressLoaded: true });
         } catch (error) {
             console.error("Error fetching user progress:", error.message);
@@ -432,7 +467,7 @@ export const useDecksStore = create((set, get) => ({
             );
 
             const querySnapshot = await getDocs(historyQuery);
-            
+
             const newXpHistory = {};
             querySnapshot.forEach(doc => {
                 newXpHistory[doc.id] = doc.data().xp || 0;
@@ -505,7 +540,7 @@ export const useDecksStore = create((set, get) => ({
         if (!result.streakUpdated) {
             return; // Do nothing else if the streak wasn't extended today
         }
-        
+
         const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
 
         // Check if we should show the notification for the first time today
@@ -548,7 +583,7 @@ export const useDecksStore = create((set, get) => ({
             const previousFinishedArticles = new Set(finishedArticles);
             const previousTotalXp = totalXp;
             const previousStep = activeSession.step;
-            
+
             // Optimistic update
             const newFinishedArticles = new Set(finishedArticles).add(articleId);
             set({ finishedArticles: newFinishedArticles, totalXp: totalXp + 10 });
@@ -560,7 +595,7 @@ export const useDecksStore = create((set, get) => ({
                     step: 'review',
                 }
             }));
-            
+
             try {
                 const markFinishedCall = httpsCallable(functions, 'markArticleAsFinished');
                 const result = await markFinishedCall({ articleId });
@@ -592,9 +627,9 @@ export const useDecksStore = create((set, get) => ({
     fetchSavedWords: async (force = false) => {
         const { currentUser, savedWordsLoaded } = get();
         if (!currentUser) return;
-        
+
         if (savedWordsLoaded && !force) return;
-        
+
         try {
             // 1. Fetch the user's saved words (IDs, addedAt, active)
             const q = query(
@@ -603,7 +638,7 @@ export const useDecksStore = create((set, get) => ({
                 orderBy("addedAt", "desc")
             );
             const savedWordsSnapshot = await getDocs(q);
-            
+
             const wordsSet = new Set();
             const wordsToTranslate = [];
             const savedWordDataMap = new Map(); // Store temp data
@@ -685,7 +720,7 @@ export const useDecksStore = create((set, get) => ({
         }
 
         const isRemoving = savedWordsSet.has(spanishWord);
-        
+
         // Backups for potential rollback if the server fails
         const previousSavedWordsSet = new Set(savedWordsSet);
         const previousSavedWordsList = [...savedWordsList];
@@ -698,13 +733,13 @@ export const useDecksStore = create((set, get) => ({
             newSavedWordsSet.delete(spanishWord);
             const newList = savedWordsList.filter(w => w.id !== spanishWord);
             set({ savedWordsSet: newSavedWordsSet, savedWordsList: newList });
-            
+
             if (get().activeSession.isActive) {
                 set(state => ({ activeSession: { ...state.activeSession, wordsSavedInSession: state.activeSession.wordsSavedInSession.filter(w => w !== spanishWord) } }));
             }
         } else {
             newSavedWordsSet.add(spanishWord);
-            const newWordData = { 
+            const newWordData = {
                 active: true,
                 stage: 0,
                 translation: data.translation || '',
@@ -713,7 +748,7 @@ export const useDecksStore = create((set, get) => ({
             };
             const newItem = { id: spanishWord, ...newWordData };
             set({ savedWordsSet: newSavedWordsSet, savedWordsList: [newItem, ...savedWordsList] });
-            
+
             if (get().activeSession.isActive) {
                 set(state => ({ activeSession: { ...state.activeSession, wordsSavedInSession: [...state.activeSession.wordsSavedInSession, spanishWord] } }));
             }
@@ -731,13 +766,13 @@ export const useDecksStore = create((set, get) => ({
             });
         } catch (error) {
             console.error("Error toggling saved word: ", error);
-            
+
             // 3. Rollback the UI if the server fails
             set({ savedWordsSet: previousSavedWordsSet, savedWordsList: previousSavedWordsList });
             if (get().activeSession.isActive) {
                 set(state => ({ activeSession: { ...state.activeSession, wordsSavedInSession: previousActiveSessionWords } }));
             }
-            
+
             alert("Could not save word. Please try again.");
         }
     },
@@ -746,7 +781,7 @@ export const useDecksStore = create((set, get) => ({
     addCardToSRS: async (card, deckTitle) => {
         const { currentUser, savedWordsSet } = get();
         if (!currentUser) return;
-        
+
         const spanish = card.spanish;
         if (!spanish) return;
 
@@ -772,7 +807,7 @@ export const useDecksStore = create((set, get) => ({
     updateSavedWordProgress: async (wordId) => {
         const { currentUser, savedWordsList, totalXp, activeSession } = get();
         if (!currentUser) return;
-        
+
         // Backup for potential rollback
         const previousSavedWordsList = [...savedWordsList];
         const previousTotalXp = totalXp;
@@ -780,11 +815,11 @@ export const useDecksStore = create((set, get) => ({
         const previousSrsWordsToUpdate = activeSession.srsWordsToUpdate || [];
         const previousStandaloneWordsToUpdate = get().standaloneSrsWordsToUpdate || [];
         const previousStandaloneXp = get().standaloneSrsXp || 0;
-        
+
         try {
             // Optimization: Use local state instead of fetching the doc again
             const wordData = savedWordsList.find(w => w.id === wordId);
-            
+
             if (wordData) {
                 let stage = wordData.stage || 0;
                 let nextReviewTime = Date.now();
@@ -806,15 +841,15 @@ export const useDecksStore = create((set, get) => ({
                 } else if (stage >= 4) {
                     stage = 5; // Mastered
                 }
-                
-                
+
+
                 // Optimistic Update: Update local state directly without re-fetching everything
                 const newList = savedWordsList.map(w => (
                     w.id === wordId ? { ...w, stage, nextReviewDate: nextReviewTime } : w
                 ));
 
                 const xpForSrs = 2;
-                
+
                 if (activeSession.isActive) {
                     set({
                         savedWordsList: newList,
@@ -848,16 +883,16 @@ export const useDecksStore = create((set, get) => ({
     resetSavedWordProgress: async (wordId) => {
         const { currentUser, savedWordsList } = get();
         if (!currentUser) return;
-        
+
         // Backup for potential rollback
         const previousSavedWordsList = [...savedWordsList];
-        
+
         try {
             // Reset to stage 0, due immediately
             const now = Date.now();
-            
+
             // Optimistic Update
-            const newList = savedWordsList.map(w => 
+            const newList = savedWordsList.map(w =>
                 w.id === wordId ? { ...w, stage: 0, nextReviewDate: now } : w
             );
             set({ savedWordsList: newList });
@@ -867,7 +902,7 @@ export const useDecksStore = create((set, get) => ({
             await resetProgressCall({ wordId });
         } catch (error) {
             console.error("Error resetting word progress:", error);
-            
+
             // Rollback UI if the server request fails
             set({ savedWordsList: previousSavedWordsList });
             alert("Could not reset progress. Please try again.");
@@ -881,7 +916,7 @@ export const useDecksStore = create((set, get) => ({
         const savedMap = new Map(savedWordsList.map(w => [w.id, w]));
         const translations = new Map();
         const chunks = [];
-        
+
         // Chunk the words for Firestore 'in' query
         for (let i = 0; i < wordsToStudy.length; i += 30) {
             chunks.push(wordsToStudy.slice(i, i + 30));
@@ -893,7 +928,7 @@ export const useDecksStore = create((set, get) => ({
                 collection(db, "dictionary"),
                 where(documentId(), 'in', chunk)
             );
-            
+
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach((doc) => {
                 const dictData = doc.data();
@@ -903,7 +938,7 @@ export const useDecksStore = create((set, get) => ({
                 });
             });
         }
-        
+
         // Build the deck object in the format your LessonsView expects
         const trainingCards = wordsToStudy.map(word => {
             const savedData = savedMap.get(word);
@@ -926,23 +961,23 @@ export const useDecksStore = create((set, get) => ({
 
         set({ trainingDeck: virtualDeck, isLoading: false });
     },
-    
+
     updateListeningPreference: async (pref) => {
         const { currentUser, listeningPreference } = get();
         if (!currentUser) return;
-        
+
         // Backup for potential rollback
         const previousPreference = listeningPreference;
-        
+
         try {
             // Optimistic update
             set({ listeningPreference: pref });
-            
+
             // Perform secure network request
             const updatePrefCall = httpsCallable(functions, 'updateListeningPreference');
             await updatePrefCall({ preference: pref });
-        } catch (error) { 
-            console.error("Error updating listening preference: ", error); 
+        } catch (error) {
+            console.error("Error updating listening preference: ", error);
             // Rollback UI if the server request fails
             set({ listeningPreference: previousPreference });
             alert("Could not update preference. Please try again.");
@@ -966,7 +1001,7 @@ export const useDecksStore = create((set, get) => ({
             throw error;
         }
     },
-    
+
     signOutUser: async () => {
         try { await signOut(auth); } catch (error) { console.error("Error during sign-out: ", error); }
     },
@@ -1014,14 +1049,56 @@ export const useDecksStore = create((set, get) => ({
         try {
             const fetchStatsCall = httpsCallable(functions, 'getUserStats');
             const result = await fetchStatsCall();
-            set({ 
-                userStats: { total: result.data.totalUsers, premium: result.data.premiumUsers }, 
+            set({
+                userStats: { total: result.data.totalUsers, premium: result.data.premiumUsers },
                 isUsersLoading: false,
                 userStatsLoaded: true
             });
         } catch (error) {
             console.error("Error fetching user stats: ", error);
             set({ isUsersLoading: false });
+        }
+    },
+
+    fetchStripeProducts: async () => {
+        const { stripeProducts, isProductsLoading } = get();
+        if (stripeProducts.length > 0 || isProductsLoading) return;
+
+        set({ isProductsLoading: true });
+        try {
+            const productsCol = collection(db, 'products');
+            const productsSnap = await getDocs(productsCol);
+
+            const productsList = [];
+            for (const docObj of productsSnap.docs) {
+                const productData = docObj.data();
+
+                // Fetch only active prices under this product
+                const pricesCol = collection(db, 'products', docObj.id, 'prices');
+                const pricesSnap = await getDocs(query(pricesCol, where('active', '==', true)));
+
+                const prices = pricesSnap.docs.map(priceDoc => {
+                    const priceData = priceDoc.data();
+                    return {
+                        id: priceDoc.id,
+                        ...priceData
+                    };
+                });
+
+                // Only include the product if it has at least one active pricing plan
+                if (prices.length > 0) {
+                    productsList.push({
+                        id: docObj.id,
+                        ...productData,
+                        prices
+                    });
+                }
+            }
+
+            set({ stripeProducts: productsList, isProductsLoading: false });
+        } catch (error) {
+            console.error("Error fetching Stripe products/prices from Firestore:", error);
+            set({ isProductsLoading: false });
         }
     },
 
@@ -1032,7 +1109,7 @@ export const useDecksStore = create((set, get) => ({
 
         set({ isLoading: true, isArticlesLoading: true });
         const cache = getCache();
-        
+
         try {
             // 1. Fetch the remote metadata version
             const metadataRef = doc(db, 'appInfo', 'metadata');
@@ -1045,7 +1122,7 @@ export const useDecksStore = create((set, get) => ({
             if (cache.articles && localArticlesVersion === remoteArticlesVersion && isCacheValid(cache.articles.timestamp)) {
                 // Cache is valid and version matches, use cache
                 set({ articles: cache.articles.data, isLoading: false, isArticlesLoading: false });
-                return; 
+                return;
             }
 
             // 3. Cache is stale or invalid. Fetch from Firestore.
@@ -1091,7 +1168,7 @@ export const useDecksStore = create((set, get) => ({
             ]);
 
             const fetchedScenarios = scenariosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
+
             let instructions = '';
             if (promptsDoc.exists()) {
                 instructions = promptsDoc.data().scenariosAiInstructions || '';
@@ -1116,20 +1193,20 @@ export const useDecksStore = create((set, get) => ({
         if (!normalizedWord) return;
 
         const { activeArticleTranslations } = get();
-        
+
         // If we already have it in memory, skip the network request
         if (activeArticleTranslations.has(normalizedWord)) return;
 
         try {
             const wordRef = doc(db, 'dictionary', normalizedWord);
             const wordSnap = await getDoc(wordRef);
-            
+
             const dictData = wordSnap.data();
-            const translation = wordSnap.exists() 
-                ? { 
+            const translation = wordSnap.exists()
+                ? {
                     translation: dictData.english || dictData.translation,
                     examples: dictData.examples || []
-                  } 
+                }
                 : "No translation found";
 
             set(state => {
@@ -1146,13 +1223,13 @@ export const useDecksStore = create((set, get) => ({
     fetchArticleTranslationsForAdmin: async (articleText) => {
         if (!articleText) return;
         const { activeArticleTranslations } = get();
-        
+
         const matchedWords = articleText.toLowerCase().match(/[\p{L}]+/gu);
         const uniqueWords = [...new Set(matchedWords || [])];
-        
+
         // Filter words that are not yet in the map
         const wordsToFetch = uniqueWords.filter(w => !activeArticleTranslations.has(w));
-        
+
         if (wordsToFetch.length === 0) return;
 
         const chunks = [];
@@ -1163,13 +1240,13 @@ export const useDecksStore = create((set, get) => ({
         // Optimistic update: assume missing until found
         const newTranslations = new Map(activeArticleTranslations);
         wordsToFetch.forEach(w => newTranslations.set(w, "No translation found"));
-        
+
         for (const chunk of chunks) {
             const q = query(
                 collection(db, "dictionary"),
                 where(documentId(), 'in', chunk)
             );
-            
+
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach((doc) => {
                 const dictData = doc.data();
@@ -1179,7 +1256,7 @@ export const useDecksStore = create((set, get) => ({
                 });
             });
         }
-        
+
         set({ activeArticleTranslations: newTranslations });
     },
 
@@ -1203,9 +1280,9 @@ export const useDecksStore = create((set, get) => ({
             if (cachedDetail && localArticlesVersion === remoteArticlesVersion && isCacheValid(cachedDetail.timestamp)) {
                 const articleData = cachedDetail.data;
                 const translations = deserializeMap(cachedDetail.translations);
-                
+
                 set((state) => {
-                    const updates = { 
+                    const updates = {
                         articles: { ...state.articles, [articleId]: articleData },
                         activeArticleTranslations: translations,
                     };
@@ -1215,7 +1292,7 @@ export const useDecksStore = create((set, get) => ({
                     }
                     return updates;
                 });
-                return; 
+                return;
             }
 
             // 3. Cache is stale, fetch from Firestore
@@ -1224,7 +1301,7 @@ export const useDecksStore = create((set, get) => ({
 
             if (articleSnap.exists()) {
                 const articleData = articleSnap.data();
-                
+
                 // Reset translations map for the new article
                 set({ activeArticleTranslations: new Map() });
                 const translations = new Map();
@@ -1233,14 +1310,14 @@ export const useDecksStore = create((set, get) => ({
                 cache.articleDetail[articleId] = {
                     timestamp: Date.now(),
                     data: articleData,
-                    translations: serializeMap(translations) 
+                    translations: serializeMap(translations)
                 };
                 // Ensure the main cache version is also updated
                 cache.articlesVersion = remoteArticlesVersion;
                 setCache(cache);
-                
+
                 set((state) => {
-                    const updates = { 
+                    const updates = {
                         articles: { ...state.articles, [articleId]: articleData },
                     };
                     if (state.loadingArticleId === articleId) {
@@ -1264,7 +1341,7 @@ export const useDecksStore = create((set, get) => ({
         try {
             const saveDeckCall = httpsCallable(functions, 'saveDeck');
             await saveDeckCall({ deckData, deckId });
-            
+
             // Optionally force clear the decks cache here if fetchDecks isn't updating it
             set({ decks: {} });
             await get().fetchDecks();
@@ -1278,7 +1355,7 @@ export const useDecksStore = create((set, get) => ({
         try {
             const saveArticleCall = httpsCallable(functions, 'saveArticle');
             await saveArticleCall({ articleData, articleId });
-            
+
             // Invalidate caches so the UI fetches the fresh article
             const cache = getCache();
             if (articleId && cache.articleDetail) {
@@ -1316,7 +1393,7 @@ export const useDecksStore = create((set, get) => ({
         try {
             const saveWordCall = httpsCallable(functions, 'saveWord');
             await saveWordCall({ wordData: { spanish: spanishWord, translation: newTranslation } });
-    
+
             set(state => {
                 const newTranslations = new Map(state.activeArticleTranslations);
                 newTranslations.set(spanishWord, newTranslation);
@@ -1328,7 +1405,7 @@ export const useDecksStore = create((set, get) => ({
             cache.articleDetail = {}; // Clear all detailed article caches
             cache.articlesVersion = 0; // Force-invalidate the main article list
             setCache(cache);
-            
+
         } catch (error) {
             console.error("Error saving word translation: ", error);
             alert("Failed to save translation. Please try again.");

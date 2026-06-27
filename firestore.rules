@@ -59,6 +59,21 @@ service cloud.firestore {
         allow read: if request.auth.uid == userId;
         allow write: if false;
       }
+
+      // STRIPE EXTENSION: Allow users to create and read their checkout sessions
+      match /checkout_sessions/{id} {
+        allow create, read, update: if request.auth.uid == userId;
+      }
+
+      // STRIPE EXTENSION: Allow users to create and read portal sessions
+      match /portal_sessions/{id} {
+        allow create, read: if request.auth.uid == userId;
+      }
+
+      // STRIPE EXTENSION: Allow users to read their own subscription status
+      match /subscriptions/{id} {
+        allow read: if request.auth.uid == userId;
+      }
     }
     
     // --- GLOBAL COLLECTIONS ---
@@ -90,6 +105,14 @@ service cloud.firestore {
     
     match /settings/{settingDoc} {
       allow read, write: if isAdmin();
+    }
+
+    // STRIPE EXTENSION: Allow anyone to view products and prices
+    match /products/{id} {
+      allow read: if true;
+      match /prices/{id} {
+        allow read: if true;
+      }
     }
   }
 }

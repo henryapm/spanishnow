@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { useDecksStore } from '../store';
+import { db, functions } from '../firebase';
+import { collection, addDoc, onSnapshot } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { CircularProgress } from './SpeakCompanion'; // Assuming CircularProgress is still used elsewhere or will be.
 import { BsCheckCircleFill } from 'react-icons/bs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -8,27 +11,27 @@ import { FaArrowCircleRight, FaFire } from 'react-icons/fa';
 
 const AccountPage = ({ decks }) => {
     const navigate = useNavigate();
-    
+
     const currentUser = useDecksStore((state) => state.currentUser);
-    {/* Fetch Scenarios */}
+    {/* Fetch Scenarios */ }
     const scenarios = useDecksStore((state) => state.scenarios);
     const userProgress = useDecksStore((state) => state.speakProgress);
     const fetchScenarios = useDecksStore((state) => state.fetchScenarios);
     const fetchSpeakProgress = useDecksStore((state) => state.fetchSpeakProgress);
-    {/* Fetch everything for articles */}
+    {/* Fetch everything for articles */ }
     const fetchArticles = useDecksStore((state) => state.fetchArticles);
     const articles = useDecksStore((state) => state.articles);
-    
+
     const finishedArticles = useDecksStore((state) => state.finishedArticles);
     const xpHistory = useDecksStore((state) => state.xpHistory);
     const totalXp = useDecksStore((state) => state.totalXp);
     const fetchXpHistory = useDecksStore((state) => state.fetchXpHistory);
     const streak = useDecksStore((state) => state.streak);
-    
-    {/* fetch SRS */}
+
+    {/* fetch SRS */ }
     const savedWordsList = useDecksStore((state) => state.savedWordsList);
     const prepareTrainingDeck = useDecksStore((state) => state.prepareTrainingDeck);
-    {/* Fetch settings */}
+    {/* Fetch settings */ }
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
     const updateListeningPreference = useDecksStore((state) => state.updateListeningPreference);
     const theme = useDecksStore((state) => state.theme);
@@ -46,7 +49,68 @@ const AccountPage = ({ decks }) => {
     const deleteUserAccount = useDecksStore((state) => state.deleteUserAccount);
     const signOutUser = useDecksStore((state) => state.signOutUser);
 
-    {/* --- Calculate the sentences and words read on the finished articles --- */}
+    // --- Stripe Payments Integration State ---
+    const fetchStripeProducts = useDecksStore((state) => state.fetchStripeProducts);
+    const stripeProducts = useDecksStore((state) => state.stripeProducts);
+    const isProductsLoading = useDecksStore((state) => state.isProductsLoading);
+    const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [portalLoading, setPortalLoading] = useState(false);
+
+    const handleUpgrade = async (priceId) => {
+        if (checkoutLoading) return;
+        setCheckoutLoading(true);
+        try {
+            const checkoutSessionsRef = collection(db, 'users', currentUser.uid, 'checkout_sessions');
+            const docRef = await addDoc(checkoutSessionsRef, {
+                price: priceId,
+                success_url: window.location.origin + '/?checkout=success',
+                cancel_url: window.location.origin + '/?checkout=cancel'
+            });
+
+            // Listen for the redirect URL to be written by the Stripe extension
+            const unsubscribeDoc = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.url) {
+                        unsubscribeDoc();
+                        window.location.href = data.url;
+                    } else if (data.error) {
+                        unsubscribeDoc();
+                        console.error("Stripe session creation error:", data.error);
+                        alert(`Stripe Error: ${data.error.message || 'Failed to initiate checkout.'}`);
+                        setCheckoutLoading(false);
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Error creating checkout session:", error);
+            alert("Failed to start upgrade flow. Please try again.");
+            setCheckoutLoading(false);
+        }
+    };
+
+    const handleManageSubscription = async () => {
+        if (portalLoading) return;
+        setPortalLoading(true);
+        try {
+            const createPortalLink = httpsCallable(functions, 'ext-firestore-stripe-payments-createPortalLink');
+            const { data } = await createPortalLink({
+                returnUrl: window.location.origin + '/accountPage'
+            });
+
+            if (data?.url) {
+                window.location.href = data.url;
+            } else {
+                throw new Error("No billing portal URL was returned.");
+            }
+        } catch (error) {
+            console.error("Error opening billing portal:", error);
+            alert(`Failed to open billing portal: ${error.message || 'Please try again.'}`);
+            setPortalLoading(false);
+        }
+    };
+
+    {/* --- Calculate the sentences and words read on the finished articles --- */ }
     const { wordsRead, sentencesRead, articlesRead } = useMemo(() => {
         let wordCount = 0;
         let sentenceCount = 0;
@@ -65,7 +129,7 @@ const AccountPage = ({ decks }) => {
         return { wordsRead: wordCount, sentencesRead: sentenceCount, articlesRead: articleCount };
     }, [articles, finishedArticles]);
 
-    {/* --- NEW: Calculate completed scenarios --- */}
+    {/* --- NEW: Calculate completed scenarios --- */ }
     const scenariosCompleted = useMemo(() => {
         let count = 0;
         scenarios.forEach(scenario => {
@@ -78,7 +142,7 @@ const AccountPage = ({ decks }) => {
         });
         return count;
     }, [scenarios, userProgress]);
-    
+
     const levelOrder = { 'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 6 };
     const getLevelValue = (level) => levelOrder[level?.toUpperCase()] || 99;
 
@@ -92,7 +156,7 @@ const AccountPage = ({ decks }) => {
                 if (diff !== 0) return diff;
                 return (a.title || "").localeCompare(b.title || "");
             });
-        
+
         return availableArticles.length > 0 ? availableArticles[0] : null;
     }, [articles, finishedArticles, isPremium]);
 
@@ -109,7 +173,7 @@ const AccountPage = ({ decks }) => {
 
     const handlePreferenceChange = (e) => {
         const newPreference = e.target.value;
-        updateListeningPreference(newPreference); 
+        updateListeningPreference(newPreference);
     };
 
     // --- NEW: Handle Account Deletion ---
@@ -117,7 +181,7 @@ const AccountPage = ({ decks }) => {
         if (deleteConfirmation.toLowerCase() !== 'delete') return;
         setIsDeleting(true);
         const result = await deleteUserAccount();
-        
+
         if (result.success) {
             // Firebase automatically triggers onAuthStateChanged which handles the logout
             setShowDeleteModal(false);
@@ -137,6 +201,12 @@ const AccountPage = ({ decks }) => {
         fetchSpeakProgress();
         fetchXpHistory();
     }, [fetchScenarios, fetchSpeakProgress, fetchXpHistory]);
+
+    useEffect(() => {
+        if (!isPremium) {
+            fetchStripeProducts();
+        }
+    }, [isPremium, fetchStripeProducts]);
 
     useEffect(() => {
         const lastFetch = sessionStorage.getItem('articles_last_fetch');
@@ -185,7 +255,7 @@ const AccountPage = ({ decks }) => {
         navigate('/review/training');
     };
 
-     // Determine if there are any words due for review to enable/disable the button
+    // Determine if there are any words due for review to enable/disable the button
     const hasDueWords = dueWords.length > 0;
 
     // Calculate total words being learned (not mastered)
@@ -202,7 +272,7 @@ const AccountPage = ({ decks }) => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 relative transform transition-all">
                         <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Delete Account</h2>
-                        
+
                         <div className="space-y-4">
                             <div className="p-3 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 rounded-lg font-semibold text-sm border border-red-200 dark:border-red-800">
                                 Warning: This action is irreversible. All your progress, XP, streaks, and saved words will be permanently lost.
@@ -210,7 +280,7 @@ const AccountPage = ({ decks }) => {
                             <p className="text-gray-700 dark:text-gray-300 text-sm">
                                 To confirm, please type <strong>delete</strong> in the box below:
                             </p>
-                            <input 
+                            <input
                                 type="text"
                                 value={deleteConfirmation}
                                 onChange={(e) => setDeleteConfirmation(e.target.value)}
@@ -219,14 +289,14 @@ const AccountPage = ({ decks }) => {
                                 disabled={isDeleting}
                             />
                             <div className="flex justify-end gap-3 mt-6">
-                                <button 
+                                <button
                                     onClick={() => !isDeleting && setShowDeleteModal(false)}
                                     disabled={isDeleting}
                                     className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white font-semibold transition-colors"
                                 >
                                     Cancel
                                 </button>
-                                <button 
+                                <button
                                     onClick={handleDeleteAccount}
                                     disabled={deleteConfirmation.toLowerCase() !== 'delete' || isDeleting}
                                     className="px-6 py-2 bg-red-600 text-white font-bold rounded-xl shadow-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -253,7 +323,7 @@ const AccountPage = ({ decks }) => {
                 </div>
                 <h1 className="text-3xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 pr-2">Hi {currentUser.displayName.split(' ')[0]}!</h1>
             </div>
-            
+
             {nextArticle && (
                 <div className="bg-linear-to-r from-red-500 to-purple-500 rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="text-center md:text-left">
@@ -261,7 +331,7 @@ const AccountPage = ({ decks }) => {
                         <p className="mb-1 text-blue-100">Your next recommended article is waiting:</p>
                         <p className="font-semibold text-lg">"{nextArticle.title}" <span className="text-sm bg-white/20 px-2 py-0.5 rounded ml-2">{nextArticle.level}</span></p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => {
                             startSession(nextArticle.id);
                             navigate('/lesson');
@@ -283,13 +353,118 @@ const AccountPage = ({ decks }) => {
                         <p className="mb-1 text-gray-200">No words currently due for review. Keep reading!</p>
                     )}
                 </div>
-                <button 
+                <button
                     onClick={handleStartReview}
                     disabled={!hasDueWords}
                     className="px-6 py-3 bg-white text-blue-600 font-bold rounded-full shadow-md hover:bg-gray-100 transition-transform transform hover:scale-105 flex items-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     Review Now ({Math.min(dueWords.length, 5)}) <FaArrowCircleRight />
                 </button>
+            </div>
+
+            {/* --- Billing & Subscription Section --- */}
+            <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8 transition-all hover:shadow-lg">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                    <span role="img" aria-label="crown">👑</span> Premium Subscription
+                </h2>
+
+                {isPremium ? (
+                    <div>
+                        <div className="bg-linear-to-r from-yellow-500/20 to-amber-500/20 dark:from-yellow-500/10 dark:to-amber-500/10 border border-yellow-300 dark:border-yellow-600/30 rounded-xl p-4 mb-4">
+                            <p className="text-gray-800 dark:text-gray-200 font-semibold mb-1">The Spanish Suite PRO Active</p>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                Thank you for being a Premium subscriber! You have unlimited access to lessons, flashcards, and the AI conversation Sandbox.
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleManageSubscription}
+                            disabled={portalLoading}
+                            className="w-full py-3 bg-gray-800 hover:bg-gray-900 dark:bg-gray-600 dark:hover:bg-gray-500 text-white font-bold rounded-xl shadow transition-all transform active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {portalLoading ? (
+                                <>
+                                    <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                    Opening Portal...
+                                </>
+                            ) : (
+                                'Manage Billing & Subscription'
+                            )}
+                        </button>
+                    </div>
+                ) : (
+                    <div>
+                        <div className="bg-linear-to-r from-red-500/10 to-purple-500/10 border border-gray-200 dark:border-gray-600 rounded-xl p-5 mb-6">
+                            <p className="text-gray-800 dark:text-gray-200 font-bold text-lg mb-2">Upgrade to SpanishNow PRO</p>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                                Take your learning to the next level with full, unrestricted access to the entire app:
+                            </p>
+                            <ul className="space-y-2 mb-4 text-sm text-gray-700 dark:text-gray-300">
+                                <li className="flex items-center gap-2">
+                                    <BsCheckCircleFill className="text-green-500 shrink-0" />
+                                    <span>Unlimited AI Sandbox conversations & scenarios</span>
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <BsCheckCircleFill className="text-green-500 shrink-0" />
+                                    <span>Premium reading library with advanced stories</span>
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <BsCheckCircleFill className="text-green-500 shrink-0" />
+                                    <span>Unlimited saved words in Spaced Repetition deck</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {isProductsLoading ? (
+                            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                                <span className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin inline-block mr-2 align-middle"></span>
+                                Loading premium offers...
+                            </div>
+                        ) : stripeProducts.length === 0 ? (
+                            <div className="text-center py-4 text-yellow-600 dark:text-yellow-400 text-sm bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-100 dark:border-yellow-900/30 rounded-xl">
+                                No premium products available at the moment. Please check back later!
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {stripeProducts.map((product) => {
+                                    const activePrice = product.prices?.[0];
+                                    if (!activePrice) return null;
+
+                                    const currencySymbol = activePrice.currency?.toUpperCase() === 'USD' ? '$' : activePrice.currency?.toUpperCase();
+                                    const priceAmount = (activePrice.unit_amount / 100).toFixed(2);
+                                    const intervalLabel = activePrice.interval === 'month' ? 'month' : activePrice.interval === 'year' ? 'year' : activePrice.interval;
+
+                                    return (
+                                        <div key={product.id} className="border border-custom-200 dark:border-gray-600 rounded-xl p-4 bg-custom-50/50 dark:bg-gray-800/40 flex flex-col justify-between items-center sm:flex-row gap-4">
+                                            <div className="text-center sm:text-left">
+                                                <h3 className="font-bold text-gray-800 dark:text-gray-100">{product.name}</h3>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">{product.description || 'Full premium access'}</p>
+                                            </div>
+                                            <div className="flex flex-col items-center sm:items-end gap-2 shrink-0">
+                                                <span className="font-extrabold text-2xl text-gray-800 dark:text-gray-200">
+                                                    {currencySymbol}{priceAmount} <span className="text-xs font-normal text-gray-500 dark:text-gray-400">/ {intervalLabel}</span>
+                                                </span>
+                                                <button
+                                                    onClick={() => handleUpgrade(activePrice.id)}
+                                                    disabled={checkoutLoading}
+                                                    className="px-6 py-2.5 bg-linear-to-r from-red-500 to-purple-600 hover:from-red-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-md transition-all transform active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                                >
+                                                    {checkoutLoading ? (
+                                                        <>
+                                                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                                            Redirecting...
+                                                        </>
+                                                    ) : (
+                                                        'Subscribe Now'
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* --- STATS --- */}
@@ -300,21 +475,21 @@ const AccountPage = ({ decks }) => {
                 <div className="flex flex-col justify-center items-center bg-linear-to-b from-purple-400 to-purple-700 p-4 sm:p-6 rounded-xl shadow-md w-full">
                     <h2 className="text-xs sm:text-sm md:text-base font-bold text-gray-800 tracking-widest uppercase mb-2">Learning</h2>
                     <div className="flex flex-col items-center gap-1 text-blue-100">
-                        <span className="font-extrabold text-3xl sm:text-4xl leading-none">{learningWordsCount}</span> 
+                        <span className="font-extrabold text-3xl sm:text-4xl leading-none">{learningWordsCount}</span>
                         <span className="text-xs sm:text-sm font-medium text-purple-100 uppercase tracking-wide">Words</span>
                     </div>
                 </div>
                 <div className="flex flex-col justify-center items-center bg-linear-to-b from-sky-500 to-blue-700 p-4 sm:p-6 rounded-xl shadow-md w-full">
                     <h2 className="text-xs sm:text-sm md:text-base font-bold text-gray-800 tracking-widest uppercase mb-2">Read</h2>
                     <div className="flex flex-col items-center gap-1 text-blue-100">
-                        <span className="font-extrabold text-3xl sm:text-4xl leading-none">{wordsRead}</span> 
+                        <span className="font-extrabold text-3xl sm:text-4xl leading-none">{wordsRead}</span>
                         <span className="text-xs sm:text-sm font-medium text-blue-100 uppercase tracking-wide">Words</span>
                     </div>
                 </div>
                 <div className="flex flex-col justify-center items-center bg-linear-to-b from-green-500 to-green-900 p-4 sm:p-6 rounded-xl shadow-md w-full">
                     <h2 className="text-xs sm:text-sm md:text-base font-bold text-gray-800 tracking-widest uppercase mb-2">Completed</h2>
                     <div className="flex flex-col items-center gap-1 text-green-100">
-                        <span className="font-extrabold text-3xl sm:text-4xl leading-none">{scenariosCompleted}</span> 
+                        <span className="font-extrabold text-3xl sm:text-4xl leading-none">{scenariosCompleted}</span>
                         <span className="text-xs sm:text-sm font-medium text-green-100 uppercase tracking-wide">Roles</span>
                     </div>
                 </div>
@@ -323,13 +498,13 @@ const AccountPage = ({ decks }) => {
                     <div className="flex flex-col items-center gap-1 text-orange-100">
                         <span className="inline-flex items-center font-extrabold text-3xl sm:text-4xl leading-none gap-2">
                             {streak} <FaFire className="text-2xl sm:text-3xl text-orange-300" />
-                        </span> 
-                        <span className="text-xs sm:text-sm font-medium text-orange-100 uppercase tracking-wide">Days</span> 
+                        </span>
+                        <span className="text-xs sm:text-sm font-medium text-orange-100 uppercase tracking-wide">Days</span>
                     </div>
                 </div>
             </div>
 
-            
+
             {/* --- Weekly XP Chart --- */}
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Weekly Activity</h2>
@@ -355,7 +530,6 @@ const AccountPage = ({ decks }) => {
                 </div>
             </div>
 
-
             {/* --- Settings Section --- */}
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Settings</h2>
@@ -371,7 +545,7 @@ const AccountPage = ({ decks }) => {
 
                 <div className="flex items-center justify-between">
                     <label htmlFor="listening-preference" className="font-bold text-gray-700 dark:text-gray-300">Listening Accent</label>
-                    <select 
+                    <select
                         id="listening-preference"
                         value={listeningPreference}
                         onChange={handlePreferenceChange}
