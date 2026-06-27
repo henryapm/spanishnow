@@ -529,7 +529,6 @@ const AccountPage = ({ decks }) => {
                     </ResponsiveContainer>
                 </div>
             </div>
-
             {/* --- Settings Section --- */}
             <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Settings</h2>
