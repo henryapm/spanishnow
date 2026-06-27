@@ -1,4 +1,4 @@
-const Modal = ({ isOpen, onClose, title, children }) => {
+const Modal = ({ isOpen, onClose, title, children, footer }) => {
     if (!isOpen) return null;
 
     return (
@@ -24,13 +24,15 @@ const Modal = ({ isOpen, onClose, title, children }) => {
                     {children}
                 </div>
                 
-                <div className="flex justify-end">
-                    <button
-                        onClick={onClose}
-                        className="px-6 py-2.5 bg-teal-600 text-white font-bold rounded-xl shadow-md hover:bg-teal-700 transition-transform transform hover:scale-105 active:scale-95"
-                    >
-                        Got it
-                    </button>
+                <div className="flex justify-end gap-2">
+                    {footer !== undefined ? footer : (
+                        <button
+                            onClick={onClose}
+                            className="px-6 py-2.5 bg-teal-600 text-white font-bold rounded-xl shadow-md hover:bg-teal-700 transition-transform transform hover:scale-105 active:scale-95"
+                        >
+                            Got it
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

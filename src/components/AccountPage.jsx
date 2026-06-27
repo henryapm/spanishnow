@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, NavLink } from 'react-router-dom';
+import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import { db, functions } from '../firebase';
 import { collection, addDoc, onSnapshot } from 'firebase/firestore';
@@ -11,6 +11,7 @@ import { FaArrowCircleRight, FaFire } from 'react-icons/fa';
 
 const AccountPage = ({ decks }) => {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const currentUser = useDecksStore((state) => state.currentUser);
     {/* Fetch Scenarios */ }
@@ -220,6 +221,18 @@ const AccountPage = ({ decks }) => {
         }
     }, [fetchArticles]);
 
+    useEffect(() => {
+        if (location.hash === '#premium' && !isProductsLoading) {
+            const timer = setTimeout(() => {
+                const element = document.getElementById('premium-section');
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [isProductsLoading, location.hash]);
+
     const weeklyXpData = useMemo(() => {
         const data = [];
         const today = new Date();
@@ -363,7 +376,7 @@ const AccountPage = ({ decks }) => {
             </div>
 
             {/* --- Billing & Subscription Section --- */}
-            <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8 transition-all hover:shadow-lg">
+            <div id="premium-section" className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md mb-8 transition-all hover:shadow-lg">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                     <span role="img" aria-label="crown">👑</span> Premium Subscription
                 </h2>

@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDecksStore } from '../store';
 import { getApp } from 'firebase/app';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { CgPlayButtonR } from "react-icons/cg";
 import { FaStopCircle, FaKeyboard, FaMicrophone } from "react-icons/fa";
+import Modal from './Modal';
 
 export default function AIChatPractice({ articleId, targetVocabulary, onComplete }) {
     const MAX_FREE_INTERACTIONS = 5;
+    const navigate = useNavigate();
     const article = useDecksStore((state) => state.articles[articleId]);
     const listeningPreference = useDecksStore((state) => state.listeningPreference);
     const scenariosAiInstructions = useDecksStore((state) => state.scenariosAiInstructions);
@@ -16,6 +19,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
 
     const isPremium = isAdmin || hasActiveSubscription;
 
+    const [showLimitModal, setShowLimitModal] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [userSpeech, setUserSpeech] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
@@ -234,7 +238,7 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
         if (!userSpeech.trim()) return;
 
         if (!isPremium && interactionCount >= MAX_FREE_INTERACTIONS) {
-            alert(`You've reached the limit of ${MAX_FREE_INTERACTIONS} free interactions. Please upgrade to Premium to continue.`);
+            setShowLimitModal(true);
             return;
         }
 
@@ -488,6 +492,33 @@ export default function AIChatPractice({ articleId, targetVocabulary, onComplete
                     Finish Lesson ➔
                 </button>
             </div>
+
+            <Modal 
+                isOpen={showLimitModal} 
+                onClose={() => setShowLimitModal(false)} 
+                title="Premium Limit Reached 🔒"
+                footer={
+                    <div className="flex gap-2 text-sm sm:text-base">
+                        <button
+                            onClick={() => setShowLimitModal(false)}
+                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95"
+                        >
+                            Close
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowLimitModal(false);
+                                navigate('/#premium');
+                            }}
+                            className="px-4 py-2 bg-linear-to-r from-red-500 to-purple-600 hover:from-red-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95"
+                        >
+                            Get Premium
+                        </button>
+                    </div>
+                }
+            >
+                <p>You've reached the limit of {MAX_FREE_INTERACTIONS} free interactions. Please upgrade to Premium to continue.</p>
+            </Modal>
         </div>
     );
 }

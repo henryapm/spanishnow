@@ -566,6 +566,25 @@ const SpeakCompanion = () => {
                 isOpen={showLimitModal} 
                 onClose={() => setShowLimitModal(false)} 
                 title="Premium Limit Reached 🔒"
+                footer={
+                    <div className="flex gap-2 text-sm sm:text-base">
+                        <button
+                            onClick={() => setShowLimitModal(false)}
+                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95"
+                        >
+                            Close
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowLimitModal(false);
+                                navigate('/#premium');
+                            }}
+                            className="px-4 py-2 bg-linear-to-r from-red-500 to-purple-600 hover:from-red-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95"
+                        >
+                            Get Premium
+                        </button>
+                    </div>
+                }
             >
                 <p>{limitMessage}</p>
             </Modal>

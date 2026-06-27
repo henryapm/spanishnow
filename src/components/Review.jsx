@@ -26,17 +26,17 @@ const ReviewItem = ({ word }) => {
                 <br />
                 {word.translation === 'No translation' && <a href={`https://translate.google.com/?sl=es&tl=en&text=${encodeURIComponent(word.id)}&op=translate`} className="text-custom-200 hover:underline" target="_blank" rel="noopener noreferrer">Open in Google Translate</a>}
             </div>
-            <button 
-                    onClick={(e) => { 
-                            e.stopPropagation();
-                            if (confirm("You are about to remove this word from your list, hit OK to confirm.")) {
-                                toggleSavedWord(word.id);
-                            }
-                        }}
-                    className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors cursor-pointer`}
-                    title={isSaved ? "Remove from saved words" : "Save word for training"}
-                >
-                    {isSaved ? <BsBookmarkFill /> : ''}
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm("You are about to remove this word from your list, hit OK to confirm.")) {
+                        toggleSavedWord(word.id);
+                    }
+                }}
+                className={`text-2xl ${isSaved ? 'text-yellow-400' : 'text-gray-400'} hover:text-yellow-300 transition-colors cursor-pointer`}
+                title={isSaved ? "Remove from saved words" : "Save word for training"}
+            >
+                {isSaved ? <BsBookmarkFill /> : ''}
             </button>
         </div>
     );
@@ -47,7 +47,7 @@ const StageSection = ({ title, words, isOpen, onToggle }) => {
 
     return (
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
-            <button 
+            <button
                 onClick={onToggle}
                 className="w-full flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
             >
@@ -58,17 +58,17 @@ const StageSection = ({ title, words, isOpen, onToggle }) => {
                     <span className="bg-custom-100 text-custom-800 text-xs font-bold px-3 py-1 rounded-full dark:bg-custom-900 dark:text-custom-200">
                         {words.length}
                     </span>
-                    <svg 
-                        className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
+                    <svg
+                        className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
                         stroke="currentColor"
                     >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                 </div>
             </button>
-            
+
             {isOpen && (
                 <div className="p-4 grid grid-cols-1 gap-4 border-t border-gray-200 dark:border-gray-700">
                     {words.map((word) => <ReviewItem key={word.id} word={word} />)}
@@ -121,7 +121,7 @@ const Review = () => {
             fetchSavedWords();
         }
     }, [currentUser, fetchSavedWords]);
-    
+
     // Filter words that are due for review
     const today = new Date(now);
     today.setHours(23, 59, 59, 999); // End of today
@@ -155,7 +155,7 @@ const Review = () => {
         const diff = w.nextReviewDate - now;
         return diff > oneDay && diff <= threeDays;
     }).sort((a, b) => a.nextReviewDate - b.nextReviewDate);
-    
+
     const dueWeek = activeWords.filter(w => {
         if (!w.nextReviewDate) return false;
         const diff = w.nextReviewDate - now;
@@ -222,7 +222,7 @@ const Review = () => {
     return (
         <div className="rounded-lg shadow-md w-full max-w-4xl mx-auto animate-fade-in">
             <h2 className="text-5xl my-4 font-bold text-custom-800 dark:text-custom-500 mb-6 text-center">Review</h2>
-            
+
             {!currentUser ? (
                 <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
                     <p className="text-gray-600 dark:text-gray-300 mb-4">Please log in to save and review words.</p>
@@ -230,18 +230,37 @@ const Review = () => {
             ) : (
                 <>
                     <div className="flex justify-center mb-4">
-                        <button 
-                            onClick={() => isPremium ? setIsAddModalOpen(true) : setShowPremiumModal(true)} 
+                        <button
+                            onClick={() => isPremium ? setIsAddModalOpen(true) : setShowPremiumModal(true)}
                             className="px-4 py-2 bg-custom-600 text-white font-semibold rounded-lg shadow-md hover:bg-custom-700 transition-colors flex items-center gap-2"
                         >
                             <span>+</span> Add Word {!isPremium && <span className="text-xs ml-1">🔒</span>}
                         </button>
                     </div>
 
-                    <Modal 
-                        isOpen={showPremiumModal} 
-                        onClose={() => setShowPremiumModal(false)} 
-                        title="Premium Feature 🔒"
+                    <Modal
+                        isOpen={showPremiumModal}
+                        onClose={() => setShowPremiumModal(false)}
+                        title="Premium Content 🔒"
+                        footer={
+                            <div className="flex gap-2 text-sm sm:text-base">
+                                <button
+                                    onClick={() => setShowPremiumModal(false)}
+                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95"
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowPremiumModal(false);
+                                        navigate('/#premium');
+                                    }}
+                                    className="px-4 py-2 bg-linear-to-r from-red-500 to-purple-600 hover:from-red-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95"
+                                >
+                                    Get Premium
+                                </button>
+                            </div>
+                        }
                     >
                         <p>Adding custom words manually is a Premium feature. Upgrade to unlock this functionality!</p>
                     </Modal>
@@ -250,10 +269,10 @@ const Review = () => {
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-bold mb-1 text-gray-700 dark:text-gray-300">Spanish Word</label>
-                                <input 
-                                    type="text" 
-                                    value={newWord} 
-                                    onChange={(e) => setNewWord(e.target.value)} 
+                                <input
+                                    type="text"
+                                    value={newWord}
+                                    onChange={(e) => setNewWord(e.target.value)}
                                     className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-custom-500 outline-none"
                                     placeholder="e.g. contar"
                                 />
@@ -261,16 +280,16 @@ const Review = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold mb-1 text-gray-700 dark:text-gray-300">English Translation</label>
-                                <input 
-                                    type="text" 
-                                    value={newTranslation} 
-                                    onChange={(e) => setNewTranslation(e.target.value)} 
+                                <input
+                                    type="text"
+                                    value={newTranslation}
+                                    onChange={(e) => setNewTranslation(e.target.value)}
                                     className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-custom-500 outline-none"
                                     placeholder="e.g. to count"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Max 2 words.</p>
                             </div>
-                            <button 
+                            <button
                                 onClick={handleAddWord}
                                 disabled={isAdding}
                                 className="w-full py-2 bg-custom-600 text-white font-bold rounded hover:bg-custom-700 transition-colors disabled:opacity-50"
@@ -290,7 +309,7 @@ const Review = () => {
                         </div>
                     ) : (
                         <div className="flex justify-center mb-8">
-                            <button 
+                            <button
                                 onClick={handleStartReview}
                                 className="px-8 py-3 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 flex items-center gap-2"
                             >

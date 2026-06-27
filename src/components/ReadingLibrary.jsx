@@ -19,19 +19,19 @@ const ReadingLibrary = () => {
     const isPremium = isAdmin || hasActiveSubscription;
     const [showLimitModal, setShowLimitModal] = useState(false);
     const finishedArticles = useDecksStore((state) => state.finishedArticles);
-    
+
     const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('reading_sortBy') || 'Free/Premium');
     const [filterLevel, setFilterLevel] = useState(() => sessionStorage.getItem('reading_filterLevel') || 'All');
     const [filterStatus, setFilterStatus] = useState(() => sessionStorage.getItem('reading_filterStatus') || 'All');
     const [filterRead, setFilterRead] = useState(() => sessionStorage.getItem('reading_filterRead') || 'All');
-     
+
     useEffect(() => {
         sessionStorage.setItem('reading_sortBy', sortBy);
         sessionStorage.setItem('reading_filterLevel', filterLevel);
         sessionStorage.setItem('reading_filterStatus', filterStatus);
         sessionStorage.setItem('reading_filterRead', filterRead);
     }, [sortBy, filterLevel, filterStatus, filterRead]);
-    
+
     useEffect(() => {
         const lastFetch = sessionStorage.getItem('articles_last_fetch');
         const now = Date.now();
@@ -42,7 +42,7 @@ const ReadingLibrary = () => {
             fetchArticles();
             sessionStorage.setItem('articles_last_fetch', now.toString());
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchArticles]);
 
     // Handle the loading state while articles are being fetched
@@ -88,14 +88,6 @@ const ReadingLibrary = () => {
         }
     };
 
-    const handleArticleClick = (article) => {
-        if (isPremium || !article.premium) {
-            navigate(`/reading/${article.id}`);
-        } else {
-            setShowLimitModal(true);
-        }
-    };
-
     // --- NEW: Handler for starting the structured lesson flow ---
     const handleStartLesson = (e, article) => {
         e.stopPropagation(); // Prevent triggering the card's main onClick
@@ -109,10 +101,29 @@ const ReadingLibrary = () => {
 
     return (
         <div className="w-full animate-fade-in">
-            <Modal 
-                isOpen={showLimitModal} 
-                onClose={() => setShowLimitModal(false)} 
+            <Modal
+                isOpen={showLimitModal}
+                onClose={() => setShowLimitModal(false)}
                 title="Premium Content 🔒"
+                footer={
+                    <div className="flex gap-2 text-sm sm:text-base">
+                        <button
+                            onClick={() => setShowLimitModal(false)}
+                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95"
+                        >
+                            Close
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowLimitModal(false);
+                                navigate('/#premium');
+                            }}
+                            className="px-4 py-2 bg-linear-to-r from-red-500 to-purple-600 hover:from-red-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95"
+                        >
+                            Get Premium
+                        </button>
+                    </div>
+                }
             >
                 <p>This article is only available to Premium users. Upgrade to Premium to unlock the full library!</p>
             </Modal>
@@ -120,9 +131,9 @@ const ReadingLibrary = () => {
             <div className="flex flex-wrap justify-center gap-4 mb-6">
                 <div className="flex items-center gap-2">
                     <label htmlFor="sort-select" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Sort by:</label>
-                    <select 
+                    <select
                         id="sort-select"
-                        value={sortBy} 
+                        value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
                         className="p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-custom-500 outline-none"
                     >
@@ -134,9 +145,9 @@ const ReadingLibrary = () => {
 
                 <div className="flex items-center gap-2">
                     <label htmlFor="filter-status-select" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Type:</label>
-                    <select 
+                    <select
                         id="filter-status-select"
-                        value={filterStatus} 
+                        value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                         className="p-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-custom-500 outline-none"
                     >
@@ -149,9 +160,9 @@ const ReadingLibrary = () => {
             </div>
 
             <div className="flex items-end justify-end mb-6">
-                <ul 
+                <ul
                     id="filter-select"
-                    value={filterLevel} 
+                    value={filterLevel}
                     onChange={(e) => setFilterLevel(e.target.value)}
                     className="flex flex-row gap-2 align-end p-2 rounded-lg bg-gray-700 dark:text-white shadow-sm focus:ring-2 focus:ring-custom-500 outline-none"
                 >
@@ -162,10 +173,10 @@ const ReadingLibrary = () => {
                 </ul>
             </div>
             <div className="flex items-center justify-end gap-2 mb-4">
-                <input 
+                <input
                     type="checkbox"
                     id="filter-read-checkbox"
-                    checked={filterRead === 'Unread'} 
+                    checked={filterRead === 'Unread'}
                     onChange={(e) => setFilterRead(e.target.checked ? 'Unread' : 'All')}
                     className="w-4 h-4 invisible text-custom-600 bg-gray-100 border-gray-300 rounded focus:ring-custom-500 dark:focus:ring-custom-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
                 />
@@ -181,9 +192,9 @@ const ReadingLibrary = () => {
                         const isLocked = !isPremium && article.premium;
                         return (
                             <div
-                            key={article.id}
-                            onClick={(e) => handleStartLesson(e, article)}
-                            className={`w-full text-left relative overflow-hidden py-6 pr-6 pl-16 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-transform flex flex-col sm:flex-row justify-between items-start gap-4 ${!isLocked ? 'hover:-translate-y-1 cursor-pointer' : 'opacity-45 cursor-not-allowed'}`}
+                                key={article.id}
+                                onClick={(e) => handleStartLesson(e, article)}
+                                className={`w-full text-left relative overflow-hidden py-6 pr-6 pl-16 bg-white dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-transform flex flex-col sm:flex-row justify-between items-start gap-4 ${!isLocked ? 'hover:-translate-y-1 cursor-pointer' : 'opacity-45 cursor-not-allowed'}`}
                             >
                                 {article.level && <span className={`absolute left-0 top-0 h-full w-10 flex items-center justify-center text-md font-bold px-2 py-1 ${getLevelColor(article.level)}`}>{article.level}</span>}
                                 <div className="flex flex-row gap-2 items-end justify-between">
@@ -206,7 +217,8 @@ const ReadingLibrary = () => {
                                     </div>
                                 )}
                             </div>
-                    )})}
+                        )
+                    })}
                 </div>
             ) : (
                 <p className="text-center text-gray-500 dark:text-gray-400">No articles available yet. Check back soon!</p>
