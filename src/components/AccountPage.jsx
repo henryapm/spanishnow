@@ -161,17 +161,6 @@ const AccountPage = ({ decks }) => {
         return availableArticles.length > 0 ? availableArticles[0] : null;
     }, [articles, finishedArticles, isPremium]);
 
-    const getLevelColor = (level) => {
-        switch (level?.toUpperCase()) {
-            case 'A1': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-            case 'A2': return 'bg-custom-100 text-custom-800 dark:bg-custom-900 dark:text-custom-300';
-            case 'B1': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-            case 'B2': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-            case 'C1': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-            default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-        }
-    };
-
     const handlePreferenceChange = (e) => {
         const newPreference = e.target.value;
         updateListeningPreference(newPreference);
