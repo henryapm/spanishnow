@@ -64,6 +64,7 @@ const AccountPage = ({ decks }) => {
             const checkoutSessionsRef = collection(db, 'users', currentUser.uid, 'checkout_sessions');
             const docRef = await addDoc(checkoutSessionsRef, {
                 price: priceId,
+                allow_promotion_codes: true,
                 success_url: window.location.origin + '/?checkout=success',
                 cancel_url: window.location.origin + '/?checkout=cancel'
             });
