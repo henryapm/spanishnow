@@ -8,9 +8,9 @@ const TermsOfService = () => {
                 <Link to="/" className="text-blue-600 dark:text-blue-400 hover:underline mb-8 inline-block font-semibold">
                     &larr; Back to Home
                 </Link>
-                
+
                 <h1 className="text-3xl md:text-4xl font-extrabold mb-8 text-gray-900 dark:text-white">Terms and Conditions</h1>
-                
+
                 <div className="space-y-8 text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
                     <section>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Last Updated: June 2026</p>
@@ -66,13 +66,19 @@ const TermsOfService = () => {
                     <section>
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">8. LIMITATION OF LIABILITY</h2>
                         <p className="uppercase text-sm font-mono tracking-tight bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                            TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL THE SPANISH SUITE, ITS FOUNDERS, OR PROVIDERS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF YOUR USE OF THE SERVICE, INCLUDING INACCURATE AI OUTPUTS. OUR MAXIMUM AGGREGATE LIABILITY TO YOU FOR ANY CLAIMS SHALL BE LIMITED TO THE TOTAL AMOUNT PAID BY YOU FOR THE SERVICE IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM, OR $50, WHICHEVER IS GREATER.
+                            TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL THE SPANISH SUITE, ITS FOUNDERS, EMPLOYEES, OR PROVIDERS BE LIABLE TO YOU OR ANY THIRD PARTY FOR ANY INDIRECT, CONSEQUENTIAL, INCIDENTAL, SPECIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, REVENUE, DATA, USE, GOODWILL, OR BUSINESS INTERRUPTION, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE SERVICE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+                        </p>
+                        <p className="uppercase text-sm font-mono tracking-tight bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 mt-2">
+                            OUR MAXIMUM AGGREGATE LIABILITY TO YOU FOR ANY AND ALL CLAIMS ARISING OUT OF OR RELATED TO THESE TERMS OR THE SERVICE SHALL BE LIMITED TO THE TOTAL FEES ACTUALLY PAID BY YOU TO THE SERVICE IN THE TWELVE (12) MONTHS PRECEDING THE EVENT GIVING RISE TO LIABILITY, <span className="font-extrabold text-xl"> OR FIFTY DOLLARS ($50), WHICHEVER IS GREATER.</span>
+                        </p>
+                        <p className="uppercase text-sm font-mono tracking-tight bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 mt-2">
+                            THE LIMITATIONS SET FORTH IN THIS SECTION SHALL NOT APPLY TO: (I) DAMAGES CAUSED BY A PARTY'S GROSS NEGLIGENCE, WILLFUL MISCONDUCT, OR FRAUD; OR (II) CLAIMS ARISING UNDER INDEMNIFICATION OBLIGATIONS OR BREACHES OF APPLICABLE INTELLECTUAL PROPERTY RIGHTS.
                         </p>
                     </section>
 
                     <section>
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">9. Governing Law</h2>
-                        <p>These terms shall be governed by and construed in accordance with the laws of [Your State/Country], without regard to its conflict of law principles. Any dispute arising from these terms shall be subject to the exclusive jurisdiction of the courts located in [Your City/State/Country].</p>
+                        <p>These terms shall be governed by and construed in accordance with the laws of the State of Georgia / United States Of America, without regard to its conflict of law principles. Any dispute arising from these terms shall be subject to the exclusive jurisdiction of the courts located in Atlanta/Georgia/United States Of America.</p>
                     </section>
                 </div>
             </div>
