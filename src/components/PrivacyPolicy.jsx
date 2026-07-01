@@ -8,25 +8,73 @@ const PrivacyPolicy = () => {
                 <Link to="/" className="text-blue-600 dark:text-blue-400 hover:underline mb-8 inline-block font-semibold">
                     &larr; Back to Home
                 </Link>
-                
+
                 <h1 className="text-3xl md:text-4xl font-extrabold mb-8 text-gray-900 dark:text-white">Privacy Policy</h1>
-                
+
                 <div className="space-y-8 text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
                     <section>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">1. Information We Collect</h2>
-                        <p>When you sign in using your Google account, we collect your public profile information provided by Google, specifically your Name, Email Address, and Profile Picture.</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Last Updated: June 2026</p>
                     </section>
+
+                    <section>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">1. Information We Collect</h2>
+                        <p>We collect information to provide, personalize, and improve our language learning service. This includes:</p>
+                        <ul className="list-disc pl-6 mt-2 space-y-2">
+                            <li><strong>Account Credentials:</strong> When you sign in using third-party authentication services (such as Google, Microsoft Outlook, or Facebook via Firebase Authentication), we collect your public profile details, specifically your name, email address, and profile picture.</li>
+                            <li><strong>Learning and Progress Data:</strong> We track and save your XP points, learning streaks, completed role-playing scenarios, lessons read, and customized flashcard decks inside our Spaced Repetition System (SRS).</li>
+                            <li><strong>Chat and Voice Inputs:</strong> To power the conversation simulator ("Speak Companion"), we process the text transcripts and voice messages you submit during AI sessions.</li>
+                        </ul>
+                    </section>
+
                     <section>
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">2. How We Use Your Information</h2>
-                        <p>We use this information solely to create and manage your account, save your learning progress, and personalize your experience on The Spanish Suite. We will never use your email to send spam.</p>
+                        <p>We use the collected information for the following purposes:</p>
+                        <ul className="list-disc pl-6 mt-2 space-y-2">
+                            <li>To create, manage, and verify your account.</li>
+                            <li>To process your learning progress, schedule card review intervals, and save study history.</li>
+                            <li>To transmit chat inputs to AI sub-processors to generate intelligent, dynamic conversational responses.</li>
+                            <li>To communicate vital account alerts or system updates (we will never send spam).</li>
+                        </ul>
                     </section>
+
                     <section>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">3. Data Sharing</h2>
-                        <p>We do not sell, rent, or share your personal information with third parties. All data is securely stored using Google Firebase.</p>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">3. Third-Party Service Providers (Sub-Processors)</h2>
+                        <p>We work with trusted third-party services to securely host our data, handle billing, and perform AI translations. <strong>We do not sell, rent, or trade your personal data.</strong> The third-party services we use include:</p>
+                        <ul className="list-disc pl-6 mt-2 space-y-2">
+                            <li><strong>Google Firebase:</strong> Used for secure cloud hosting, Firestore database storage, and account authentication management.</li>
+                            <li><strong>Stripe:</strong> Used to manage billing and recurring premium subscription payments. Your credit card information is processed directly by Stripe on their secure servers; we do not store your raw payment details.</li>
+                            <li><strong>Google Gemini AI:</strong> Used to process conversational inputs to generate educational, contextual Spanish language replies.</li>
+                        </ul>
                     </section>
+
                     <section>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">4. Account Deletion</h2>
-                        <p>You have the right to request the deletion of your account and all associated data at any time by contacting us.</p>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">4. Data Security</h2>
+                        <p>We prioritize the safety of your information. We utilize HTTPS encryption, Firebase security rules, and secure hosting protocols to prevent unauthorized access. However, please note that no internet transmission or electronic storage method is 100% secure, and we cannot guarantee absolute data security.</p>
+                    </section>
+
+                    <section>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">5. Data Retention, Account Deletion, and Subscriptions</h2>
+                        <p>We retain your account details and progress logs for as long as your account is active.</p>
+                        <p className="mt-2 font-semibold text-gray-900 dark:text-white">Account Deletion and Active Subscriptions:</p>
+                        <ul className="list-disc pl-6 space-y-2">
+                            <li>You have the right to permanently delete your account and all associated study data (XP, vocabulary lists, stats) via the "Delete Account" button on your Account settings page.</li>
+                            <li><strong>IMPORTANT:</strong> Deleting your account from our app does not automatically cancel recurring subscription renewals on Stripe. If you have an active premium membership, you must cancel your subscription via the "Manage Billing & Subscription" portal <strong>before</strong> deleting your account to ensure future billing ceases.</li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">6. Children's Privacy</h2>
+                        <p>The Service is intended for general audiences. We do not knowingly collect personal data from children under the age of 13. If you believe we have accidentally collected data from a child under 13, please contact support, and we will take immediate steps to delete the information.</p>
+                    </section>
+
+                    <section>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">7. Changes to This Privacy Policy</h2>
+                        <p>We may update this Privacy Policy from time to time. When we make updates, we will update the "Last Updated" date at the top of this page. Your continued use of the Service after changes are posted constitutes acceptance of the modified policy.</p>
+                    </section>
+
+                    <section>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">8. Contact Us</h2>
+                        <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your data rights, please contact us at [admin@thespanishsuiteapp.com].</p>
                     </section>
                 </div>
             </div>
