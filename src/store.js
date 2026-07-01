@@ -995,6 +995,8 @@ export const useDecksStore = create((set, get) => ({
         try {
             const verifyAuthFlowCall = httpsCallable(functions, 'verifyAuthFlow');
             await verifyAuthFlowCall({ isSignUpFlow });
+            // Caching the sign-in / sign-up state
+            localStorage.setItem('has_signed_up', 'true');
         } catch (error) {
             console.error("Server-side sign-in verification failed:", error);
             await signOut(auth); // Clear the local session immediately
@@ -1011,6 +1013,7 @@ export const useDecksStore = create((set, get) => ({
         if (!currentUser) return { success: false, error: 'No user logged in.' };
         try {
             await deleteUser(currentUser);
+            localStorage.removeItem('has_signed_up');
             return { success: true };
         } catch (error) {
             console.error("Error deleting user account:", error);

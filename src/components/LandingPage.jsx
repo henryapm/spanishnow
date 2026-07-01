@@ -6,7 +6,9 @@ import { Link } from 'react-router-dom';
 
 const LandingPage = () => {
     const [errorMessage, setErrorMessage] = useState('');
-    const [activeTab, setActiveTab] = useState('signin'); // 'signin' | 'signup'
+    const [activeTab, setActiveTab] = useState(() => {
+        return localStorage.getItem('has_signed_up') === 'true' ? 'signin' : 'signup';
+    });
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const signInWithGoogle = useDecksStore((state) => state.signInWithGoogle);
 
