@@ -2,7 +2,7 @@ import React, { useEffect, useRef, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
 // Import the store and our components
-import { useDecksStore } from './store'; 
+import { useDecksStore } from './store';
 import Header from './components/Header';
 import Navigation from './components/Navigation';
 import LandingPage from './components/LandingPage';
@@ -36,12 +36,12 @@ const AppLayout = () => {
     // Define routes that require decks to be loaded
     const deckRoutes = ['/flashcards', '/create', '/review', '/account', '/listen', '/deck', '/edit', '/admin', '/lesson'];
     const shouldLoadDecks = deckRoutes.some(route => location.pathname.startsWith(route));
-    
+
     const isSpeakActive = location.pathname.includes('/speakCompanion/session');
     const isReviewTraining = location.pathname.startsWith('/review/training');
     // hides navgation and header for lesson flow, speak companion practice sessions, and review training sessions
     const isLessonRoute = location.pathname.startsWith('/lesson') || isSpeakActive || isReviewTraining;
-    
+
     useEffect(() => {
         if (shouldLoadDecks) {
             fetchDecks();
@@ -54,15 +54,15 @@ const AppLayout = () => {
     }
 
     return (
-        <div className="w-full dark:text-gray-200 max-w-2xl">
+        <div className="w-full dark:text-gray-200 max-w-2xl flex flex-col min-h-[calc(100vh-2rem)]">
             <StreakNotification />
             {!isLessonRoute && <Header />}
-            <main className={`w-full text-gray-800 dark:bg-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner ${isLessonRoute ? '' : 'pb-24'}`}>
-                <div className="w-full max-w-xl mx-auto">
+            <main className={`w-full text-gray-800 dark:bg-gray-800 dark:text-gray-200 p-2 rounded-lg shadow-inner flex-grow ${isLessonRoute ? '' : 'pb-24'} flex flex-col`}>
+                <div className="w-full max-w-xl mx-auto flex flex-col flex-grow">
                     <Suspense fallback={<div className="text-center p-8">Loading...</div>}>
                         <Routes>
                             <Route path="/" element={<AccountPage decks={decks} />} />
-                            <Route path="/reading-library" element={<ReadingLibrary/>} />
+                            <Route path="/reading-library" element={<ReadingLibrary />} />
                             <Route path="/create" element={<DeckForm decks={decks} />} />
                             <Route path="/review/:deckId" element={<FlashcardView />} />
                             <Route path="/spaced-repetition" element={<Review />} />
@@ -72,6 +72,7 @@ const AppLayout = () => {
                             <Route path="/speakCompanion/:scenarioId" element={<SpeakCompanion />} />
                             <Route path="/speakCompanion/session/:scenarioId/:roleIndex" element={<SpeakCompanion />} />
                             <Route path="/deck/:deckId" element={<SessionManager />} />
+                            <Route path="/booking" element={<Booking />} />
                             {/* --- NEW: Admin Route --- */}
                             <Route path="/admin" element={<TopicManager decks={decks} />} />
                             <Route path="*" element={<Navigate to="/" replace />} />
@@ -96,7 +97,7 @@ export default function App() {
     const prevUserRef = useRef(currentUser);
     const theme = useDecksStore((state) => state.theme);
 
-    
+
     useEffect(() => {
         const unsubscribe = listenForAuthChanges();
         return () => {
@@ -135,7 +136,7 @@ export default function App() {
                         <TermsOfService />
                     </Suspense>
                 } />
-                
+
                 {/* Auth-gated Routes */}
                 {currentUser ? (
                     <Route path="/*" element={<AppLayout />} />

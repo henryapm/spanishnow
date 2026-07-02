@@ -561,7 +561,7 @@ const SpeakCompanion = () => {
     }
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-3xl">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-3xl flex flex-col flex-grow">
             <Modal 
                 isOpen={showLimitModal} 
                 onClose={() => setShowLimitModal(false)} 
@@ -616,7 +616,7 @@ const SpeakCompanion = () => {
             </div>
 
             {/* Chat History */}
-            <div ref={chatContainerRef} className="mb-6 h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
+            <div ref={chatContainerRef} className="mb-6 flex-grow min-h-[250px] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
                 <div className="p-4">
                     <div className="flex items-center gap-2 mb-2">
                     <span className="text-2xl">{selectedScenario.emoji}</span>

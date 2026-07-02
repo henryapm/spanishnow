@@ -89,7 +89,7 @@ export default function LessonFlow() {
             </header>
 
             {/* Render Current Step */}
-            <main className="flex-1 overflow-hidden relative">
+            <main className="flex-1 overflow-hidden relative flex flex-col">
                 {activeSession.step === 'reading' && (
                     <StoryReader
                         articleId={activeSession.articleId}

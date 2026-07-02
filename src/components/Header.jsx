@@ -141,6 +141,13 @@ const Header = () => {
                                     <span className="ml-2">SandBox</span>
                                 </button>
                                 <button
+                                    onClick={() => handleNavigate('/booking')}
+                                    className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                    <MdCalendarToday />
+                                    <span className="ml-2">Book Class</span>
+                                </button>
+                                <button
                                     onClick={() => { toggleTheme(); setIsMenuOpen(false); }}
                                     className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
