@@ -27,6 +27,8 @@ const Flashcards = lazy(() => import('./components/Flashcards'));
 const LessonFlow = lazy(() => import('./components/LessonFlow'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./components/TermsOfService'));
+const DeleteAccountPage = lazy(() => import('./components/DeleteAccountPage'));
+const LoginPage = lazy(() => import('./components/LoginPage'));
 
 // This component is the main layout for authenticated (logged-in) users.
 const AppLayout = () => {
@@ -136,12 +138,24 @@ export default function App() {
                         <TermsOfService />
                     </Suspense>
                 } />
+                <Route path="/delete-account" element={
+                    <Suspense fallback={<div className="text-center p-8">Loading...</div>}>
+                        <DeleteAccountPage />
+                    </Suspense>
+                } />
 
                 {/* Auth-gated Routes */}
                 {currentUser ? (
                     <Route path="/*" element={<AppLayout />} />
                 ) : (
-                    <Route path="*" element={<LandingPage />} />
+                    <>
+                        <Route path="/login" element={
+                            <Suspense fallback={<div className="text-center p-8">Loading...</div>}>
+                                <LoginPage />
+                            </Suspense>
+                        } />
+                        <Route path="*" element={<LandingPage />} />
+                    </>
                 )}
             </Routes>
         </div>

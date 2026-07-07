@@ -172,3 +172,46 @@ Stores reading materials for the library.
 1.  **Reading Phase:** Users can save/bookmark an unlimited number of words. All of them are successfully saved to Firestore.
 2.  **Transition to Review:** When the user clicks the "Continue to Review" button, if they have saved more than 5 words in the current session, an alert is shown notifying them that only the first 5 words will be included in the review session.
 3.  **Review and Practice Phases:** The application slices the saved session words to the first 5 (`activeSession.wordsSavedInSession.slice(0, 5)`) and passes only these 5 words to the Flashcard Review and AI Chat Practice components.
+
+## 12. Feature: Public Delete Account Instructions Page
+
+**Objective:** Provide a public, unauthenticated page containing step-by-step instructions on how users can request deletion of their data and how to remove the app from their Facebook account, complying with Meta Developer Policy.
+
+**Routing & Components:**
+*   `/delete-account` (`DeleteAccountPage.jsx`): A public route accessible to anyone.
+*   **Content:** 
+    1. Instructions for requesting deletion via support email (`admin@thespanishsuiteapp.com`).
+    2. Instructions for logged-in users to directly delete their account via their Profile/Account settings.
+    3. Step-by-step walkthrough on how to remove the app via the Facebook App settings portal.
+
+## 13. Feature: Facebook Authentication Integration
+
+**Objective:** Add Facebook Login support as a registration and sign-in option on the public landing page, utilizing Firebase Authentication's Facebook identity provider.
+
+**System Architecture & Logic:**
+*   **Authentication Provider:** Instantiated in `store.js` as `FacebookAuthProvider`.
+*   **Store Methods:** `signInWithFacebook` handles popup authentication and invokes `verifyAuthFlow` to enforce server-side validation.
+*   **UI Components:**
+    *   `LandingPage.jsx`: Integrates stacked Facebook Login/Sign up buttons.
+    *   **Terms Agreement:** The Facebook Sign Up button is conditionally disabled until the legal terms checkbox is checked.
+
+## 14. Feature: Separate Registration (Landing) and Login Pages
+
+**Objective:** Split the authentication interface so that `/` (Landing Page) is dedicated to registration (Sign Up) and `/login` is dedicated to authentication (Sign In), improving clarity and onboarding flow.
+
+**Routing & Access:**
+*   `/` (`LandingPage.jsx`): Public route. If `currentUser` is null, displays the marketing copy and registration/Sign Up buttons. If logged in, redirects to `/`.
+*   `/login` (`LoginPage.jsx`): Public route. If `currentUser` is null, displays the Sign In buttons. If logged in, redirects to `/`.
+*   **Routing in App.jsx:**
+    ```javascript
+    {currentUser ? (
+        <Route path="/*" element={<AppLayout />} />
+    ) : (
+        <>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={<LandingPage />} />
+        </>
+    )}
+    ```
+
+

@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { db, functions } from './firebase';
 import { collection, getDocs, addDoc, doc, updateDoc, getFirestore, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion, onSnapshot } from "firebase/firestore";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, getAdditionalUserInfo, deleteUser } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, onAuthStateChanged, signOut, getAdditionalUserInfo, deleteUser } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 
 const auth = getAuth();
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
+const facebookProvider = new FacebookAuthProvider();
 
 // --- Caching Configuration ---
 const CACHE_KEY = 'spanishAppCache';
@@ -999,6 +1000,26 @@ export const useDecksStore = create((set, get) => ({
             localStorage.setItem('has_signed_up', 'true');
         } catch (error) {
             console.error("Server-side sign-in verification failed:", error);
+            await signOut(auth); // Clear the local session immediately
+            throw error;
+        }
+    },
+
+    signInWithFacebook: async ({ isSignUpFlow = false } = {}) => {
+        try {
+            await signInWithPopup(auth, facebookProvider);
+        } catch (error) {
+            console.error("Error during signInWithPopup (Facebook): ", error);
+            throw error;
+        }
+
+        try {
+            const verifyAuthFlowCall = httpsCallable(functions, 'verifyAuthFlow');
+            await verifyAuthFlowCall({ isSignUpFlow });
+            // Caching the sign-in / sign-up state
+            localStorage.setItem('has_signed_up', 'true');
+        } catch (error) {
+            console.error("Server-side Facebook sign-in verification failed:", error);
             await signOut(auth); // Clear the local session immediately
             throw error;
         }
