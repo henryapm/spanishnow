@@ -324,7 +324,7 @@ const AccountPage = ({ decks }) => {
                         </div>
                     )}
                 </div>
-                <h1 className="text-3xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 pr-2">Hi {currentUser.displayName.split(' ')[0]}!</h1>
+                <h1 className="text-3xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 pr-2">Hi {currentUser.displayName?.split(' ')[0] || 'Spanish Learner'}!</h1>
             </div>
 
             {nextArticle && (

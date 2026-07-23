@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { db, functions } from './firebase';
 import { collection, getDocs, addDoc, doc, updateDoc, getFirestore, setDoc, getDoc, increment, query, where, documentId, deleteDoc, orderBy, serverTimestamp, arrayUnion, onSnapshot } from "firebase/firestore";
-import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, onAuthStateChanged, signOut, getAdditionalUserInfo, deleteUser } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, onAuthStateChanged, signOut, getAdditionalUserInfo, deleteUser, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 
 const auth = getAuth();
@@ -985,6 +985,45 @@ export const useDecksStore = create((set, get) => ({
         }
     },
 
+    signUpWithEmail: async (email, password) => {
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            await sendEmailVerification(userCredential.user);
+        } catch (error) {
+            console.error("Error during signUpWithEmail:", error);
+            throw error;
+        }
+
+        try {
+            const verifyAuthFlowCall = httpsCallable(functions, 'verifyAuthFlow');
+            await verifyAuthFlowCall({ isSignUpFlow: true });
+            localStorage.setItem('has_signed_up', 'true');
+        } catch (error) {
+            console.error("Server-side sign-up verification failed:", error);
+            await signOut(auth);
+            throw error;
+        }
+    },
+
+    signInWithEmail: async (email, password) => {
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            console.error("Error during signInWithEmail:", error);
+            throw error;
+        }
+
+        try {
+            const verifyAuthFlowCall = httpsCallable(functions, 'verifyAuthFlow');
+            await verifyAuthFlowCall({ isSignUpFlow: false });
+            localStorage.setItem('has_signed_up', 'true');
+        } catch (error) {
+            console.error("Server-side sign-in verification failed:", error);
+            await signOut(auth);
+            throw error;
+        }
+    },
+
     signInWithGoogle: async ({ isSignUpFlow = false } = {}) => {
         try {
             await signInWithPopup(auth, provider);
@@ -1027,6 +1066,16 @@ export const useDecksStore = create((set, get) => ({
 
     signOutUser: async () => {
         try { await signOut(auth); } catch (error) { console.error("Error during sign-out: ", error); }
+    },
+
+    checkEmailVerification: async () => {
+        if (auth.currentUser) {
+            await auth.currentUser.reload();
+            set({ 
+                currentUser: auth.currentUser,
+                authTrigger: Date.now() 
+            });
+        }
     },
 
     deleteUserAccount: async () => {

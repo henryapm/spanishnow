@@ -308,19 +308,22 @@ const Review = () => {
                             </button>
                         </div>
                     ) : (
-                        <div className="flex justify-center mb-8">
-                            <button
-                                onClick={handleStartReview}
-                                className="px-8 py-3 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 flex items-center gap-2"
-                            >
-                                <span>Start Flashcards review</span>
-                                <span className="bg-white text-blue-600 text-xs font-bold px-2 py-1 rounded-full">{dueWords.length}</span>
-                            </button>
+                        <div className="flex flex-col justify-center items-center gap-4">
+                            <div className="flex justify-center mb-8">
+                                <button
+                                    onClick={handleStartReview}
+                                    className="px-8 py-3 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 flex items-center gap-2"
+                                >
+                                    <span>Start Flashcards review</span>
+                                    <span className="bg-white text-blue-600 text-xs font-bold px-2 py-1 rounded-full">{dueWords.length}</span>
+                                </button>
+                            </div>
+                            <p className="flex justify-center items-center gap-2 rounded-lg p-2 bg-amber-100 text-gray-700 mb-8 text-center italic">
+                                <FaInfoCircle />Click on any of the elements below to see the words due for review.
+                            </p>
                         </div>
+
                     )}
-                    <p className="flex justify-center items-center gap-2 rounded-lg p-2 bg-amber-100 text-gray-700 mb-8 text-center italic">
-                        <FaInfoCircle />Click on any of the elements below to see the words due for review.
-                    </p>
                     <div className="space-y-4">
                         <StageSection title="New / Due Now" words={dueWordsSorted} isOpen={openSections.stageZero} onToggle={() => toggleSection('stageZero')} />
                         <StageSection title="Due in less than 24 hours" words={due24Hours} isOpen={openSections.soon} onToggle={() => toggleSection('soon')} />

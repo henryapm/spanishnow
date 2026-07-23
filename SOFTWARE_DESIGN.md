@@ -214,4 +214,45 @@ Stores reading materials for the library.
     )}
     ```
 
+## 15. Feature: Email & Password Authentication with Email Verification
+
+**Objective:** Provide standard email and password authentication (minimum 6 characters) as a first-party sign-up and login method. Restrict application access to only users who have verified their email address.
+
+**Architecture & Logic:**
+*   **Firebase Authentication Providers:** Enables the `Email/Password` provider.
+*   **Authentication Actions (`store.js`):**
+    *   `signUpWithEmail(email, password)`: Calls `createUserWithEmailAndPassword(auth, email, password)`. If successful, triggers `sendEmailVerification(auth.currentUser)` and then calls `verifyAuthFlow({ isSignUpFlow: true })`.
+    *   `signInWithEmail(email, password)`: Calls `signInWithEmailAndPassword(auth, email, password)`. If successful, triggers `verifyAuthFlow({ isSignUpFlow: false })`.
+*   **Email Verification Flow:**
+    *   If `currentUser` is signed in but `currentUser.emailVerified` is `false`, the user is redirected to `/verify-email` and blocked from accessing any authenticated views or layout pages.
+    *   Google and Facebook logins bypass the verification check if their auth provider sets `emailVerified: true` (default behavior).
+*   **Routing in `App.jsx`:**
+    ```javascript
+    {currentUser ? (
+        !currentUser.emailVerified ? (
+            <>
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="*" element={<Navigate to="/verify-email" replace />} />
+            </>
+        ) : (
+            <Route path="/*" element={<AppLayout />} />
+        )
+    ) : (
+        <>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={<LandingPage />} />
+        </>
+    )}
+    ```
+
+**UI Components:**
+*   `LandingPage.jsx`: Integrates input fields for `Email` and `Password` inside the registration card, replacing or supplementing the simple OAuth buttons. The "Create Account" button is disabled until the terms checkbox is checked.
+*   `LoginPage.jsx`: Integrates `Email` and `Password` inputs above/below the Google/Facebook buttons.
+*   `VerifyEmailPage.jsx` [NEW]: A dedicated view showing:
+    *   A message stating a verification link has been sent to their email.
+    *   A "Resend Verification Email" button (with throttle/cooldown).
+    *   A "Check Status" button that calls `auth.currentUser.reload()` to check if the user has clicked the verification link.
+    *   A "Log Out" button.
+
+
 

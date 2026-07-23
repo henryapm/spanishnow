@@ -7,10 +7,14 @@ import { Link } from 'react-router-dom';
 const LandingPage = () => {
     const [errorMessage, setErrorMessage] = useState('');
     const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
     const signInWithGoogle = useDecksStore((state) => state.signInWithGoogle);
     const signInWithFacebook = useDecksStore((state) => state.signInWithFacebook);
+    const signUpWithEmail = useDecksStore((state) => state.signUpWithEmail);
 
-    const handleSignUp = async () => {
+    const handleGoogleSignUp = async () => {
         setErrorMessage('');
 
         try {
@@ -40,6 +44,34 @@ const LandingPage = () => {
                 setErrorMessage('Popup blocked. Please allow popups for this site.');
             } else {
                 setErrorMessage('An unexpected error occurred. Please try again.');
+            }
+        }
+    };
+
+    const handleEmailSignUp = async (e) => {
+        e.preventDefault();
+        if (!email || !password) {
+            setErrorMessage('Please enter both email and password.');
+            return;
+        }
+        if (password.length < 6) {
+            setErrorMessage('Password must be at least 6 characters.');
+            return;
+        }
+        setErrorMessage('');
+
+        try {
+            await signUpWithEmail(email, password);
+        } catch (error) {
+            console.error("Error signing up with email:", error);
+            if (error.code === 'auth/email-already-in-use') {
+                setErrorMessage('This email address is already in use.');
+            } else if (error.code === 'auth/invalid-email') {
+                setErrorMessage('Invalid email address format.');
+            } else if (error.code === 'auth/weak-password') {
+                setErrorMessage('Password is too weak.');
+            } else {
+                setErrorMessage('Failed to sign up. Please try again.');
             }
         }
     };
@@ -111,23 +143,70 @@ const LandingPage = () => {
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Create a free account to start practicing Spanish.</p>
                             </div>
 
-                            {/* Terms & Conditions Checkbox */}
-                            <div className="flex items-center gap-3 mb-6">
-                                <input
-                                    type="checkbox"
-                                    id="terms-checkbox"
-                                    checked={agreedToTerms}
-                                    onChange={(e) => setAgreedToTerms(e.target.checked)}
-                                    className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-750 cursor-pointer mt-0.5"
-                                />
-                                <label htmlFor="terms-checkbox" className="text-xs text-gray-600 dark:text-gray-400 leading-normal select-none cursor-pointer">
-                                    I agree to the <Link to="/terms" className="text-blue-600 dark:text-teal-400 hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-blue-600 dark:text-teal-400 hover:underline">Privacy Policy</Link>
-                                </label>
+                            {/* Email/Password Fields */}
+                            <form onSubmit={handleEmailSignUp} className="space-y-4 mb-6">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5" htmlFor="signup-email">
+                                        Email Address
+                                    </label>
+                                    <input
+                                        type="email"
+                                        id="signup-email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="Enter your email"
+                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-750 text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5" htmlFor="signup-password">
+                                        Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        id="signup-password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="Minimum 6 characters"
+                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-750 text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all text-sm"
+                                        required
+                                    />
+                                </div>
+
+                                {/* Terms & Conditions Checkbox */}
+                                <div className="flex items-center gap-3 pt-2">
+                                    <input
+                                        type="checkbox"
+                                        id="terms-checkbox"
+                                        checked={agreedToTerms}
+                                        onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                        className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-750 cursor-pointer mt-0.5"
+                                    />
+                                    <label htmlFor="terms-checkbox" className="text-xs text-gray-600 dark:text-gray-400 leading-normal select-none cursor-pointer">
+                                        I agree to the <Link to="/terms" className="text-blue-600 dark:text-teal-400 hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-blue-600 dark:text-teal-400 hover:underline">Privacy Policy</Link>
+                                    </label>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={!agreedToTerms}
+                                    className="w-full py-3.5 px-4 mt-2 bg-teal-600 hover:bg-teal-500 disabled:bg-teal-800 text-white rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-center"
+                                >
+                                    Create Account
+                                </button>
+                            </form>
+
+                            {/* Divider */}
+                            <div className="flex items-center my-6">
+                                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                                <span className="mx-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">or</span>
+                                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
                             </div>
 
                             <div className="flex gap-3 w-full">
                                 <button
-                                    onClick={handleSignUp}
+                                    onClick={handleGoogleSignUp}
                                     disabled={!agreedToTerms}
                                     className="flex-1 py-3.5 px-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 disabled:bg-gray-250 dark:disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
                                     title="Sign Up with Google"
@@ -137,16 +216,6 @@ const LandingPage = () => {
                                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                                         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={handleFacebookSignUp}
-                                    disabled={!agreedToTerms}
-                                    className="flex-1 py-3.5 px-4 bg-[#1877F2] hover:bg-[#166FE5] disabled:bg-gray-400 dark:disabled:bg-gray-700 text-white rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-transform transform active:scale-95 disabled:scale-100 flex items-center justify-center"
-                                    title="Sign Up with Facebook"
-                                >
-                                    <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                                     </svg>
                                 </button>
                             </div>

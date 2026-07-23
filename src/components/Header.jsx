@@ -77,7 +77,7 @@ const Header = () => {
 
     return (
         <header className="w-full p-4 mb-4 flex justify-between items-center bg-white dark:bg-gray-800 shadow-md rounded-lg">
-            <h1 
+            <h1
                 className="p-3 text-xl font-bold cursor-pointer text-custom-800 dark:text-custom-200"
                 onClick={() => navigate('/')}
             >
@@ -145,16 +145,16 @@ const Header = () => {
                                     className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
                                     <MdCalendarToday />
-                                    <span className="ml-2">Book Class</span>
+                                    <span className="ml-2">Book Tutoring</span>
                                 </button>
                                 <button
                                     onClick={() => { toggleTheme(); setIsMenuOpen(false); }}
                                     className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                    <span className="text-lg">{theme === 'dark' ? '🌙' : '☀️'}</span>
+                                    <span className="text-lg">{theme === 'dark' ? '☀️' : '🌙'}</span>
                                     <span className="ml-2">Switch to {theme === 'dark' ? 'Light' : 'Dark'} Mode</span>
                                 </button>
-                                <button 
+                                <button
                                     onClick={signOutUser}
                                     className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
@@ -165,7 +165,7 @@ const Header = () => {
                     </div>
                 ) : (
                     <div className="flex flex-col items-end">
-                        <button 
+                        <button
                             onClick={handleGoogleSignIn}
                             className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-600 transition-colors"
                         >

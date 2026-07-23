@@ -29,6 +29,7 @@ const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const DeleteAccountPage = lazy(() => import('./components/DeleteAccountPage'));
 const LoginPage = lazy(() => import('./components/LoginPage'));
+const VerifyEmailPage = lazy(() => import('./components/VerifyEmailPage'));
 
 // This component is the main layout for authenticated (logged-in) users.
 const AppLayout = () => {
@@ -146,7 +147,18 @@ export default function App() {
 
                 {/* Auth-gated Routes */}
                 {currentUser ? (
-                    <Route path="/*" element={<AppLayout />} />
+                    !currentUser.emailVerified ? (
+                        <>
+                            <Route path="/verify-email" element={
+                                <Suspense fallback={<div className="text-center p-8">Loading...</div>}>
+                                    <VerifyEmailPage />
+                                </Suspense>
+                            } />
+                            <Route path="*" element={<Navigate to="/verify-email" replace />} />
+                        </>
+                    ) : (
+                        <Route path="/*" element={<AppLayout />} />
+                    )
                 ) : (
                     <>
                         <Route path="/login" element={

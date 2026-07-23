@@ -73,7 +73,18 @@ const PrivacyPolicy = () => {
                     </section>
 
                     <section>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">8. Contact Us</h2>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">8. Disclosures to Public Authorities and Law Enforcement</h2>
+                        <p>We may disclose user personal data to public authorities or law enforcement agencies only when required by valid legal process (e.g., a subpoena, warrant, or court order). In handling such requests, we adhere to the following principles:</p>
+                        <ul className="list-disc pl-6 mt-2 space-y-2">
+                            <li><strong>Legality Review:</strong> We strictly review the legality and validity of any data request received from public authorities before disclosing any user information.</li>
+                            <li><strong>Challenging Unlawful Requests:</strong> We reserve the right to challenge, appeal, or limit any requests that we determine to be overbroad, unlawful, or procedurally deficient.</li>
+                            <li><strong>Data Minimization:</strong> We practice data minimization, disclosing only the absolute minimum amount of personal information legally required to satisfy the request.</li>
+                            <li><strong>Secure Documentation:</strong> We maintain secure, confidential logs of all legal data requests, including the legal justification, requested scopes, and our actions taken.</li>
+                        </ul>
+                    </section>
+
+                    <section>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">9. Contact Us</h2>
                         <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your data rights, please contact us at [admin@thespanishsuiteapp.com].</p>
                     </section>
                 </div>
