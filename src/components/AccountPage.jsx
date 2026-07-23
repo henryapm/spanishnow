@@ -397,7 +397,7 @@ const AccountPage = ({ decks }) => {
                 ) : (
                     <div>
                         <div className="bg-linear-to-r from-red-500/10 to-purple-500/10 border border-gray-200 dark:border-gray-600 rounded-xl p-5 mb-6">
-                            <p className="text-gray-800 dark:text-gray-200 font-bold text-lg mb-2">Upgrade to SpanishNow PRO</p>
+                            <p className="text-gray-800 dark:text-gray-200 font-bold text-lg mb-2">Upgrade to the Spanish Suite PRO</p>
                             <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                                 Take your learning to the next level with full, unrestricted access to the entire app:
                             </p>
