@@ -343,18 +343,6 @@ export const useDecksStore = create((set, get) => ({
                 const isTrueAdmin = tokenResult.claims.admin === true || isFirestoreAdmin;
                 const isPremium = isTrueAdmin || subscriptionStatus;
 
-                if (!isPremium) {
-                    const today = new Date().toLocaleDateString('en-CA');
-                    const limitRef = doc(db, 'users', user.uid, 'daily_limits', 'speak');
-                    getDoc(limitRef).then((docSnap) => {
-                        if (docSnap.exists() && docSnap.data().date === today) {
-                            set({ interactionCount: docSnap.data().count || 0 });
-                        } else {
-                            set({ interactionCount: 0 });
-                        }
-                    });
-                }
-
                 set({
                     currentUser: user,
                     userDataFetched: true,
@@ -372,8 +360,10 @@ export const useDecksStore = create((set, get) => ({
                     savedWordsList: [],
                 });
 
-                // --- ADDED: Trigger fetch for subcollections after user is set ---
-                get().fetchFinishedArticles();
+                // Only fetch gated user subcollections if the email is verified
+                if (user.emailVerified) {
+                    await get().initializeUserData(user, isPremium);
+                }
             } else {
                 if (userDocUnsubscribe) {
                     userDocUnsubscribe();
@@ -1068,6 +1058,33 @@ export const useDecksStore = create((set, get) => ({
         try { await signOut(auth); } catch (error) { console.error("Error during sign-out: ", error); }
     },
 
+    initializeUserData: async (user, isPremium) => {
+        if (!user || !user.emailVerified) return;
+
+        // Fetch daily limits if not premium
+        if (!isPremium) {
+            const today = new Date().toLocaleDateString('en-CA');
+            const limitRef = doc(db, 'users', user.uid, 'daily_limits', 'speak');
+            try {
+                const docSnap = await getDoc(limitRef);
+                if (docSnap.exists() && docSnap.data().date === today) {
+                    set({ interactionCount: docSnap.data().count || 0 });
+                } else {
+                    set({ interactionCount: 0 });
+                }
+            } catch (err) {
+                console.error("Error fetching daily limits:", err);
+            }
+        }
+
+        // Fetch finished articles
+        try {
+            await get().fetchFinishedArticles();
+        } catch (err) {
+            console.error("Error fetching finished articles:", err);
+        }
+    },
+
     checkEmailVerification: async () => {
         if (auth.currentUser) {
             await auth.currentUser.reload();
@@ -1075,6 +1092,12 @@ export const useDecksStore = create((set, get) => ({
                 currentUser: auth.currentUser,
                 authTrigger: Date.now() 
             });
+
+            if (auth.currentUser.emailVerified) {
+                const { isAdmin, hasActiveSubscription } = get();
+                const isPremium = isAdmin || hasActiveSubscription;
+                await get().initializeUserData(auth.currentUser, isPremium);
+            }
         }
     },
 
