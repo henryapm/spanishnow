@@ -306,7 +306,7 @@ export const useDecksStore = create((set, get) => ({
                 const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 const userData = userDocSnap.exists() ? userDocSnap.data() : null;
 
-                if (userData && (!userData.timezone || userData.timezone !== browserTimezone)) {
+                if (user.emailVerified && userData && (!userData.timezone || userData.timezone !== browserTimezone)) {
                     // --- SECURE FIX: Call a dedicated Cloud Function ---
                     const updateUserTimezoneCall = httpsCallable(functions, 'updateUserTimezone');
                     updateUserTimezoneCall({ timezone: browserTimezone }).catch(error => {
@@ -1082,6 +1082,20 @@ export const useDecksStore = create((set, get) => ({
             await get().fetchFinishedArticles();
         } catch (err) {
             console.error("Error fetching finished articles:", err);
+        }
+
+        // Sync timezone
+        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const userDocRef = doc(db, 'users', user.uid);
+        try {
+            const userDocSnap = await getDoc(userDocRef);
+            const userData = userDocSnap.exists() ? userDocSnap.data() : null;
+            if (userData && (!userData.timezone || userData.timezone !== browserTimezone)) {
+                const updateUserTimezoneCall = httpsCallable(functions, 'updateUserTimezone');
+                await updateUserTimezoneCall({ timezone: browserTimezone });
+            }
+        } catch (err) {
+            console.error("Failed to sync timezone post-verification:", err);
         }
     },
 

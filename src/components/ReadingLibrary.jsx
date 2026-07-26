@@ -71,7 +71,7 @@ const ReadingLibrary = () => {
                 const diff = getLevelValue(a.level) - getLevelValue(b.level);
                 if (diff !== 0) return diff;
             }
-            if (sortBy === 'premium') {
+            if (sortBy === 'Free/Premium') {
                 return (a.premium === b.premium) ? 0 : a.premium ? 1 : -1;
             }
             return (a.title || "").localeCompare(b.title || "");
@@ -139,7 +139,7 @@ const ReadingLibrary = () => {
                     >
                         <option value="title">Title</option>
                         <option value="level">Level</option>
-                        <option value="premium">Free/Premium</option>
+                        <option value="Free/Premium">Free/Premium</option>
                     </select>
                 </div>
 
