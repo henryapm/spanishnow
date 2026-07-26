@@ -12,6 +12,11 @@ exports.addCardToSRS = onCall(async (request) => {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
+    // Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
+    }
+
     const uid = request.auth.uid;
     const { card, deckTitle } = request.data;
 
@@ -19,8 +24,8 @@ exports.addCardToSRS = onCall(async (request) => {
     if (!card || typeof card.spanish !== 'string' || card.spanish.trim() === '') {
         throw new HttpsError('invalid-argument', 'A valid Spanish word is required.');
     }
-    if (card.spanish.length > 100 || 
-        (card.english && typeof card.english !== 'string') || (card.english && card.english.length > 500) || 
+    if (card.spanish.length > 100 ||
+        (card.english && typeof card.english !== 'string') || (card.english && card.english.length > 500) ||
         (card.vocab && typeof card.vocab !== 'string') || (card.vocab && card.vocab.length > 500) ||
         (deckTitle && typeof deckTitle !== 'string') || (deckTitle && deckTitle.length > 100)) {
         throw new HttpsError('invalid-argument', 'Payload is malformed or exceeds maximum allowed length.');
@@ -40,7 +45,7 @@ exports.addCardToSRS = onCall(async (request) => {
             vocab: card.vocab || '',
             source: deckTitle || 'Flashcards'
         }, { merge: true });
-        
+
         return { success: true };
     } catch (error) {
         console.error("Error adding card to SRS:", error);
@@ -57,6 +62,11 @@ exports.toggleSavedWord = onCall(async (request) => {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
+    // Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
+    }
+
     const uid = request.auth.uid;
     const { spanishWord, action, translation, vocab, source } = request.data;
 
@@ -69,7 +79,7 @@ exports.toggleSavedWord = onCall(async (request) => {
     if (action !== undefined && action !== 'remove' && action !== 'add') {
         throw new HttpsError('invalid-argument', 'Action must be either "add" or "remove".');
     }
-    
+
     // Strict Optional fields validation
     if (translation !== undefined && translation !== null && (typeof translation !== 'string' || translation.length > 500)) throw new HttpsError('invalid-argument', 'Translation must be a string under 500 characters.');
     if (vocab !== undefined && vocab !== null && (typeof vocab !== 'string' || vocab.length > 500)) throw new HttpsError('invalid-argument', 'Vocab must be a string under 500 characters.');
@@ -112,6 +122,11 @@ exports.updateSavedWordProgress = onCall(async (request) => {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
+    // Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
+    }
+
     const uid = request.auth.uid;
     const { wordId } = request.data;
 
@@ -152,7 +167,7 @@ exports.updateSavedWordProgress = onCall(async (request) => {
             }
 
             t.update(wordRef, { stage, nextReviewDate: nextReviewTime });
-            
+
             return { success: true, stage, nextReviewDate: nextReviewTime };
         });
     } catch (error) {
@@ -171,13 +186,18 @@ exports.updateMultipleSavedWordProgress = onCall(async (request) => {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
+    // Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
+    }
+
     const uid = request.auth.uid;
     const { wordIds } = request.data;
 
     if (!wordIds || !Array.isArray(wordIds) || wordIds.length === 0) {
         throw new HttpsError('invalid-argument', 'A non-empty array of word IDs is required.');
     }
-    
+
     if (wordIds.length > 10) { // Prevent abuse
         throw new HttpsError('invalid-argument', 'Too many words provided. Maximum allowed is 10.');
     }
@@ -207,10 +227,10 @@ exports.updateMultipleSavedWordProgress = onCall(async (request) => {
                     const ONE_DAY = 24 * 60 * 60 * 1000;
 
                     // This logic should be identical to the single update function
-                    if (stage === 0) { nextReviewTime += 1 * ONE_DAY; stage = 1; } 
-                    else if (stage === 1) { nextReviewTime += 3 * ONE_DAY; stage = 2; } 
-                    else if (stage === 2) { nextReviewTime += 7 * ONE_DAY; stage = 3; } 
-                    else if (stage === 3) { nextReviewTime += 14 * ONE_DAY; stage = 4; } 
+                    if (stage === 0) { nextReviewTime += 1 * ONE_DAY; stage = 1; }
+                    else if (stage === 1) { nextReviewTime += 3 * ONE_DAY; stage = 2; }
+                    else if (stage === 2) { nextReviewTime += 7 * ONE_DAY; stage = 3; }
+                    else if (stage === 3) { nextReviewTime += 14 * ONE_DAY; stage = 4; }
                     else if (stage >= 4) { stage = 5; }
 
                     t.update(wordRef, { stage, nextReviewDate: nextReviewTime });
@@ -237,6 +257,11 @@ exports.updateMultipleSavedWordProgress = onCall(async (request) => {
 exports.resetSavedWordProgress = onCall(async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    // Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
     }
 
     const uid = request.auth.uid;

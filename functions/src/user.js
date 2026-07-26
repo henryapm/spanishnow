@@ -10,6 +10,11 @@ exports.updateListeningPreference = onCall(async (request) => {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
+    // Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
+    }
+
     const uid = request.auth.uid;
     const { preference } = request.data;
 
@@ -40,6 +45,11 @@ exports.updateUserTimezone = onCall(async (request) => {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
+    // Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
+    }
+
     const uid = request.auth.uid;
     const { timezone } = request.data;
 
@@ -47,7 +57,7 @@ exports.updateUserTimezone = onCall(async (request) => {
     if (!timezone || typeof timezone !== 'string' || timezone.length > 50) {
         throw new HttpsError('invalid-argument', 'A valid timezone string is required.');
     }
-    
+
     // 2. Verify it's a real IANA timezone to prevent junk data
     try {
         new Intl.DateTimeFormat(undefined, { timeZone: timezone });
@@ -60,6 +70,6 @@ exports.updateUserTimezone = onCall(async (request) => {
 
     // 3. Only update the explicitly allowed field
     await userRef.update({ timezone: timezone });
-    
+
     return { success: true };
 });

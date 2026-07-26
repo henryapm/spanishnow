@@ -11,6 +11,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
       );
     }
+
+    // Helper function to check if the user has verified their email address.
+    function isEmailVerified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
     
     // --- USERS COLLECTION ---
     match /users/{userId} {
@@ -18,68 +23,64 @@ service cloud.firestore {
       allow read: if request.auth.uid == userId || isAdmin();
 
       // WRITE: DENY ALL client-side creates, updates, and deletes.
-      // This is the most important rule. It forces all sensitive changes (XP, streak,
-      // admin status, etc.) to go through a secure Cloud Function.
-      // User creation MUST be handled by an `onUserCreate` backend trigger.
-      // User updates (like timezone or preferences) MUST go through specific callable functions.
       allow write: if false;
 
       // --- USER SUBCOLLECTIONS ---
 
       // Users can manage their own list of saved words.
       match /savedWords/{wordId} {
-        allow read, write: if request.auth.uid == userId;
+        allow read, write: if request.auth.uid == userId && isEmailVerified();
       }
 
       // Users can manage their own flashcard progress.
       match /progress/{deckId} {
-        allow read, write: if request.auth.uid == userId;
+        allow read, write: if request.auth.uid == userId && isEmailVerified();
       }
 
       // PROTECTED: Limits can be read by the user but only written by the backend.
       match /daily_limits/{limitId} {
-        allow read: if request.auth.uid == userId;
+        allow read: if request.auth.uid == userId && isEmailVerified();
         allow write: if false;
       }
 
       // PROTECTED: Speak progress can be read, but only written by the backend.
       match /speakProgress/{scenarioId} {
-        allow read: if request.auth.uid == userId;
+        allow read: if request.auth.uid == userId && isEmailVerified();
         allow write: if false;
       }
 
       // PROTECTED: Finished articles can be read, but only written by the backend.
       match /finishedArticles/{articleId} {
-        allow read: if request.auth.uid == userId;
+        allow read: if request.auth.uid == userId && isEmailVerified();
         allow write: if false;
       }
 
       // PROTECTED: XP history can be read for the chart, but NEVER written from the client.
       match /xpHistory/{historyId} {
-        allow read: if request.auth.uid == userId;
+        allow read: if request.auth.uid == userId && isEmailVerified();
         allow write: if false;
       }
 
       // STRIPE EXTENSION: Allow users to create and read their checkout sessions
       match /checkout_sessions/{id} {
-        allow create, read, update: if request.auth.uid == userId;
+        allow create, read, update: if request.auth.uid == userId && isEmailVerified();
       }
 
       // STRIPE EXTENSION: Allow users to create and read portal sessions
       match /portal_sessions/{id} {
-        allow create, read: if request.auth.uid == userId;
+        allow create, read: if request.auth.uid == userId && isEmailVerified();
       }
 
       // STRIPE EXTENSION: Allow users to read their own subscription status
       match /subscriptions/{id} {
-        allow read: if request.auth.uid == userId;
+        allow read: if request.auth.uid == userId && isEmailVerified();
       }
     }
     
     // --- GLOBAL COLLECTIONS ---
     
     match /scenarios/{scenarioId} {
-      allow read: if request.auth != null;
+      allow read: if isEmailVerified();
       allow write: if isAdmin();
     }
     
@@ -99,7 +100,7 @@ service cloud.firestore {
     }
     
     match /dictionary/{word} {
-      allow get, list: if request.auth != null;
+      allow get, list: if isEmailVerified();
       allow write: if isAdmin();
     }
     

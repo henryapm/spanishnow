@@ -27,10 +27,15 @@ exports.saveWord = onCall(async (request) => {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
+    // Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
+    }
+
     const db = admin.firestore();
     const uid = request.auth.uid;
     const userDoc = await db.collection('users').doc(uid).get();
-    
+
     // Verify admin status via custom claim OR Firestore user document
     const isAdmin = request.auth.token.admin === true || (userDoc.exists && userDoc.data().isAdmin === true);
 
@@ -43,7 +48,7 @@ exports.saveWord = onCall(async (request) => {
     if (!wordData || typeof wordData.spanish !== 'string' || typeof wordData.translation !== 'string' || wordData.spanish.trim() === '' || wordData.translation.trim() === '' || wordData.spanish.length > 100 || wordData.translation.length > 100) {
         throw new HttpsError('invalid-argument', 'Valid word data is required.');
     }
-    
+
     try {
         await db.collection('dictionary').doc(wordData.spanish).set({ translation: wordData.translation }, { merge: true });
         return { success: true };

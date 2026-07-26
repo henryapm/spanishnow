@@ -28,6 +28,11 @@ exports.chatWithGemini = onCall({
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
+    // 2. Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
+    }
+
     const uid = request.auth.uid;
     const { history, personaId, date, rolePlayName } = request.data;
 
@@ -127,9 +132,9 @@ exports.chatWithGemini = onCall({
 
     try {
         const genAI = new GoogleGenerativeAI(geminiApiKey.value());
-        const model = genAI.getGenerativeModel({ 
+        const model = genAI.getGenerativeModel({
             model: 'gemini-flash-latest',
-            systemInstruction: systemInstruction 
+            systemInstruction: systemInstruction
         });
 
         const result = await model.generateContent({
@@ -165,6 +170,11 @@ exports.chatForLesson = onCall({
 }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    //Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
     }
 
     const uid = request.auth.uid;
@@ -242,9 +252,9 @@ exports.chatForLesson = onCall({
 
     try {
         const genAI = new GoogleGenerativeAI(geminiApiKey.value());
-        const model = genAI.getGenerativeModel({ 
+        const model = genAI.getGenerativeModel({
             model: 'gemini-flash-latest',
-            systemInstruction: systemInstruction 
+            systemInstruction: systemInstruction
         });
 
         const result = await model.generateContent({
@@ -277,9 +287,15 @@ exports.completeRolePlay = onCall(async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
+
+    // Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
+    }
+
     const uid = request.auth.uid;
 
-    // 2. Input validation
+    // Input validation
     const { scenarioId, rolePlayName } = request.data;
     if (!scenarioId || typeof scenarioId !== 'string' || scenarioId.trim() === '' || scenarioId.length > 100) {
         throw new HttpsError('invalid-argument', 'A valid scenario ID is required.');
@@ -333,6 +349,11 @@ exports.generateAudioTTS = onCall(async (request) => {
     // 1. Auth check
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    // Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
     }
 
     // 2. Strict Input Validation to prevent API abuse/bloating

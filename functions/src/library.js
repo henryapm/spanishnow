@@ -12,6 +12,11 @@ exports.markArticleAsFinished = onCall(async (request) => {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
+    // Email Verification Check
+    if (!request.auth.token.email_verified) {
+        throw new HttpsError('failed-precondition', 'Email verification required.');
+    }
+
     const uid = request.auth.uid;
     const { articleId } = request.data;
 
