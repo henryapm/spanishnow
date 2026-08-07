@@ -256,113 +256,157 @@ export const useDecksStore = create((set, get) => ({
             }
 
             if (user) {
-                const { currentUser, userDataFetched } = get();
+                try {
+                    const { currentUser, userDataFetched } = get();
 
-                // --- OPTIMIZATION: Prevent redundant reads ---
-                // If it's the same user, just update the auth object and skip the database read!
-                if (currentUser?.uid === user.uid && userDataFetched) {
-                    set({ currentUser: user });
-                    return;
-                }
+                    // --- OPTIMIZATION: Prevent redundant reads ---
+                    // If it's the same user, just update the auth object and skip the database read!
+                    if (currentUser?.uid === user.uid && userDataFetched) {
+                        set({ currentUser: user });
+                        return;
+                    }
 
-                const tokenResult = await user.getIdTokenResult();
-                const userDocRef = doc(db, 'users', user.uid);
+                    const tokenResult = await user.getIdTokenResult();
+                    const userDocRef = doc(db, 'users', user.uid);
 
-                // Set up realtime sync for user document to catch subscription upgrades instantly
-                userDocUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const userData = docSnap.data();
-                        const subscriptionStatus = userData.hasActiveSubscription === true;
-                        const isFirestoreAdmin = userData.isAdmin === true;
-                        const isTrueAdmin = tokenResult.claims.admin === true || isFirestoreAdmin;
+                    // Set up realtime sync for user document to catch subscription upgrades instantly
+                    userDocUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const userData = docSnap.data();
+                            const subscriptionStatus = userData.hasActiveSubscription === true;
+                            const isFirestoreAdmin = userData.isAdmin === true;
+                            const isTrueAdmin = tokenResult.claims.admin === true || isFirestoreAdmin;
 
-                        set({
-                            hasActiveSubscription: subscriptionStatus,
-                            isAdmin: isTrueAdmin,
-                            listeningPreference: userData.listeningPreference || 'es-US',
-                            totalXp: userData.totalXp || 0,
-                            dailyXp: userData.dailyXp || 0,
-                            streak: userData.streak || 0,
-                            dailyFreeAccess: userData.dailyFreeAccess || null,
+                            set({
+                                hasActiveSubscription: subscriptionStatus,
+                                isAdmin: isTrueAdmin,
+                                listeningPreference: userData.listeningPreference || 'es-US',
+                                totalXp: userData.totalXp || 0,
+                                dailyXp: userData.dailyXp || 0,
+                                streak: userData.streak || 0,
+                                dailyFreeAccess: userData.dailyFreeAccess || null,
+                            });
+                        }
+                    }, (syncError) => {
+                        console.error("User doc snapshot subscription failed:", syncError);
+                    });
+
+                    // Fetch initial critical user data
+                    const userDocSnap = await getDoc(userDocRef);
+
+                    let userPreference = 'es-US';
+                    let userXp = 0;
+                    let userDailyXp = 0;
+                    let userStreak = 0;
+                    let subscriptionStatus = false;
+                    let isFirestoreAdmin = false;
+                    let dailyFreeAccess = null;
+
+                    // --- NEW: Timezone Synchronization ---
+                    // Check if user document exists and if timezone is missing.
+                    // If so, update it with the browser's timezone. This is a one-time fix.
+                    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    const userData = userDocSnap.exists() ? userDocSnap.data() : null;
+
+                    if (user.emailVerified && userData && (!userData.timezone || userData.timezone !== browserTimezone)) {
+                        // --- SECURE FIX: Call a dedicated Cloud Function ---
+                        const updateUserTimezoneCall = httpsCallable(functions, 'updateUserTimezone');
+                        updateUserTimezoneCall({ timezone: browserTimezone }).catch(error => {
+                            // Log the error, but don't block the login flow.
+                            // This is a non-critical, one-time update.
+                            console.error("Failed to sync timezone:", error.message || error.text || error);
                         });
                     }
-                });
 
-                // Fetch initial critical user data
-                const userDocSnap = await getDoc(userDocRef);
+                    if (userData) {
+                        userPreference = userData.listeningPreference || 'es-US';
+                        userXp = userData.totalXp || 0;
+                        userDailyXp = userData.dailyXp || 0;
+                        userStreak = userData.streak || 0;
+                        subscriptionStatus = userData.hasActiveSubscription === true;
+                        isFirestoreAdmin = userData.isAdmin === true;
 
-                let userPreference = 'es-US';
-                let userXp = 0;
-                let userDailyXp = 0;
-                let userStreak = 0;
-                let subscriptionStatus = false;
-                let isFirestoreAdmin = false;
-                let dailyFreeAccess = null;
-                let finishedArticles = [];
+                        // --- FIX: Race Condition Handling ---
+                        // If we have a local record for TODAY, but server has nothing (or old date), 
+                        // keep the local version. This prevents the auth listener from overwriting 
+                        // our optimistic update before the server write completes.
+                        const serverAccess = userData.dailyFreeAccess || null;
+                        const localAccess = get().dailyFreeAccess;
+                        const now = new Date();
+                        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-                // --- NEW: Timezone Synchronization ---
-                // Check if user document exists and if timezone is missing.
-                // If so, update it with the browser's timezone. This is a one-time fix.
-                const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                const userData = userDocSnap.exists() ? userDocSnap.data() : null;
-
-                if (user.emailVerified && userData && (!userData.timezone || userData.timezone !== browserTimezone)) {
-                    // --- SECURE FIX: Call a dedicated Cloud Function ---
-                    const updateUserTimezoneCall = httpsCallable(functions, 'updateUserTimezone');
-                    updateUserTimezoneCall({ timezone: browserTimezone }).catch(error => {
-                        // Log the error, but don't block the login flow.
-                        // This is a non-critical, one-time update.
-                        console.error("Failed to sync timezone:", error.message || error.text || error);
-                    });
-                }
-
-                if (userData) {
-                    userPreference = userData.listeningPreference || 'es-US';
-                    userXp = userData.totalXp || 0;
-                    userDailyXp = userData.dailyXp || 0;
-                    userStreak = userData.streak || 0;
-                    subscriptionStatus = userData.hasActiveSubscription === true;
-                    isFirestoreAdmin = userData.isAdmin === true;
-
-                    // --- FIX: Race Condition Handling ---
-                    // If we have a local record for TODAY, but server has nothing (or old date), 
-                    // keep the local version. This prevents the auth listener from overwriting 
-                    // our optimistic update before the server write completes.
-                    const serverAccess = userData.dailyFreeAccess || null;
-                    const localAccess = get().dailyFreeAccess;
-                    const now = new Date();
-                    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-                    if (localAccess && localAccess.date === today && (!serverAccess || serverAccess.date !== today)) {
-                        dailyFreeAccess = localAccess;
-                    } else {
-                        dailyFreeAccess = serverAccess;
+                        if (localAccess && localAccess.date === today && (!serverAccess || serverAccess.date !== today)) {
+                            dailyFreeAccess = localAccess;
+                        } else {
+                            dailyFreeAccess = serverAccess;
+                        }
                     }
-                }
 
-                const isTrueAdmin = tokenResult.claims.admin === true || isFirestoreAdmin;
-                const isPremium = isTrueAdmin || subscriptionStatus;
+                    const isTrueAdmin = tokenResult.claims.admin === true || isFirestoreAdmin;
+                    const isPremium = isTrueAdmin || subscriptionStatus;
 
-                set({
-                    currentUser: user,
-                    userDataFetched: true,
-                    isAdmin: isTrueAdmin, // FIX: Only real admins get admin privileges
-                    hasActiveSubscription: subscriptionStatus,
-                    listeningPreference: userPreference,
-                    totalXp: userXp,
-                    dailyXp: userDailyXp,
-                    streak: userStreak,
-                    dailyFreeAccess,
-                    // Reset these on login to ensure fresh data is fetched
-                    finishedArticles: new Set(),
-                    savedWordsLoaded: false,
-                    savedWordsSet: new Set(),
-                    savedWordsList: [],
-                });
+                    set({
+                        currentUser: user,
+                        userDataFetched: true,
+                        isAdmin: isTrueAdmin, // FIX: Only real admins get admin privileges
+                        hasActiveSubscription: subscriptionStatus,
+                        listeningPreference: userPreference,
+                        totalXp: userXp,
+                        dailyXp: userDailyXp,
+                        streak: userStreak,
+                        dailyFreeAccess,
+                        // Reset these on login to ensure fresh data is fetched
+                        finishedArticles: new Set(),
+                        savedWordsLoaded: false,
+                        savedWordsSet: new Set(),
+                        savedWordsList: [],
+                    });
 
-                // Only fetch gated user subcollections if the email is verified
-                if (user.emailVerified) {
-                    await get().initializeUserData(user, isPremium);
+                    // Only fetch gated user subcollections if the email is verified
+                    if (user.emailVerified) {
+                        await get().initializeUserData(user, isPremium);
+                    }
+                } catch (authError) {
+                    console.error("Error setting up authenticated user state:", authError);
+
+                    // Cleanup user document listener if set
+                    if (userDocUnsubscribe) {
+                        userDocUnsubscribe();
+                        userDocUnsubscribe = null;
+                    }
+
+                    // Attempt sign out, clear cache, and reset local store state
+                    try {
+                        await signOut(auth);
+                    } catch (signOutError) {
+                        console.error("Sign out failed inside auth error recovery:", signOutError);
+                    }
+                    localStorage.clear();
+
+                    set({
+                        currentUser: null,
+                        userDataFetched: false,
+                        isAdmin: false,
+                        hasActiveSubscription: false,
+                        progress: {},
+                        deckProgress: {},
+                        listeningPreference: 'es-ES',
+                        totalXp: 0,
+                        dailyXp: 0,
+                        streak: 0,
+                        xpHistory: {},
+                        dailyFreeAccess: null,
+                        finishedArticles: new Set(),
+                        savedWordsLoaded: false,
+                        savedWordsSet: new Set(),
+                        savedWordsList: [],
+                        speakProgress: {},
+                        interactionCount: 0,
+                        userProgressLoaded: false,
+                        speakProgressLoaded: false,
+                        userStats: { total: 0, premium: 0 },
+                        userStatsLoaded: false
+                    });
                 }
             } else {
                 if (userDocUnsubscribe) {
