@@ -987,7 +987,6 @@ export const useDecksStore = create((set, get) => ({
         try {
             const verifyAuthFlowCall = httpsCallable(functions, 'verifyAuthFlow');
             await verifyAuthFlowCall({ isSignUpFlow: true });
-            localStorage.setItem('has_signed_up', 'true');
         } catch (error) {
             console.error("Server-side sign-up verification failed:", error);
             await signOut(auth);
@@ -1006,7 +1005,6 @@ export const useDecksStore = create((set, get) => ({
         try {
             const verifyAuthFlowCall = httpsCallable(functions, 'verifyAuthFlow');
             await verifyAuthFlowCall({ isSignUpFlow: false });
-            localStorage.setItem('has_signed_up', 'true');
         } catch (error) {
             console.error("Server-side sign-in verification failed:", error);
             await signOut(auth);
@@ -1026,7 +1024,6 @@ export const useDecksStore = create((set, get) => ({
             const verifyAuthFlowCall = httpsCallable(functions, 'verifyAuthFlow');
             await verifyAuthFlowCall({ isSignUpFlow });
             // Caching the sign-in / sign-up state
-            localStorage.setItem('has_signed_up', 'true');
         } catch (error) {
             console.error("Server-side sign-in verification failed:", error);
             await signOut(auth); // Clear the local session immediately
@@ -1046,7 +1043,6 @@ export const useDecksStore = create((set, get) => ({
             const verifyAuthFlowCall = httpsCallable(functions, 'verifyAuthFlow');
             await verifyAuthFlowCall({ isSignUpFlow });
             // Caching the sign-in / sign-up state
-            localStorage.setItem('has_signed_up', 'true');
         } catch (error) {
             console.error("Server-side Facebook sign-in verification failed:", error);
             await signOut(auth); // Clear the local session immediately
@@ -1102,9 +1098,9 @@ export const useDecksStore = create((set, get) => ({
     checkEmailVerification: async () => {
         if (auth.currentUser) {
             await auth.currentUser.reload();
-            set({ 
+            set({
                 currentUser: auth.currentUser,
-                authTrigger: Date.now() 
+                authTrigger: Date.now()
             });
 
             if (auth.currentUser.emailVerified) {
@@ -1120,7 +1116,6 @@ export const useDecksStore = create((set, get) => ({
         if (!currentUser) return { success: false, error: 'No user logged in.' };
         try {
             await deleteUser(currentUser);
-            localStorage.removeItem('has_signed_up');
             return { success: true };
         } catch (error) {
             console.error("Error deleting user account:", error);
