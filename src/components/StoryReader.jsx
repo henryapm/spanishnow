@@ -251,7 +251,7 @@ const StoryReader = ({ articleId, onComplete }) => {
                 {sentenceObj.spanish.split(' ').map((word, wIndex) => {
                     const cleanedWordMatch = word.toLowerCase().match(/[\p{L}]+/gu);
                     const cleanedWord = cleanedWordMatch ? cleanedWordMatch[0] : "";
-                    
+
                     const isSessionWord = sessionWords.includes(cleanedWord);
                     const baseClass = `cursor-pointer rounded transition-colors duration-150 ${isSessionWord ? 'bg-yellow-300 dark:bg-yellow-700 text-gray-900 dark:text-white font-medium hover:bg-yellow-400 dark:hover:bg-yellow-600' : 'hover:bg-yellow-200 dark:hover:bg-yellow-600'}`;
                     let adminClass = "";
@@ -404,7 +404,7 @@ const StoryReader = ({ articleId, onComplete }) => {
                             setIsTranslationsOn(!isTranslationsOn);
                         }
                         } className={`text-sm px-3 py-1 text-gray-100 rounded hover:bg-gray-300 dark:hover:bg-green-600 transition-colors ` + (isTranslationsOn ? 'bg-green-800' : 'bg-green-500')}>
-                            {showTranslations ? 'ES' : 'ES/EN'}
+                            {showTranslations ? 'Hide translations' : 'Show translations'}
                         </button>
                     </div>
                 </div>
