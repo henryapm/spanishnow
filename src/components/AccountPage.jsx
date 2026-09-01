@@ -328,10 +328,10 @@ const AccountPage = ({ decks }) => {
             </div>
 
             {nextArticle && (
-                <div className="bg-linear-to-r from-red-500 to-purple-500 rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="bg-linear-to-r from-red-500 to-purple-500 rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4 animate-pulse">
                     <div className="text-center md:text-left">
                         <h2 className="text-2xl font-bold mb-2">Ready to learn?</h2>
-                        <p className="mb-1 text-blue-100">Your next recommended article is waiting:</p>
+                        <p className="mb-1 text-blue-100">Your next recommended story is waiting:</p>
                         <p className="font-semibold text-lg">"{nextArticle.title}" <span className="text-sm bg-white/20 px-2 py-0.5 rounded ml-2">{nextArticle.level}</span></p>
                     </div>
                     <button
@@ -346,8 +346,23 @@ const AccountPage = ({ decks }) => {
                 </div>
             )}
 
+            {/* --- My Journey --- */}
+            <div className="rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4 bg-linear-to-r from-green-500 to-amber-500 animate-pulse">
+                <div className="text-center md:text-left">
+                    <h2 className="text-2xl font-bold mb-2">My Journey</h2>
+                    <p className="mb-1 text-blue-100">You are currently on section A1.</p>
+                </div>
+                <button
+                    onClick={handleStartReview}
+                    disabled={!hasDueWords}
+                    className="px-6 py-3 bg-white text-blue-600 font-bold rounded-full shadow-md hover:bg-gray-100 transition-transform transform hover:scale-105 flex items-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Keep Learning / Continue Journey <FaArrowCircleRight />
+                </button>
+            </div>
+
             {/* --- Words Due for Review Section --- */}
-            <div className={`rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4 ${hasDueWords ? 'bg-linear-to-r from-blue-500 to-teal-500' : 'bg-gray-400 dark:bg-gray-700'}`}>
+            <div className={`rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4 ${hasDueWords ? 'bg-linear-to-r from-blue-500 to-teal-500 animate-pulse' : 'bg-gray-400 dark:bg-gray-700'}`}>
                 <div className="text-center md:text-left">
                     <h2 className="text-2xl font-bold mb-2">Time to Review!</h2>
                     {hasDueWords ? (
