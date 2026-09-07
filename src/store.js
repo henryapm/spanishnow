@@ -65,6 +65,7 @@ export const useDecksStore = create((set, get) => ({
     decks: {},
     isLoading: false,
     isDecksLoading: false, // New flag to prevent double fetching
+    decksLoaded: false,
     currentUser: null,
     isAdmin: false,
     tab: 'lessons',
@@ -1171,10 +1172,9 @@ export const useDecksStore = create((set, get) => ({
     },
 
     fetchDecks: async () => {
-        // ... (function is correct, no changes)
-        const { isDecksLoading, decks } = get();
-        // Prevent double fetch if already loading or if we already have decks (optional)
-        if (isDecksLoading || Object.keys(decks).length > 0) return;
+        const { isDecksLoading, decksLoaded } = get();
+        // Prevent double fetch if already loading or already fetched
+        if (isDecksLoading || decksLoaded) return;
 
         set({ isLoading: true, isDecksLoading: true });
         try {
@@ -1182,10 +1182,10 @@ export const useDecksStore = create((set, get) => ({
             const deckSnapshot = await getDocs(decksCollection);
             const decksData = {};
             deckSnapshot.forEach(doc => { decksData[doc.id] = doc.data(); });
-            set({ decks: decksData, isLoading: false, isDecksLoading: false });
+            set({ decks: decksData, isLoading: false, isDecksLoading: false, decksLoaded: true });
         } catch (error) {
             console.error("Error fetching decks: ", error);
-            set({ isLoading: false, isDecksLoading: false });
+            set({ isLoading: false, isDecksLoading: false, decksLoaded: true });
         }
     },
 

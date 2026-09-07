@@ -30,15 +30,16 @@ const TermsOfService = lazy(() => import('./components/TermsOfService'));
 const DeleteAccountPage = lazy(() => import('./components/DeleteAccountPage'));
 const LoginPage = lazy(() => import('./components/LoginPage'));
 const VerifyEmailPage = lazy(() => import('./components/VerifyEmailPage'));
+const LearningJourney = lazy(() => import('./components/LearningJourney'));
 
 // This component is the main layout for authenticated (logged-in) users.
 const AppLayout = () => {
-    const { decks, isDecksLoading, fetchDecks, fetchUserProgress } = useDecksStore();
+    const { decks, isDecksLoading, decksLoaded, fetchDecks, fetchUserProgress } = useDecksStore();
     const location = useLocation(); // Hook to get the current URL path
 
     // Define routes that require decks to be loaded
-    const deckRoutes = ['/flashcards', '/create', '/review', '/account', '/listen', '/deck', '/edit', '/admin', '/lesson'];
-    const shouldLoadDecks = deckRoutes.some(route => location.pathname.startsWith(route));
+    const deckRoutes = ['/', '/flashcards', '/create', '/review', '/listen', '/deck', '/edit', '/admin', '/lesson', '/journey'];
+    const shouldLoadDecks = deckRoutes.some(route => route === '/' ? location.pathname === '/' : location.pathname.startsWith(route));
 
     const isSpeakActive = location.pathname.includes('/speakCompanion/session');
     const isReviewTraining = location.pathname.startsWith('/review/training');
@@ -52,8 +53,8 @@ const AppLayout = () => {
         }
     }, [shouldLoadDecks, fetchDecks, fetchUserProgress]);
 
-    if (shouldLoadDecks && (isDecksLoading || Object.keys(decks).length === 0)) {
-        return <h1 className="text-4xl font-bold text-sky-800 mb-8 text-center">Loading...</h1>;
+    if (shouldLoadDecks && (!decksLoaded || isDecksLoading)) {
+        return <h1 className="text-4xl font-bold text-sky-800 mb-8 text-center p-8">Loading...</h1>;
     }
 
     return (
@@ -76,6 +77,7 @@ const AppLayout = () => {
                             <Route path="/speakCompanion/session/:scenarioId/:roleIndex" element={<SpeakCompanion />} />
                             <Route path="/deck/:deckId" element={<SessionManager />} />
                             <Route path="/booking" element={<Booking />} />
+                            <Route path="/flashcards" element={<Flashcards decks={decks} />} />
                             {/* --- NEW: Admin Route --- */}
                             <Route path="/admin" element={<TopicManager decks={decks} />} />
                             <Route path="*" element={<Navigate to="/" replace />} />
@@ -84,6 +86,7 @@ const AppLayout = () => {
                             <Route path="/edit/:deckId" element={<DeckForm decks={decks} />} />
                             <Route path="/admin/dictionary" element={<DictionaryManager />} />
                             <Route path="/lesson" element={<LessonFlow />} />
+                            <Route path="/journey" element={<LearningJourney />} />
                         </Routes>
                     </Suspense>
                 </div>

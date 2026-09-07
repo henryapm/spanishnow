@@ -50,6 +50,16 @@ const AccountPage = ({ decks }) => {
     const deleteUserAccount = useDecksStore((state) => state.deleteUserAccount);
     const signOutUser = useDecksStore((state) => state.signOutUser);
 
+    // --- Active Level State ---
+    const [userActiveLevel, setUserActiveLevel] = useState(() => {
+        return localStorage.getItem('user_active_level') || 'A1';
+    });
+
+    useEffect(() => {
+        const storedLevel = localStorage.getItem('user_active_level') || 'A1';
+        setUserActiveLevel(storedLevel);
+    }, [location.pathname]);
+
     // --- Stripe Payments Integration State ---
     const fetchStripeProducts = useDecksStore((state) => state.fetchStripeProducts);
     const stripeProducts = useDecksStore((state) => state.stripeProducts);
@@ -347,19 +357,18 @@ const AccountPage = ({ decks }) => {
             )}
 
             {/* --- My Journey --- */}
-            <div className="rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4 bg-linear-to-r from-green-500 to-amber-500">
+            {/* <div className="rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4 bg-linear-to-r from-green-500 to-amber-500">
                 <div className="text-center md:text-left">
                     <h2 className="text-2xl font-bold mb-2">My Journey</h2>
-                    <p className="mb-1 text-blue-100">You are currently on section A1.</p>
+                    <p className="mb-1 text-blue-100">You are currently on section {userActiveLevel}.</p>
                 </div>
                 <button
-                    onClick={handleStartReview}
-                    disabled={!hasDueWords}
-                    className="animate-pulse px-6 py-3 bg-white text-blue-600 font-bold rounded-full shadow-md hover:bg-gray-100 transition-transform transform hover:scale-105 flex items-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => navigate('/journey')}
+                    className="animate-pulse px-6 py-3 bg-white text-blue-600 font-bold rounded-full shadow-md hover:bg-gray-100 transition-transform transform hover:scale-105 flex items-center gap-2 whitespace-nowrap"
                 >
                     Keep Learning / Continue Journey <FaArrowCircleRight />
                 </button>
-            </div>
+            </div> */}
 
             {/* --- Words Due for Review Section --- */}
             <div className={`rounded-xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-center justify-between gap-4 ${hasDueWords ? 'bg-linear-to-r from-blue-500 to-teal-500' : 'bg-gray-400 dark:bg-gray-700'}`}>

@@ -104,12 +104,20 @@ const Header = () => {
                         {isMenuOpen && (
                             <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-gray-900 rounded-md shadow-lg py-1 z-20 border dark:border-gray-700">
                                 {isAdmin && (
-                                    <button
-                                        onClick={() => handleNavigate('/admin')}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                    >
-                                        Admin Panel
-                                    </button>
+                                    <div>
+                                        <button
+                                            onClick={() => handleNavigate('/admin')}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                        >
+                                            Admin Panel
+                                        </button>
+                                        <button
+                                            onClick={() => handleNavigate('/journey')}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                        >
+                                            Journey Control
+                                        </button>
+                                    </div>
                                 )}
                                 <button
                                     onClick={() => handleNavigate('/account')}
@@ -124,6 +132,13 @@ const Header = () => {
                                 >
                                     <FaBookOpen />
                                     <span className="ml-2">Learn</span>
+                                </button>
+                                <button
+                                    onClick={() => handleNavigate('/flashcards')}
+                                    className="flex flex-row items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                    <FaBookOpen />
+                                    <span className="ml-2">Flashcards</span>
                                 </button>
                                 <button
                                     onClick={() => handleNavigate('/spaced-repetition')}
