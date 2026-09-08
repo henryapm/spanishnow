@@ -120,11 +120,12 @@ const DeckForm = ({ decks }) => {
                 </div>
 
                 {cards.map((card, index) => (
-                    <div key={card.id} className="mb-4 p-4 border rounded-md">
+                    <div key={card.id} className="mb-4 p-4 border rounded-md bg-gray-50 dark:bg-gray-800">
                         <h3 className="font-bold mb-2">Card {index + 1}</h3>
-                        <input type="text" value={card.spanish} onChange={(e) => handleCardChange(index, 'spanish', e.target.value)} placeholder="Spanish" className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-2"/>
-                        <input type="text" value={card.english} onChange={(e) => handleCardChange(index, 'english', e.target.value)} placeholder="English" className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-2"/>
-                        <input type="text" value={card.vocab} onChange={(e) => handleCardChange(index, 'vocab', e.target.value)} placeholder="Key Vocab (optional)" className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"/>
+                        <input type="text" value={card.spanish} onChange={(e) => handleCardChange(index, 'spanish', e.target.value)} placeholder="Spanish (e.g., ¿Cómo estás?)" className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-2"/>
+                        <input type="text" value={card.english} onChange={(e) => handleCardChange(index, 'english', e.target.value)} placeholder="English (e.g., How are you?)" className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-2"/>
+                        <input type="text" value={card.explanation || ''} onChange={(e) => handleCardChange(index, 'explanation', e.target.value)} placeholder="Usage Explanation / Notes (e.g., Used informal greeting with friends)" className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-2"/>
+                        <input type="text" value={card.vocab || ''} onChange={(e) => handleCardChange(index, 'vocab', e.target.value)} placeholder="Key Vocab (optional)" className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"/>
                     </div>
                 ))}
 

@@ -1475,7 +1475,6 @@ export const useDecksStore = create((set, get) => ({
                     }
                     return updates;
                 });
-
             } else {
                 console.error("No such article found!");
                 set((state) => state.loadingArticleId === articleId ? { isLoading: false, loadingArticleId: null } : {});
@@ -1483,6 +1482,33 @@ export const useDecksStore = create((set, get) => ({
         } catch (error) {
             console.error("Error fetching single article: ", error);
             set((state) => state.loadingArticleId === articleId ? { isLoading: false, loadingArticleId: null } : {});
+        }
+    },
+
+    saveDeckProgress: async (deckId, score, total) => {
+        const { currentUser, deckProgress } = get();
+        if (!currentUser || !deckId) return;
+
+        const percentage = total > 0 ? Math.round((score / total) * 100) : 100;
+
+        // Optimistic local state update
+        const updatedProgress = {
+            ...deckProgress,
+            [deckId]: {
+                percentage,
+                score,
+                total,
+                updatedAt: new Date().toISOString()
+            }
+        };
+
+        set({ deckProgress: updatedProgress, progress: updatedProgress });
+
+        try {
+            const saveProgressCall = httpsCallable(functions, 'saveDeckProgress');
+            await saveProgressCall({ deckId, score, total });
+        } catch (error) {
+            console.error("Error saving deck progress via Cloud Function: ", error);
         }
     },
 

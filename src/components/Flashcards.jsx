@@ -18,11 +18,12 @@ import {
     FaFutbol,
     FaFolderOpen,
     FaFire,
-    FaBrain
+    FaBrain,
+    FaHandPeace
 } from "react-icons/fa";
 
 const TOPIC_CONFIG = {
-    greetings: { name: "Greetings & Basics", icon: FaRegSmile, gradient: "from-blue-500 to-cyan-500", badge: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+    greetings: { name: "Greetings & Basics", icon: FaHandPeace, gradient: "from-blue-500 to-cyan-500", badge: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
     restaurant: { name: "Dining & Food", icon: FaUtensils, gradient: "from-amber-500 to-orange-500", badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" },
     airport: { name: "Travel & Airport", icon: FaPlane, gradient: "from-sky-500 to-indigo-500", badge: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300" },
     hospital: { name: "Health & Hospital", icon: FaHospital, gradient: "from-emerald-500 to-teal-500", badge: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" },
@@ -128,7 +129,7 @@ const Flashcards = ({ decks }) => {
 
             {/* --- Hero Banner & Header --- */}
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-custom-700 via-custom-800 to-indigo-900 p-6 md:p-8 text-white shadow-xl">
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="relative z-10 flex flex-col justify-between items-start md:items-center gap-6">
                     <div>
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold mb-3 border border-white/20">
                             <FaGraduationCap className="text-amber-400" /> Flashcard Library
@@ -186,8 +187,8 @@ const Flashcards = ({ decks }) => {
                     <button
                         onClick={() => setSelectedTopicFilter('all')}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${selectedTopicFilter === 'all'
-                                ? 'bg-custom-600 text-white shadow-sm'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            ? 'bg-custom-600 text-white shadow-sm'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                             }`}
                     >
                         All Topics ({stats.totalDecks})
@@ -200,8 +201,8 @@ const Flashcards = ({ decks }) => {
                                 key={topicKey}
                                 onClick={() => setSelectedTopicFilter(topicKey)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${isSelected
-                                        ? 'bg-custom-600 text-white shadow-sm'
-                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                    ? 'bg-custom-600 text-white shadow-sm'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                     }`}
                             >
                                 {config.name}
@@ -266,8 +267,8 @@ const Flashcards = ({ decks }) => {
                                             <div
                                                 key={deck.id}
                                                 className={`group relative flex flex-col justify-between border-2 rounded-xl p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${isCompleted
-                                                        ? 'border-emerald-400 dark:border-emerald-600 bg-emerald-50/40 dark:bg-emerald-950/20'
-                                                        : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800/80 hover:border-custom-400 dark:hover:border-custom-500'
+                                                    ? 'border-emerald-400 dark:border-emerald-600 bg-emerald-50/40 dark:bg-emerald-950/20'
+                                                    : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800/80 hover:border-custom-400 dark:hover:border-custom-500'
                                                     }`}
                                             >
                                                 <div>
@@ -297,8 +298,8 @@ const Flashcards = ({ decks }) => {
                                                         <button
                                                             onClick={() => handleAddDeckToSRS(deck)}
                                                             className={`p-2 rounded-lg transition-all ${isAddedToSrs
-                                                                    ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/60 dark:text-amber-300'
-                                                                    : 'text-gray-400 hover:text-amber-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                                ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/60 dark:text-amber-300'
+                                                                : 'text-gray-400 hover:text-amber-500 hover:bg-gray-100 dark:hover:bg-gray-700'
                                                                 }`}
                                                             title="Add entire deck to Spaced Repetition"
                                                         >
@@ -310,10 +311,10 @@ const Flashcards = ({ decks }) => {
                                                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-4 overflow-hidden">
                                                         <div
                                                             className={`h-full transition-all duration-500 rounded-full ${isCompleted
-                                                                    ? 'bg-emerald-500'
-                                                                    : score > 0
-                                                                        ? 'bg-amber-500'
-                                                                        : 'bg-custom-500'
+                                                                ? 'bg-emerald-500'
+                                                                : score > 0
+                                                                    ? 'bg-amber-500'
+                                                                    : 'bg-custom-500'
                                                                 }`}
                                                             style={{ width: `${score}%` }}
                                                         ></div>
